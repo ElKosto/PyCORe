@@ -1,2 +1,2 @@
 # PyCORe
-LLE soliver for python 
+LLE solver for python 
