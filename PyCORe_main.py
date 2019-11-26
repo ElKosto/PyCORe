@@ -45,9 +45,12 @@ class Resonator:
         nmax = simulation_parameters['max_internal_steps']
         detuning = simulation_parameters['detuning_array']
         eps = simulation_parameters['noise_level']
-          
+        ### renarmalization
+        T_rn = (self.kappa/2)*T
+        f0 = self.pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
+        
         noise_const = self.noise(eps) # set the noise level
-        nn = len(dOm)
+        nn = len(detuning)
         
         def disp(field_in,Dint_in):
         # computes the dispersion term in Fourier space
@@ -60,17 +63,18 @@ class Resonator:
             A = -noise_const
             norm = 2*np.pi/len(A)
             A_dir = np.fft.ifft(A)/norm ## in the direct space
-            dAdT =  -1*(self.kappa/2 + 1j*(self.Dint + dOm_curr))*A + 1j*self.gamma*np.fft.fft(A_dir*np.abs(A_dir)**2)*norm + np.sqrt(self.kappa_ex)*self.pump
+            dAdT =  -1*(1 + 1j*(self.Dint + dOm_curr)*2/self.kappa)*A + 1j*np.fft.fft(A_dir*np.abs(A_dir)**2)*norm + f0
+#            dAdT =  -1*(self.kappa/2 + 1j*(self.Dint + dOm_curr))*A + 1j*self.gamma*np.fft.fft(A_dir*np.abs(A_dir)**2)*norm + np.sqrt(self.kappa_ex)*self.pump
             return dAdT
         
-        t_st = float(T)/len(detuning)
+        t_st = float(T_rn)/len(detuning)
         r = complex_ode(LLE_1d).set_integrator('dop853', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
         r.set_initial_value(self.seed, 0)# seed the cavity
         sol = np.ndarray(shape=(len(detuning), len(self.Seed)), dtype='complex') # define an array to store the data
         sol[0,:] = self.Seed
-        printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
+        self.printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
         for it in range(1,len(detuning)):
-            printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
+            self.printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
             dOm_curr = detuning[it] # detuning value
             sol[it] = r.integrate(r.t+t_st)
             
@@ -364,3 +368,5 @@ def Plot_Map(map_data,dt=1,dz=1,colormap = 'cubehelix',z0=0):
 """
 here is a set of useful standard functions
 """
+if __name__ == '__main__':
+    print('Coupled LLe_ frq dep coupling')
