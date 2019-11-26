@@ -30,8 +30,8 @@ class Resonator:
         self.gamma = self.n2*self.w0/c/self.Aeff 
         self.kappa = self.kappa_0 + self.kappa_ex
         self.seed = Seed
-        self.pump = Pump 
-        
+        self.pump = np.sqrt(Pump/(hbar*self.w0))*2*pi
+        self.N_points = len(self.Dint)
 
     def noise(self, a):
         return a*np.exp(1j*np.random.uniform(-1,1,self.N_points)*np.pi)
@@ -70,8 +70,8 @@ class Resonator:
         t_st = float(T_rn)/len(detuning)
         r = complex_ode(LLE_1d).set_integrator('dop853', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
         r.set_initial_value(self.seed, 0)# seed the cavity
-        sol = np.ndarray(shape=(len(detuning), len(self.Seed)), dtype='complex') # define an array to store the data
-        sol[0,:] = self.Seed
+        sol = np.ndarray(shape=(len(detuning), self.N_points), dtype='complex') # define an array to store the data
+        sol[0,:] = self.seed*np.sqrt(2*self.g0/self.kappa)
         self.printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
         for it in range(1,len(detuning)):
             self.printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
@@ -129,7 +129,7 @@ class Resonator:
             return dAdT
         
         r = complex_ode(LLE_1d).set_integrator('dop853', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
-        r.set_initial_value(self.Seed, 0)# seed the cavity
+        r.set_initial_value(self.seed, 0)# seed the cavity
         
         
         img = mpimg.imread('phase_space.png')
@@ -151,12 +151,12 @@ class Resonator:
         
         
         ax2 = plt.subplot(222)
-        line, = plt.plot(abs(self.Seed)**2)
+        line, = plt.plot(abs(self.seed)**2)
         plt.ylim(0,1.1)
         plt.ylabel('$|\Psi|^2$')
         
         ax3 = plt.subplot(224)
-        line2, = plt.semilogy(self.mu, np.abs(np.fft.fft(self.Seed))**2)
+        line2, = plt.semilogy(self.mu, np.abs(np.fft.fft(self.seed))**2)
         plt.ylabel('PSD')
         plt.xlabel('mode number')
         ### widjets
@@ -199,7 +199,7 @@ class Resonator:
             ax3.set_ylim(min(F_sp),max(F_sp))
             plt.pause(1e-10)
         
-    def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+    def printProgressBar (self, iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
         """
         Call in a loop to create terminal progress bar
         @params:
@@ -220,12 +220,12 @@ class Resonator:
         if iteration == total: 
                 print()
                 
-    ### function to seed the soliton
-    def seed_soliton_norm(fast_t, f_pump, detun):
-        stat_roots = np.roots([1, -2*detun, (detun**2+1), -f_pump**2])
-        ind_roots = [np.imag(ii)==0 for ii in stat_roots]
-        B = np.sqrt(2*detun)
-        return np.min(np.abs(stat_roots[ind_roots]))**.5 + B*np.exp(1j*np.arccos(2*B/np.pi/f_pump)*2)*np.cosh(B*fast_t)**-1
+### function to seed the soliton
+def seed_soliton_norm(fast_t, f_pump, detun):
+    stat_roots = np.roots([1, -2*detun, (detun**2+1), -f_pump**2])
+    ind_roots = [np.imag(ii)==0 for ii in stat_roots]
+    B = np.sqrt(2*detun)
+    return np.min(np.abs(stat_roots[ind_roots]))**.5 + B*np.exp(1j*np.arccos(2*B/np.pi/f_pump)*2)*np.cosh(B*fast_t)**-1
 
 
 class CROW(Resonator):
