@@ -4,6 +4,9 @@ from scipy.integrate import complex_ode
 import matplotlib.ticker as ticker
 import matplotlib.colors as mcolors
 from scipy.constants import pi, c, hbar
+from matplotlib.widgets import Slider, Button, TextBox
+from matplotlib.animation import FuncAnimation
+import matplotlib.image as mpimg
 
 
 class Resonator:
@@ -34,13 +37,13 @@ class Resonator:
         return a*np.exp(1j*np.random.uniform(-1,1,self.N_points)*np.pi)
 
     #   Propagate Using the Step Adaptive  Method
-    def Propagate_SAM(self, simulation_param):
+    def Propagate_SAM(self, simulation_parameters):
         T = simulation_parameters['slow_time']
         abtol = simulation_parameters['absolute_tolerance']
         reltol = simulation_parameters['relative_tolerance']
         out_param = simulation_parameters['output']
         nmax = simulation_parameters['max_internal_steps']
-        dOm = simulation_parameters['detuning_array']
+        detuning = simulation_parameters['detuning_array']
         eps = simulation_parameters['noise_level']
           
         noise_const = self.noise(eps) # set the noise level
@@ -54,34 +57,20 @@ class Resonator:
         ### define the rhs function
         def LLE_1d(Z, A):
             # for nomalized
-            if np.size(self.Dint)==1 and self.Dint == 1:
-                A = -noise_const
-                norm = 2*np.pi/len(A)
-                A_dir = np.fft.ifft(A)/norm
-                B_dir = np.fft.ifft(B)/norm
-                dAdz =  -.5*(kappa_0[0]+kappa_ex[0])*A + 1j*(Dint[:,0] + dOm_curr)*A - 1j*gamma*np.fft.fft(A_dir*np.abs(A_dir)**2)*norm - 1j*g*np.exp(-1j*mu*np.pi)*B + np.sqrt(kappa_ex[0])*self.pump
-            elif np.size(self.Dint)==1 and self.Dint == -1:
-                 dAdt2 = deriv_2(self.TimeStep, A)
-                 dAdT =  -1j*dAdt2/2 + 1j*self.gamma*self.L/self.Tr*np.abs(A)**2*A - (self.kappa/2+1j*dOm_curr)*A + np.sqrt(self.kappa/2/self.Tr)*self.Pump
-            else:  
-                # without raman
-                Disp_int = disp(A,self.Dint)
-                if self.Traman==0:
-                    dAdT =  -1j*Disp_int + 1j*self.gamma*self.L/self.Tr*np.abs(A)**2*A - (self.kappa/2+1j*dOm_curr)*A + np.sqrt(self.kappa/2/self.Tr)*self.Pump
-                else:
-                    # with raman
-                    dAAdt = deriv_1(self.TimeStep,abs(A)**2)
-                    dAdT =  -1j*Disp_int + 1j*self.gamma*self.L/self.Tr*np.abs(A)**2*A - (self.kappa/2+1j*dOm_curr)*A -1j*self.gamma*self.Traman*dAAdt*A + np.sqrt(self.kappa/2/self.Tr)*self.Pump
+            A = -noise_const
+            norm = 2*np.pi/len(A)
+            A_dir = np.fft.ifft(A)/norm ## in the direct space
+            dAdT =  -1*(self.kappa/2 + 1j*(self.Dint + dOm_curr))*A + 1j*self.gamma*np.fft.fft(A_dir*np.abs(A_dir)**2)*norm + np.sqrt(self.kappa_ex)*self.pump
             return dAdT
         
         t_st = float(T)/len(detuning)
         r = complex_ode(LLE_1d).set_integrator('dop853', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
-        r.set_initial_value(self.Seed, 0)# seed the cavity
+        r.set_initial_value(self.seed, 0)# seed the cavity
         sol = np.ndarray(shape=(len(detuning), len(self.Seed)), dtype='complex') # define an array to store the data
         sol[0,:] = self.Seed
-        printProgressBar(0, n, prefix = 'Progress:', suffix = 'Complete', length = 50)
+        printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
         for it in range(1,len(detuning)):
-            printProgressBar(it + 1, n, prefix = 'Progress:', suffix = 'Complete', length = 50)
+            printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
             dOm_curr = detuning[it] # detuning value
             sol[it] = r.integrate(r.t+t_st)
             
@@ -205,7 +194,27 @@ class Resonator:
             ax2.set_ylim(0, max(F_mod_sq))
             ax3.set_ylim(min(F_sp),max(F_sp))
             plt.pause(1e-10)
-            
+        
+    def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+        """
+        Call in a loop to create terminal progress bar
+        @params:
+            iteration   - Required  : current iteration (Int)
+            total       - Required  : total iterations (Int)
+            prefix      - Optional  : prefix string (Str)
+            suffix      - Optional  : suffix string (Str)
+            decimals    - Optional  : positive number of decimals in percent complete (Int)
+            length      - Optional  : character length of bar (Int)
+            fill        - Optional  : bar fill character (Str)
+            printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+        """
+        percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+        filledLength = int(length * iteration // total)
+        bar = fill * filledLength + '-' * (length - filledLength)
+        print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end = printEnd)
+        # Print New Line on Complete
+        if iteration == total: 
+                print()
                 
     ### function to seed the soliton
     def seed_soliton_norm(fast_t, f_pump, detun):
@@ -235,7 +244,8 @@ class CROW(Resonator):
             
 class Lattice(Resonator):  
     pass
-            
+
+                
             
 def Plot_Map(map_data,dt=1,dz=1,colormap = 'cubehelix',z0=0):
     def shiftedColorMap(cmap, start=0, midpoint=0.5, stop=1.0, name='shiftedcmap'):
