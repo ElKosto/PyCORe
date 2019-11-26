@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.integrate import complex_ode
+from scipy.integrate import complex_ode,solve_ivp
 import matplotlib.ticker as ticker
 import matplotlib.colors as mcolors
 from scipy.constants import pi, c, hbar
@@ -26,11 +26,11 @@ class Resonator:
         self.Aeff = self.width*self.height 
         self.Leff = c/self.n0*self.Tr 
         self.Veff = self.Aeff*self.Leff 
-        self.g0 = hbar*self.w0*c*self.n2/self.n0**2/self.Veff
-        self.gamma = self.n2*self.w0/c/self.Aeff 
+        self.g0 = hbar*self.w0**2*c*self.n2/self.n0**2/self.Veff
+        self.gamma = self.n2*self.w0/c/self.Aeff
         self.kappa = self.kappa_0 + self.kappa_ex
         self.seed = Seed
-        self.pump = np.sqrt(Pump/(hbar*self.w0))*2*pi
+        self.pump = np.sqrt(Pump/(hbar*self.w0))
         self.N_points = len(self.Dint)
 
     def noise(self, a):
@@ -60,13 +60,10 @@ class Resonator:
             out_field = np.fft.ifft(Dint_in*field_fft)     
             return out_field
         ### define the rhs function
-        def LLE_1d(Z, A):
-            # for nomalized
+        def LLE_1d(Time, A):
             A -= noise_const
-            #norm = 2*np.pi/len(A)
-            norm = 1/len(A)
             A_dir = np.fft.ifft(A)#/norm ## in the direct space
-            dAdT =  -1*(1 + 1j*(self.Dint + dOm_curr)*2/self.kappa)*A + 1j*np.fft.fft(A_dir*np.abs(A_dir)**2)*norm + f0*2*pi/len(A)
+            dAdT =  -1*(1 + 1j*(self.Dint + dOm_curr)*2/self.kappa)*A + 1j*np.fft.fft(A_dir*np.abs(A_dir)**2)*len(A) + f0*len(A)
 #            dAdT =  -1*(self.kappa/2 + 1j*(self.Dint + dOm_curr))*A + 1j*self.gamma*np.fft.fft(A_dir*np.abs(A_dir)**2)*norm + np.sqrt(self.kappa_ex)*self.pump
             return dAdT
         
@@ -131,7 +128,7 @@ class Resonator:
                     dAdT =  -1j*Disp_int + 1j*self.gamma*self.L/self.Tr*np.abs(A)**2*A - (self.kappa/2+1j*dOm_curr)*A -1j*self.gamma*self.Traman*dAAdt*A + np.sqrt(self.kappa/2/self.Tr)*self.Pump*Pump_P**.5
             return dAdT
         
-        r = complex_ode(LLE_1d).set_integrator('dop853', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
+        r = complex_ode(LLE_1d).set_integrator('dopri5', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
         r.set_initial_value(self.seed, 0)# seed the cavity
         
         
