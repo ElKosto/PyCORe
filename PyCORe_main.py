@@ -34,7 +34,8 @@ class Resonator:
         self.N_points = len(self.Dint)
 
     def noise(self, a):
-        return a*np.exp(1j*np.random.uniform(-1,1,self.N_points)*np.pi)
+        #return a*np.exp(1j*np.random.uniform(-1,1,self.N_points)*np.pi)
+        return a*(np.random.uniform(0,1,self.N_points) + 1j*np.random.uniform(0,1,self.N_points))
 
     #   Propagate Using the Step Adaptive  Method
     def Propagate_SAM(self, simulation_parameters):
@@ -48,6 +49,7 @@ class Resonator:
         ### renarmalization
         T_rn = (self.kappa/2)*T
         f0 = self.pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
+        print(f0.max())
         
         noise_const = self.noise(eps) # set the noise level
         nn = len(detuning)
@@ -60,10 +62,11 @@ class Resonator:
         ### define the rhs function
         def LLE_1d(Z, A):
             # for nomalized
-            A = -noise_const
-            norm = 2*np.pi/len(A)
-            A_dir = np.fft.ifft(A)/norm ## in the direct space
-            dAdT =  -1*(1 + 1j*(self.Dint + dOm_curr)*2/self.kappa)*A + 1j*np.fft.fft(A_dir*np.abs(A_dir)**2)*norm + f0
+            A -= noise_const
+            #norm = 2*np.pi/len(A)
+            norm = 1/len(A)
+            A_dir = np.fft.ifft(A)#/norm ## in the direct space
+            dAdT =  -1*(1 + 1j*(self.Dint + dOm_curr)*2/self.kappa)*A + 1j*np.fft.fft(A_dir*np.abs(A_dir)**2)*norm + f0*2*pi/len(A)
 #            dAdT =  -1*(self.kappa/2 + 1j*(self.Dint + dOm_curr))*A + 1j*self.gamma*np.fft.fft(A_dir*np.abs(A_dir)**2)*norm + np.sqrt(self.kappa_ex)*self.pump
             return dAdT
         
@@ -71,7 +74,7 @@ class Resonator:
         r = complex_ode(LLE_1d).set_integrator('dop853', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
         r.set_initial_value(self.seed, 0)# seed the cavity
         sol = np.ndarray(shape=(len(detuning), self.N_points), dtype='complex') # define an array to store the data
-        sol[0,:] = self.seed*np.sqrt(2*self.g0/self.kappa)
+        sol[0,:] = (self.seed)*np.sqrt(2*self.g0/self.kappa)
         self.printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
         for it in range(1,len(detuning)):
             self.printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
