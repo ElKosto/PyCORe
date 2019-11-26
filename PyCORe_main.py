@@ -3,15 +3,29 @@ import numpy as np
 from scipy.integrate import complex_ode
 import matplotlib.ticker as ticker
 import matplotlib.colors as mcolors
-from matplotlib.widgets import Slider, Button, TextBox
-from matplotlib.animation import FuncAnimation
-import matplotlib.image as mpimg
+from scipy.constants import pi, c, hbar
 
 
 class Resonator:
-    def __init__(self, res_param):
-        self.FSR = res_param['FSR']
-        self.n0 = res_param['n0']
+    def __init__(self, PhysicalParameters, SimulationParameters):
+        #Physical parameters initialization
+        self.n0 = PhysicalParameters['n0']
+        self.n2 = PhysicalParameters['n2']
+        self.FSR = PhysicalParameters['FSR']
+        self.w0 = PhysicalParameters['w0']
+        self.width = PhysicalParameters['width']
+        self.height = PhysicalParameters['height']
+        self.kappa_0 = PhysicalParameters['kappa_0']
+        self.kappa_ex = PhysicalParameters['kappa_ex']
+        self.Dint = PhysicalParameters['Dint']
+        #Auxiliary physical parameters
+        self.Tr = 1/self.FSR #round trip time
+        self.Aeff = self.width*self.height 
+        self.Leff = c/self.n0*self.Tr 
+        self.Veff = self.Aeff*self.Leff 
+        self.g0 = hbar*self.w0*c*self.n2/self.n0**2/self.Veff
+        self.gamma = self.n2*self.w0/c/self.Aeff 
+
         self.mu = np.fft.ifftshift(np.arange(-self.N_points/2,self.N_points/2))
         self.Seed =  SeedField
         self.TimeStep = dT
