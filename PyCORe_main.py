@@ -7,7 +7,7 @@ from scipy.constants import pi, c, hbar
 
 
 class Resonator:
-    def __init__(self, PhysicalParameters, SimulationParameters):
+    def __init__(self, PhysicalParameters, Seed, Pump):
         #Physical parameters initialization
         self.n0 = PhysicalParameters['n0']
         self.n2 = PhysicalParameters['n2']
@@ -25,19 +25,10 @@ class Resonator:
         self.Veff = self.Aeff*self.Leff 
         self.g0 = hbar*self.w0*c*self.n2/self.n0**2/self.Veff
         self.gamma = self.n2*self.w0/c/self.Aeff 
-
-        self.mu = np.fft.ifftshift(np.arange(-self.N_points/2,self.N_points/2))
-        self.Seed =  SeedField
-        self.TimeStep = dT
-        self.Dint = Dint
-        self.L = L
-        self.Tr = Tr
-        self.gamma = gamma
-        self.kappa_0 = kappa_0
-        self.kappa_ex = kappa_ex
-        self.kappa = kappa_ex + kappa_0
-        self.Traman = Traman
-        # spectral noise 
+        self.kappa = self.kappa_0 + self.kappa_ex
+        self.seed = Seed
+        self.pump = Pump 
+        
 
     def noise(self, a):
         return a*np.exp(1j*np.random.uniform(-1,1,self.N_points)*np.pi)
