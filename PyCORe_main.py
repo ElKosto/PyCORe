@@ -369,4 +369,5 @@ def Plot_Map(map_data,dt=1,dz=1,colormap = 'cubehelix',z0=0):
 here is a set of useful standard functions
 """
 if __name__ == '__main__':
-    print('Coupled LLe_ frq dep coupling')
+    print('PyCORe')
+    
