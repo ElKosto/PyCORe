@@ -1,10 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import complex_ode
-from scipy.linalg import toeplitz, eigvals,eigh
 import matplotlib.ticker as ticker
 import matplotlib.colors as mcolors
-
+from matplotlib.widgets import Slider, Button, TextBox
+from matplotlib.animation import FuncAnimation
+import matplotlib.image as mpimg
 
 
 class Resonator:
@@ -23,39 +24,37 @@ class Resonator:
         self.kappa = kappa_ex + kappa_0
         self.Traman = Traman
         # spectral noise 
+
     def noise(self, a):
         return a*np.exp(1j*np.random.uniform(-1,1,self.N_points)*np.pi)
 
     #   Propagate Using the Step Adaptive  Method
-    def Propagate_SAM(self, T, detuning, eps=1e-7,n=1000, nmax=1000, abtol=1e-10, reltol=1e-9, out_param='fin_res'):
-#        noise_const = self.noise(eps) # set the noise level
-        def deriv_1(dt, field_in):
-        # computes the first-order derivative of field_in
-            field_fft = np.fft.fft(field_in)
-            omega = 2.*np.pi*np.fft.fftfreq(len(field_in),dt)
-            out_field = np.fft.ifft(-1j*omega*field_fft)
-            return out_field
-        
-        def deriv_2(dt, field_in):
-        # computes the second-order derivative of field_in
-            field_fft = np.fft.fft(field_in)
-            omega = 2.*np.pi*np.fft.fftfreq(len(field_in),dt)
-            field_fft *= -omega**2
-            out_field = np.fft.ifft(field_fft)
-            return out_field 
+    def Propagate_SAM(self, simulation_param):
+        T = simulation_parameters['slow_time']
+        abtol = simulation_parameters['absolute_tolerance']
+        reltol = simulation_parameters['relative_tolerance']
+        out_param = simulation_parameters['output']
+        nmax = simulation_parameters['max_internal_steps']
+        dOm = simulation_parameters['detuning_array']
+        eps = simulation_parameters['noise_level']
+          
+        noise_const = self.noise(eps) # set the noise level
+        nn = len(dOm)
         
         def disp(field_in,Dint_in):
         # computes the dispersion term in Fourier space
             field_fft = np.fft.fft(field_in)
             out_field = np.fft.ifft(Dint_in*field_fft)     
             return out_field
-
         ### define the rhs function
         def LLE_1d(Z, A):
             # for nomalized
             if np.size(self.Dint)==1 and self.Dint == 1:
-                 dAdt2 = deriv_2(self.TimeStep, A)
-                 dAdT =  1j*dAdt2/2 + 1j*self.gamma*self.L/self.Tr*np.abs(A)**2*A - (self.kappa/2+1j*dOm_curr)*A + np.sqrt(self.kappa/2/self.Tr)*self.Pump
+                A = -noise_const
+                norm = 2*np.pi/len(A)
+                A_dir = np.fft.ifft(A)/norm
+                B_dir = np.fft.ifft(B)/norm
+                dAdz =  -.5*(kappa_0[0]+kappa_ex[0])*A + 1j*(Dint[:,0] + dOm_curr)*A - 1j*gamma*np.fft.fft(A_dir*np.abs(A_dir)**2)*norm - 1j*g*np.exp(-1j*mu*np.pi)*B + np.sqrt(kappa_ex[0])*self.pump
             elif np.size(self.Dint)==1 and self.Dint == -1:
                  dAdt2 = deriv_2(self.TimeStep, A)
                  dAdT =  -1j*dAdt2/2 + 1j*self.gamma*self.L/self.Tr*np.abs(A)**2*A - (self.kappa/2+1j*dOm_curr)*A + np.sqrt(self.kappa/2/self.Tr)*self.Pump
