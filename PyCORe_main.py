@@ -8,9 +8,9 @@ import matplotlib.colors as mcolors
 
 
 class Resonator:
-    def __init__(self, PumpField, SeedField, dT, Dint=1., L=1., Tr=1., gamma=1., kappa_0=1., kappa_ex=1., Traman=0):
-        self.Pump = PumpField
-        self.N_points = len(SeedField)
+    def __init__(self, res_param):
+        self.FSR = res_param['FSR']
+        self.n0 = res_param['n0']
         self.mu = np.fft.ifftshift(np.arange(-self.N_points/2,self.N_points/2))
         self.Seed =  SeedField
         self.TimeStep = dT
