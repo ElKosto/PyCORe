@@ -20,7 +20,7 @@ class Resonator:
         self.height = PhysicalParameters['height']
         self.kappa_0 = PhysicalParameters['kappa_0']
         self.kappa_ex = PhysicalParameters['kappa_ex']
-        self.Dint = PhysicalParameters['Dint']
+        self.Dint = np.fft.fftshift(PhysicalParameters['Dint'])
         #Auxiliary physical parameters
         self.Tr = 1/self.FSR #round trip time
         self.Aeff = self.width*self.height 
@@ -49,8 +49,8 @@ class Resonator:
         ### renarmalization
         T_rn = (self.kappa/2)*T
         f0 = self.pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
-        print(f0.max())
-        
+        print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
+        print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
         noise_const = self.noise(eps) # set the noise level
         nn = len(detuning)
         
@@ -62,9 +62,8 @@ class Resonator:
         ### define the rhs function
         def LLE_1d(Time, A):
             A -= noise_const
-            A_dir = np.fft.ifft(A)#/norm ## in the direct space
-            dAdT =  -1*(1 + 1j*(self.Dint + dOm_curr)*2/self.kappa)*A + 1j*np.fft.fft(A_dir*np.abs(A_dir)**2)*len(A) + f0*len(A)
-#            dAdT =  -1*(self.kappa/2 + 1j*(self.Dint + dOm_curr))*A + 1j*self.gamma*np.fft.fft(A_dir*np.abs(A_dir)**2)*norm + np.sqrt(self.kappa_ex)*self.pump
+            A_dir = np.fft.ifft(A)*len(A)## in the direct space
+            dAdT =  -1*(1 + 1j*(self.Dint + dOm_curr)*2/self.kappa)*A + 1j*np.fft.fft(A_dir*np.abs(A_dir)**2)/len(A) + f0#*len(A)
             return dAdT
         
         t_st = float(T_rn)/len(detuning)
