@@ -34,8 +34,8 @@ class Resonator:
         self.N_points = len(self.Dint)
 
     def noise(self, a):
-        #return a*np.exp(1j*np.random.uniform(-1,1,self.N_points)*np.pi)
-        return a*(np.random.uniform(0,1,self.N_points) + 1j*np.random.uniform(0,1,self.N_points))
+#        return a*np.exp(1j*np.random.uniform(-1,1,self.N_points)*np.pi)
+        return a*(np.random.uniform(-1,1,self.N_points) + 1j*np.random.uniform(-1,1,self.N_points))
 
     #   Propagate Using the Step Adaptive  Method
     def Propagate_SAM(self, simulation_parameters):
