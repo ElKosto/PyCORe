@@ -323,8 +323,8 @@ class CROW(Resonator):
         DINT = np.reshape(self.Dint*2/self.kappa,(-1,self.Dint.size))
         self.L = diags(1j*DINT[0],0,dtype=complex)+identity(self.Dint.size,dtype=complex)
         ### coupling
-        np.reshape(self.J*2/self.kappa,(-1,self.Dint.size))
-        self.C = diags(self.J*np.exp(1j*mu*np.pi), 1, dtype=complex) + diags(self.J*np.exp(-1j*mu*np.pi), -1, dtype=complex)
+        JJ = np.reshape(self.J*2/self.kappa,(-1,self.Dint.size))
+        self.C = diags(JJ[0]*np.exp(1j*mu*np.pi), 1, dtype=complex) + diags(JJ[0]*np.exp(-1j*mu*np.pi), -1, dtype=complex)
                 
         def Propagate_SAM(self, simulation_parameters, Seed,Pump):
             start_time = time.time()

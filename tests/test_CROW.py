@@ -20,14 +20,14 @@ nn = 1000
 ramp_stop = 0.99
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
 
-N_crow = 2
+N_crow = 3
 J_0 = 4.5e9*2*np.pi*np.ones_like(Dint_1)
-J = [J_0]
+J = [J_0,J_0]
 delta = 0.1e9*2*np.pi
 kappa_ex_1 = 25e6*2*np.pi,
-kappa_ex = [kappa_ex_1,kappa_ex_1]
+kappa_ex = [kappa_ex_1, 0., kappa_ex_1]
 
-PhysicalParameters = {'J ': J,
+PhysicalParameters = {'J': J,
                       'n0' : 1.9,
                       'n2' : 2.4e-19,### m^2/W
                       'FSR' : 1000e9 ,
