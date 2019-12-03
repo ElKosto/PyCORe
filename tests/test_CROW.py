@@ -7,12 +7,13 @@ import PyCORe_main as pcm
 
 
 Num_of_modes = 64
+N_crow = 3
 
 D2 = 4*0.48e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 D3 = 0
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
 Dint_1 = 2*np.pi*(mu**2*D2/2 + mu**3*D3/6)
-Dint = [Dint_1,Dint_1]
+Dint = [Dint_1,Dint_1,Dint_1]
 
 dNu_ini = -2e8
 dNu_end = 5e8
@@ -20,11 +21,11 @@ nn = 1000
 ramp_stop = 0.99
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
 
-N_crow = 3
+
 J_0 = 4.5e9*2*np.pi*np.ones_like(Dint_1)
 J = [J_0,J_0]
 delta = 0.1e9*2*np.pi
-kappa_ex_1 = 25e6*2*np.pi,
+kappa_ex_1 = 25e6*2*np.pi
 kappa_ex = [kappa_ex_1, 0., kappa_ex_1]
 
 PhysicalParameters = {'J': J,

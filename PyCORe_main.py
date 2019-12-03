@@ -320,8 +320,8 @@ class CROW(Resonator):
         self.N_points = len(self.Dint[0])
         mu = np.fft.fftshift(np.arange(-self.N_points/2, self.N_points/2))
         ### linear part matrix
-        DINT = np.reshape(self.Dint*2/self.kappa,(-1,self.Dint.size))
-        self.L = diags(1j*DINT[0],0,dtype=complex)+identity(self.Dint.size,dtype=complex)
+        DINT = np.multiply(np.array(self.Dint).T,2/np.array(self.kappa_ex)).T
+        self.L = diags(1j*DINT,0,dtype=complex)+identity(self.Dint.size,dtype=complex)
         ### coupling
         JJ = np.reshape(self.J*2/self.kappa,(-1,self.Dint.size))
         self.C = diags(JJ[0]*np.exp(1j*mu*np.pi), 1, dtype=complex) + diags(JJ[0]*np.exp(-1j*mu*np.pi), -1, dtype=complex)
