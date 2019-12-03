@@ -295,21 +295,78 @@ class Resonator:
 
 class CROW(Resonator):
 
-    def __init__(self, dNu, Pavg, Offset=0, NofP=1e4, dT=0.05):
-        self.SpWidth = dNu
-        self.AvgPower = Pavg
-        self.Span = NofP*dT
-        self.TimeStep = dT
-        Rf = np.fft.ifft(np.exp(-1*(np.fft.fftfreq(int(NofP),d=dT))**2/4/((dNu/2)**2/2/np.log(2)))*np.exp(1j*np.random.uniform(-1,1,int(NofP))*np.pi))
-        # Above 4 is for the sqrt of intensity 
-        if Offset == 0:
-            A = np.abs(Rf)**2
-            A = Pavg*A/np.mean(A)
-            Ph = np.angle(Rf)
-            self.Sig = np.sqrt(A)*np.exp(1j*Ph)
-        else:
-            A = Rf*Pavg**.5+Offset
-            self.Sig = A
+    def __init__(self, resonator_parameters):
+        #Physical parameters initialization
+        self.n0 = resonator_parameters['n0']
+        self.n2 = resonator_parameters['n2']
+        self.FSR = resonator_parameters['FSR']
+        self.w0 = resonator_parameters['w0']
+        self.width = resonator_parameters['width']
+        self.height = resonator_parameters['height']
+        self.kappa_0 = resonator_parameters['kappa_0']
+        self.kappa_ex = resonator_parameters['kappa_ex']
+        self.N_CROW = len(self.kappa_ex)
+        self.Dint = np.fft.fftshift(resonator_parameters['Dint'])
+        #Auxiliary physical parameters
+        self.Tr = 1/self.FSR #round trip time
+        self.Aeff = self.width*self.height 
+        self.Leff = c/self.n0*self.Tr 
+        self.Veff = self.Aeff*self.Leff 
+        self.g0 = hbar*self.w0**2*c*self.n2/self.n0**2/self.Veff
+        self.gamma = self.n2*self.w0/c/self.Aeff
+        self.kappa = self.kappa_0 + self.kappa_ex
+        self.N_points = len(self.Dint)
+        mu = np.fft.fftshift(np.arange(-self.N_points/2, self.N_points/2))
+        def func(x, a, b, c, d):
+            return a + x*b + c*x**2/2 + d*x**3/6
+        popt, pcov = curve_fit(func, mu, self.Dint)
+        self.D2 = popt[2]
+        self.D3 = popt[3]
+        
+        def Propagate_SAM(self, simulation_parameters,Seed,Pump):
+            start_time = time.time()
+            pump = np.sqrt(Pump/(hbar*self.w0))
+            seed = Seed*np.sqrt(2*self.g0/self.kappa)
+            T = simulation_parameters['slow_time']
+            abtol = simulation_parameters['absolute_tolerance']
+            reltol = simulation_parameters['relative_tolerance']
+            out_param = simulation_parameters['output']
+            nmax = simulation_parameters['max_internal_steps']
+            detuning = simulation_parameters['detuning_array']
+            eps = simulation_parameters['noise_level']
+            ### renarmalization
+            T_rn = (self.kappa/2)*T
+            f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
+            print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
+            print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
+            noise_const = self.noise(eps) # set the noise level
+            nn = len(detuning)
+            
+            ### define the rhs function
+            def LLE_1d(Time, A):
+                A -= noise_const
+                A_dir = np.fft.ifft(A)*len(A)## in the direct space
+                dAdT =  -1*(1 + 1j*(self.Dint + dOm_curr)*2/self.kappa)*A + 1j*np.fft.fft(A_dir*np.abs(A_dir)**2)/len(A) + f0#*len(A)
+                return dAdT
+            
+            t_st = float(T_rn)/len(detuning)
+            r = complex_ode(LLE_1d).set_integrator('dop853', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
+            r.set_initial_value(seed, 0)# seed the cavity
+            sol = np.ndarray(shape=(len(detuning), self.N_points), dtype='complex') # define an array to store the data
+            sol[0,:] = seed
+            #printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50, fill='elapsed time = ' + str((time.time() - start_time)) + ' s')
+            for it in range(1,len(detuning)):
+                self.printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete,', time='elapsed time = ' + '{:04.1f}'.format(time.time() - start_time) + ' s', length = 50)
+                #self.print('elapsed time = ', (time.time() - start_time))
+                dOm_curr = detuning[it] # detuning value
+                sol[it] = r.integrate(r.t+t_st)
+                
+            if out_param == 'map':
+                return sol
+            elif out_param == 'fin_res':
+                return sol[-1, :] 
+            else:
+                print ('wrong parameter')
             
 class Lattice(Resonator):  
     pass
