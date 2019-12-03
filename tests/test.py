@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
-sys.path.append('C:/Users/tikan/Documents/Python Scripts/PyCORe')
-#sys.path.append('C:/Users/tusnin/Documents/Physics/PhD/epfl/PyCORe')
+#sys.path.append('C:/Users/tikan/Documents/Python Scripts/PyCORe')
+sys.path.append('C:/Users/tusnin/Documents/Physics/PhD/epfl/PyCORe')
 import PyCORe_main as pcm
 
 Num_of_modes = 256
@@ -55,7 +55,7 @@ PhysicalParameters = {'n0' : 1.9,
                       'kappa_ex' : 25e6*2*np.pi,
                       'Dint' : Dint}
 
-simulation_parameters = {'slow_time' : 1e-6,
+simulation_parameters = {'slow_time' : 1e-5,
                          'detuning_array' : dOm,
                          'noise_level' : 1e-3,
                          'output' : 'map',
@@ -74,6 +74,7 @@ Seed = Pump/100000
 single_ring = pcm.Resonator(PhysicalParameters, Seed, Pump)
 
 map2d = single_ring.Propagate_SAM(simulation_parameters)
+#map2d = single_ring.Propagate_SplitStep(simulation_parameters)
 #%%
 plt.figure()
 plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))
