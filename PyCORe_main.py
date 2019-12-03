@@ -7,6 +7,7 @@ from scipy.constants import pi, c, hbar
 from matplotlib.widgets import Slider, Button, TextBox
 from matplotlib.animation import FuncAnimation
 import matplotlib.image as mpimg
+import time
 
 
 class Resonator:
@@ -37,6 +38,8 @@ class Resonator:
 
     #   Propagate Using the Step Adaptive  Method
     def Propagate_SAM(self, simulation_parameters,Seed,Pump):
+        start_time = time.time()
+
         pump = np.sqrt(Pump/(hbar*self.w0))
         seed = Seed*np.sqrt(2*self.g0/self.kappa)
         T = simulation_parameters['slow_time']
@@ -54,11 +57,6 @@ class Resonator:
         noise_const = self.noise(eps) # set the noise level
         nn = len(detuning)
         
-        def disp(field_in,Dint_in):
-        # computes the dispersion term in Fourier space
-            field_fft = np.fft.fft(field_in)
-            out_field = np.fft.ifft(Dint_in*field_fft)     
-            return out_field
         ### define the rhs function
         def LLE_1d(Time, A):
             A -= noise_const
@@ -73,7 +71,7 @@ class Resonator:
         sol[0,:] = seed
         self.printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
         for it in range(1,len(detuning)):
-            self.printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
+            self.printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete,', 'elapsed time = ', (time.time() - start_time), length = 50)
             dOm_curr = detuning[it] # detuning value
             sol[it] = r.integrate(r.t+t_st)
             
@@ -84,50 +82,53 @@ class Resonator:
         else:
             print ('wrong parameter')
        
-        def Propagate_SplitStep(self, simulation_parameters):
-            T = simulation_parameters['slow_time']
-            abtol = simulation_parameters['absolute_tolerance']
-            reltol = simulation_parameters['relative_tolerance']
-            out_param = simulation_parameters['output']
-            nmax = simulation_parameters['max_internal_steps']
-            detuning = simulation_parameters['detuning_array']
-            eps = simulation_parameters['noise_level']
-            ### renarmalization
-            T_rn = (self.kappa/2)*T
-            f0 = self.pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
-            print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
-            print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
-            noise_const = self.noise(eps) # set the noise level
-            nn = len(detuning)
+    def Propagate_SplitStep(self, simulation_parameters, Seed, Pump):
+        start_time = time.time()
+        pump = np.sqrt(Pump/(hbar*self.w0))
+        seed = Seed*np.sqrt(2*self.g0/self.kappa)
+        T = simulation_parameters['slow_time']
+        abtol = simulation_parameters['absolute_tolerance']
+        reltol = simulation_parameters['relative_tolerance']
+        out_param = simulation_parameters['output']
+        nmax = simulation_parameters['max_internal_steps']
+        detuning = simulation_parameters['detuning_array']
+        eps = simulation_parameters['noise_level']
+        ### renarmalization
+        T_rn = (self.kappa/2)*T
+        f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
+        print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
+        print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
+        noise_const = self.noise(eps) # set the noise level
+        nn = len(detuning)
+        
+        t_st = float(T_rn)/len(detuning)
+        dt=1e-3 #t_ph
+        sol = np.ndarray(shape=(len(detuning), self.N_points), dtype='complex') # define an array to store the data
+        sol[0,:] = (seed)
+        self.printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
+        for it in range(1,len(detuning)):
             
-            t_st = float(T_rn)/len(detuning)
-            dt=1e-3
-            sol = np.ndarray(shape=(len(detuning), self.N_points), dtype='complex') # define an array to store the data
-            sol[0,:] = (self.seed)*np.sqrt(2*self.g0/self.kappa)
-            self.printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
-            for it in range(1,len(detuning)):
+            self.printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete,', 'elapsed time = ', (time.time() - start_time), length = 50)
+            dOm_curr = detuning[it] # detuning value
+            t=0
+            buf = sol[it-1]
+            buf-=noise_const
+            while t<t_st:
+                buf_dir = np.fft.ifft(buf)*len(buf)## in the direct space
+                # First step
+                buf =buf + dt*(1j/len(buf)*np.fft.fft(buf_dir*np.abs(buf_dir)**2) + f0)
+                #second step
+                buf = np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) * buf
                 
-                self.printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
-                dOm_curr = detuning[it] # detuning value
-                t=0
-                buf = sol[it-1]
-                buf-=noise_const
-                while t<t_st:
-                    buf_dir = np.fft.ifft(buf)*len(buf)## in the direct space
-                    # First step
-                    buf =buf + dt*(1j/len(buf)*np.fft.fft(buf_dir*np.abs(buf_dir)**2) + f0)
-                    #second step
-                    buf = np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) * buf
-                    
-                    t+=dt
-                sol[it] = buf
-                
-            if out_param == 'map':
-                return sol
-            elif out_param == 'fin_res':
-                return sol[-1, :] 
-            else:
-                print ('wrong parameter')        
+                t+=dt
+            sol[it] = buf
+            
+        if out_param == 'map':
+            return sol
+        elif out_param == 'fin_res':
+            return sol[-1, :] 
+        else:
+            print ('wrong parameter')        
 
     def seed_level (self, pump, detuning):
         f_norm = np.sqrt(pump/(hbar*self.w0))*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
