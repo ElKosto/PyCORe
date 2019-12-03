@@ -7,8 +7,8 @@ from scipy.constants import pi, c, hbar
 from matplotlib.widgets import Slider, Button, TextBox
 from matplotlib.animation import FuncAnimation
 import matplotlib.image as mpimg
+from scipy.optimize import curve_fit
 import time
-
 
 class Resonator:
     def __init__(self, resonator_parameters):
@@ -31,7 +31,13 @@ class Resonator:
         self.gamma = self.n2*self.w0/c/self.Aeff
         self.kappa = self.kappa_0 + self.kappa_ex
         self.N_points = len(self.Dint)
-
+        mu = np.fft.fftshift(np.arange(-self.N_points/2, self.N_points/2))
+        def func(x, a, b, c, d):
+            return a + x*b + c*x**2/2 + d*x**3/6
+        popt, pcov = curve_fit(func, mu, self.Dint)
+        self.D2 = popt[2]
+        self.D3 = popt[3]
+        
     def noise(self, a):
 #        return a*np.exp(1j*np.random.uniform(-1,1,self.N_points)*np.pi)
         return a*(np.random.uniform(-1,1,self.N_points) + 1j*np.random.uniform(-1,1,self.N_points))
@@ -141,13 +147,14 @@ class Resonator:
         return res_seed
     
     def seed_soliton(self, pump, detuning):
-        fast_t = np.linspace(-pi,pi,len(pump))
+        fast_t = np.linspace(-pi,pi,len(pump))*np.sqrt(self.kappa/2/self.D2)
         f_norm = np.sqrt(pump/(hbar*self.w0))*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
         detuning_norm  = detuning*2/self.kappa
         stat_roots = np.roots([1, -2*detuning_norm, (detuning_norm**2+1), -abs(f_norm[0])**2])
+        
         ind_roots = [np.imag(ii)==0 for ii in stat_roots]
         B = np.sqrt(2*detuning_norm)
-        return np.fft.fft(np.min(np.abs(stat_roots[ind_roots]))**.5 + B*np.exp(1j*np.arccos(2*B/np.pi/f_norm)*2)*np.cosh(B*fast_t)**-1)/np.sqrt(2*self.g0/self.kappa)/len(pump)
+        return np.fft.fft(np.min(np.abs(stat_roots[ind_roots]))**.5 + B*np.exp(1j*np.arccos(2*B/np.pi/f_norm[0])*2)*np.cosh(B*fast_t)**-1)/np.sqrt(2*self.g0/self.kappa)/len(pump)
         
         
     def NeverStopSAM (self, T_step, detuning_0=-1, Pump_P=2., nmax=1000, abtol=1e-10, reltol=1e-9, out_param='fin_res'):
