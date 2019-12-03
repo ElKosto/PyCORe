@@ -73,6 +73,7 @@ Seed = Pump/100000
 
 single_ring = pcm.Resonator(PhysicalParameters)
 
+#map2d = single_ring.Propagate_SAM(simulation_parameters, Seed, Pump)
 map2d = single_ring.Propagate_SAM(simulation_parameters, Seed, Pump)
 #%%
 plt.figure()
