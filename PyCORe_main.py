@@ -69,9 +69,10 @@ class Resonator:
         r.set_initial_value(seed, 0)# seed the cavity
         sol = np.ndarray(shape=(len(detuning), self.N_points), dtype='complex') # define an array to store the data
         sol[0,:] = seed
-        self.printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
+        #printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50, fill='elapsed time = ' + str((time.time() - start_time)) + ' s')
         for it in range(1,len(detuning)):
-            self.printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete,', 'elapsed time = ', (time.time() - start_time), length = 50)
+            self.printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete,', time='elapsed time = ' + '{:04.1f}'.format(time.time() - start_time) + ' s', length = 50)
+            #self.print('elapsed time = ', (time.time() - start_time))
             dOm_curr = detuning[it] # detuning value
             sol[it] = r.integrate(r.t+t_st)
             
@@ -108,7 +109,7 @@ class Resonator:
         self.printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
         for it in range(1,len(detuning)):
             
-            self.printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete,', 'elapsed time = ', (time.time() - start_time), length = 50)
+            self.printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete,', time='elapsed time = ' + '{:04.1f}'.format(time.time() - start_time) + ' s', length = 50)
             dOm_curr = detuning[it] # detuning value
             t=0
             buf = sol[it-1]
@@ -263,7 +264,7 @@ class Resonator:
             ax3.set_ylim(min(F_sp),max(F_sp))
             plt.pause(1e-10)
         
-    def printProgressBar (self, iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+    def printProgressBar (self, iteration, total, prefix = '', suffix = '', time = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
         """
         Call in a loop to create terminal progress bar
         @params:
@@ -279,7 +280,7 @@ class Resonator:
         percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
         filledLength = int(length * iteration // total)
         bar = fill * filledLength + '-' * (length - filledLength)
-        print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end = printEnd)
+        print('\r%s |%s| %s%% %s %s' % (prefix, bar, percent, suffix, time), end = printEnd)
         # Print New Line on Complete
         if iteration == total: 
                 print()
