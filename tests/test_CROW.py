@@ -6,7 +6,7 @@ sys.path.append('C:/Users/tikan/Documents/Python Scripts/PyCORe')
 import PyCORe_main as pcm
 
 
-Num_of_modes = 64
+Num_of_modes = 5
 N_crow = 3
 
 D2 = 4*0.48e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
@@ -50,11 +50,11 @@ simulation_parameters = {'slow_time' : 1e-5,
 P0 = 0.004### W
 Pump = np.zeros(len(mu),dtype='complex')
 Pump[0] = P0
+Pump = np.concatenate((Pump,Pump,Pump))
 
-
-Seed = Pump/100000
+Seed = Pump/10000
 
 crow = pcm.CROW(PhysicalParameters)
 
-map2d = crow.Propagate_SAM(simulation_parameters, Seed, Pump)
+map2d = crow.SAM_CROW(simulation_parameters, Seed, Pump)
 #map2d = single_ring.Propagate_SplitStep(simulation_parameters, Seed, Pump)

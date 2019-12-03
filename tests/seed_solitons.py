@@ -49,6 +49,7 @@ simulation_parameters = {'slow_time' : 1e-6,
 P0 = 0.004### W
 Pump = np.zeros(len(mu),dtype='complex')
 Pump[0] = P0
+
 #Pump = np.fft.fftshift(Pump)
 
 

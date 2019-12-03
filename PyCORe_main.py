@@ -320,56 +320,58 @@ class CROW(Resonator):
         self.N_points = len(self.Dint[0])
         mu = np.fft.fftshift(np.arange(-self.N_points/2, self.N_points/2))
         ### linear part matrix
-        DINT = np.multiply(np.array(self.Dint).T,2/np.array(self.kappa_ex)).T
+        DINT = np.reshape(np.multiply(self.Dint.T,2/self.kappa).T,(-1,self.Dint.size))[0]
         self.L = diags(1j*DINT,0,dtype=complex)+identity(self.Dint.size,dtype=complex)
         ### coupling
-        JJ = np.reshape(self.J*2/self.kappa,(-1,self.Dint.size))
-        self.C = diags(JJ[0]*np.exp(1j*mu*np.pi), 1, dtype=complex) + diags(JJ[0]*np.exp(-1j*mu*np.pi), -1, dtype=complex)
+        JJ_up = np.reshape(np.multiply(np.multiply(self.J,np.exp(1j*mu*np.pi)).T,2/self.kappa[1:]).T,(-1,self.Dint.size-self.Dint[0].size))[0]
+        J_down = np.reshape(np.multiply(np.multiply(self.J,np.exp(-1j*mu*np.pi)).T,2/self.kappa[:-1]).T,(-1,self.Dint.size-self.Dint[0].size))[0]
+        self.C = diags(JJ_up, 1, dtype=complex) + diags(J_down, -1, dtype=complex)
+        print(self.C)
                 
-        def Propagate_SAM(self, simulation_parameters, Seed,Pump):
-            start_time = time.time()
-            pump = np.sqrt(Pump/(hbar*self.w0))
-            seed = Seed*np.sqrt(2*self.g0/self.kappa)
-            T = simulation_parameters['slow_time']
-            abtol = simulation_parameters['absolute_tolerance']
-            reltol = simulation_parameters['relative_tolerance']
-            out_param = simulation_parameters['output']
-            nmax = simulation_parameters['max_internal_steps']
-            detuning = simulation_parameters['detuning_array']
-            eps = simulation_parameters['noise_level']
-            ### renarmalization
-            T_rn = (self.kappa/2)*T
-            f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
-            print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
-            print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
-            noise_const = self.noise(eps) # set the noise level
-            nn = len(detuning)
-            
-            ### define the rhs function
-            def LLE_1d(Time, A):
-                A -= noise_const
-                A_dir = np.reshape(np.fft.ifft(np.reshape(A, (-1, self.N_points)),axes=1), (1,-1))*self.N_points# in the direct space
+    def SAM_CROW(self, simulation_parameters, Seed,Pump):
+        start_time = time.time()
+        pump = np.sqrt(Pump/(hbar*self.w0))
+        seed = np.reshape(np.multiply(np.reshape(Seed,(self.N_CROW,-1)).T, np.sqrt(self.g0*2/self.kappa)).T,(-1,self.Dint.size))[0]
+        T = simulation_parameters['slow_time']
+        abtol = simulation_parameters['absolute_tolerance']
+        reltol = simulation_parameters['relative_tolerance']
+        out_param = simulation_parameters['output']
+        nmax = simulation_parameters['max_internal_steps']
+        detuning = simulation_parameters['detuning_array']
+        eps = simulation_parameters['noise_level']
+        ### renarmalization
+        T_rn = (self.kappa/2)*T
+        f0 = np.reshape(np.multiply(np.reshape(pump,(self.N_CROW,-1)).T,np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)).T, (-1,self.Dint.size))[0]
+        print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
+        print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
+        noise_const = self.noise(eps) # set the noise level
+        nn = len(detuning)
+        
+        ### define the rhs function
+        def LLE_1d(Time, A):
+            A -= noise_const
+            A_dir = np.reshape(np.fft.ifft(np.reshape(A, (-1, self.N_points)),axes=1), (1,-1))*self.N_points# in the direct space
 #                dAdT =  -1*(1 + 1j*(self.Dint + dOm_curr)*2/self.kappa)*A + 1j*np.fft.fft(A_dir*np.abs(A_dir)**2)/len(A) + f0
-                dAdT = self.L.dot(A) + dOm_curr*2/self.kappa + self.C.dot(A)+ np.abs(A_dir)**2*A + f0 ### apply repeat to kappa
-                return dAdT
+            dAdT = self.L.dot(A) + dOm_curr*2/self.kappa.dot(A) + self.C.dot(A)+ np.abs(A_dir)**2*A + f0 ### apply repeat to kappa
+            return dAdT
+        
+        t_st = float(T_rn)/len(detuning)
+        r = complex_ode(LLE_1d).set_integrator('dop853', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
+        r.set_initial_value(seed, 0)# seed the cavity
+        sol = np.ndarray(shape=(len(detuning), self.N_points), dtype='complex') # define an array to store the data
+        sol[0,:] = seed
+        #printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50, fill='elapsed time = ' + str((time.time() - start_time)) + ' s')
+        for it in range(1,len(detuning)):
+            self.printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete,', time='elapsed time = ' + '{:04.1f}'.format(time.time() - start_time) + ' s', length = 50)
+            dOm_curr = detuning[it] # detuning value
+            sol[it] = r.integrate(r.t+t_st)
             
-            t_st = float(T_rn)/len(detuning)
-            r = complex_ode(LLE_1d).set_integrator('dop853', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
-            r.set_initial_value(seed, 0)# seed the cavity
-            sol = np.ndarray(shape=(len(detuning), self.N_points), dtype='complex') # define an array to store the data
-            sol[0,:] = seed
-            #printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50, fill='elapsed time = ' + str((time.time() - start_time)) + ' s')
-            for it in range(1,len(detuning)):
-                self.printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete,', time='elapsed time = ' + '{:04.1f}'.format(time.time() - start_time) + ' s', length = 50)
-                dOm_curr = detuning[it] # detuning value
-                sol[it] = r.integrate(r.t+t_st)
-                
-            if out_param == 'map':
-                return sol
-            elif out_param == 'fin_res':
-                return sol[-1, :] 
-            else:
-                print ('wrong parameter')
+        if out_param == 'map':
+            return sol
+        elif out_param == 'fin_res':
+            return sol[-1, :] 
+        else:
+            print ('wrong parameter')
             
 class Lattice(Resonator):  
     pass
