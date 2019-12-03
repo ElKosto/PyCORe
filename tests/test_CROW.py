@@ -21,10 +21,11 @@ ramp_stop = 0.99
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
 
 N_crow = 2
-J = 4.5e9*2*np.pi
+J_0 = 4.5e9*2*np.pi*np.ones_like(Dint_1)
+J = [J_0]
 delta = 0.1e9*2*np.pi
 kappa_ex_1 = 25e6*2*np.pi,
-kappa_ex = np.array([kappa_ex_1,kappa_ex_1])
+kappa_ex = [kappa_ex_1,kappa_ex_1]
 
 PhysicalParameters = {'J ': J,
                       'n0' : 1.9,
@@ -52,7 +53,7 @@ Pump[0] = P0
 
 Seed = Pump/100000
 
-single_ring = pcm.CROW(PhysicalParameters)
+crow = pcm.CROW(PhysicalParameters)
 
-map2d = single_ring.Propagate_SAM(simulation_parameters, Seed, Pump)
+map2d = crow.Propagate_SAM(simulation_parameters, Seed, Pump)
 #map2d = single_ring.Propagate_SplitStep(simulation_parameters, Seed, Pump)

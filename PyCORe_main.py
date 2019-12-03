@@ -9,6 +9,7 @@ from matplotlib.animation import FuncAnimation
 import matplotlib.image as mpimg
 from scipy.optimize import curve_fit
 import time
+from scipy.sparse import block_diag,identity,diags
 
 class Resonator:
     def __init__(self, resonator_parameters):
@@ -298,15 +299,16 @@ class CROW(Resonator):
     def __init__(self, resonator_parameters):
         #Physical parameters initialization
         self.n0 = resonator_parameters['n0']
+        self.J = np.array(resonator_parameters['J'])
         self.n2 = resonator_parameters['n2']
         self.FSR = resonator_parameters['FSR']
         self.w0 = resonator_parameters['w0']
         self.width = resonator_parameters['width']
         self.height = resonator_parameters['height']
         self.kappa_0 = resonator_parameters['kappa_0']
-        self.kappa_ex = resonator_parameters['kappa_ex']
+        self.kappa_ex = np.array(resonator_parameters['kappa_ex'])
         self.N_CROW = len(self.kappa_ex)
-        self.Dint = np.fft.fftshift(resonator_parameters['Dint'])
+        self.Dint = np.fft.fftshift(np.array(resonator_parameters['Dint']),axes=1)
         #Auxiliary physical parameters
         self.Tr = 1/self.FSR #round trip time
         self.Aeff = self.width*self.height 
@@ -315,15 +317,16 @@ class CROW(Resonator):
         self.g0 = hbar*self.w0**2*c*self.n2/self.n0**2/self.Veff
         self.gamma = self.n2*self.w0/c/self.Aeff
         self.kappa = self.kappa_0 + self.kappa_ex
-        self.N_points = len(self.Dint)
+        self.N_points = len(self.Dint[0])
         mu = np.fft.fftshift(np.arange(-self.N_points/2, self.N_points/2))
-        def func(x, a, b, c, d):
-            return a + x*b + c*x**2/2 + d*x**3/6
-        popt, pcov = curve_fit(func, mu, self.Dint)
-        self.D2 = popt[2]
-        self.D3 = popt[3]
-        
-        def Propagate_SAM(self, simulation_parameters,Seed,Pump):
+        ### linear part matrix
+        DINT = np.reshape(self.Dint*2/self.kappa,(-1,self.Dint.size))
+        self.L = diags(1j*DINT[0],0,dtype=complex)+identity(self.Dint.size,dtype=complex)
+        ### coupling
+        np.reshape(self.J*2/self.kappa,(-1,self.Dint.size))
+        self.C = diags(self.J*np.exp(1j*mu*np.pi), 1, dtype=complex) + diags(self.J*np.exp(-1j*mu*np.pi), -1, dtype=complex)
+                
+        def Propagate_SAM(self, simulation_parameters, Seed,Pump):
             start_time = time.time()
             pump = np.sqrt(Pump/(hbar*self.w0))
             seed = Seed*np.sqrt(2*self.g0/self.kappa)
@@ -345,8 +348,9 @@ class CROW(Resonator):
             ### define the rhs function
             def LLE_1d(Time, A):
                 A -= noise_const
-                A_dir = np.fft.ifft(A)*len(A)## in the direct space
-                dAdT =  -1*(1 + 1j*(self.Dint + dOm_curr)*2/self.kappa)*A + 1j*np.fft.fft(A_dir*np.abs(A_dir)**2)/len(A) + f0#*len(A)
+                A_dir = np.reshape(np.fft.ifft(np.reshape(A, (-1, self.N_points)),axes=1), (1,-1))*self.N_points# in the direct space
+#                dAdT =  -1*(1 + 1j*(self.Dint + dOm_curr)*2/self.kappa)*A + 1j*np.fft.fft(A_dir*np.abs(A_dir)**2)/len(A) + f0
+                dAdT = self.L.dot(A) + dOm_curr*2/self.kappa + self.C.dot(A)+ np.abs(A_dir)**2*A + f0 ### apply repeat to kappa
                 return dAdT
             
             t_st = float(T_rn)/len(detuning)
@@ -357,7 +361,6 @@ class CROW(Resonator):
             #printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50, fill='elapsed time = ' + str((time.time() - start_time)) + ' s')
             for it in range(1,len(detuning)):
                 self.printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete,', time='elapsed time = ' + '{:04.1f}'.format(time.time() - start_time) + ' s', length = 50)
-                #self.print('elapsed time = ', (time.time() - start_time))
                 dOm_curr = detuning[it] # detuning value
                 sol[it] = r.integrate(r.t+t_st)
                 
