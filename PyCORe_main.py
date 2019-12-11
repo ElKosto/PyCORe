@@ -56,19 +56,24 @@ class Resonator:
         nmax = simulation_parameters['max_internal_steps']
         detuning = simulation_parameters['detuning_array']
         eps = simulation_parameters['noise_level']
+        coupling = simulation_parameters['coupling_strength']
+        s = simulation_parameters['coupling_distance']
         ### renarmalization
         T_rn = (self.kappa/2)*T
+        J = coupling*2/self.kappa
         f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
         print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
         print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
         noise_const = self.noise(eps) # set the noise level
         nn = len(detuning)
+        mu = np.fft.fftshift(np.arange(-self.N_points/2, self.N_points/2,dtype=int))
         
         ### define the rhs function
         def LLE_1d(Time, A):
             A -= noise_const
             A_dir = np.fft.ifft(A)*len(A)## in the direct space
             dAdT =  -1*(1 + 1j*(self.Dint + dOm_curr)*2/self.kappa)*A + 1j*np.fft.fft(A_dir*np.abs(A_dir)**2)/len(A) + f0#*len(A)
+            dAdT[mu] +=  1j*J/2*(A[mu+s]*np.exp(-1j/2*self.D2*s*(2*mu+s)*Time ) + A[mu-s]*np.exp(1j/2*self.D2*s*(2*mu-s)*Time ))
             return dAdT
         
         t_st = float(T_rn)/len(detuning)
@@ -101,13 +106,17 @@ class Resonator:
         nmax = simulation_parameters['max_internal_steps']
         detuning = simulation_parameters['detuning_array']
         eps = simulation_parameters['noise_level']
+        coupling = simulation_parameters['coupling_strength']
+        s = simulation_parameters['coupling_distance']
         ### renarmalization
+        J = coupling*2/self.kappa
         T_rn = (self.kappa/2)*T
         f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
         print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
         print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
         noise_const = self.noise(eps) # set the noise level
         nn = len(detuning)
+        mu = np.fft.fftshift(np.arange(-self.N_points/2, self.N_points/2,dtype=int))
         
         t_st = float(T_rn)/len(detuning)
         dt=1e-3 #t_ph
@@ -125,6 +134,8 @@ class Resonator:
                 buf_dir = np.fft.ifft(buf)*len(buf)## in the direct space
                 # First step
                 buf =buf + dt*(1j/len(buf)*np.fft.fft(buf_dir*np.abs(buf_dir)**2) + f0)
+                buf +=dt*1j*J/2*(buf[mu+s]*np.exp(-1j/2*self.D2*s*(2*mu+s)*t ) + buf[mu-s]*np.exp(1j/2*self.D2*s*(2*mu-s)*t ))
+                #buf += dt*1j*J/2*(buf[mu+s]*np.exp(-1j/2*self.D2*s*(2*mu+s)*t ) + buf[mu-s]*np.exp(1j/2*self.D2*s*(2*mu-s)*t ))
                 #second step
                 buf = np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) * buf
                 
