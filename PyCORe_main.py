@@ -69,7 +69,7 @@ class Resonator:
         nn = len(detuning)
         ### define the rhs function
         def LLE_1d(Time, A):
-            A -= noise_const
+            A = A - noise_const#self.noise(eps)
             A_dir = np.fft.ifft(A)*len(A)## in the direct space
             dAdT =  -1*(1 + 1j*(self.Dint + dOm_curr)*2/self.kappa)*A + 1j*np.fft.fft(A_dir*np.abs(A_dir)**2)/len(A) + f0#*len(A)
             return dAdT
@@ -93,12 +93,13 @@ class Resonator:
         else:
             print ('wrong parameter')
        
-    def Propagate_SplitStep(self, simulation_parameters, Pump, Seed=[0]):
+    def Propagate_SplitStep(self, simulation_parameters, Pump, Seed=[0], dt=1e-4):
         start_time = time.time()
         T = simulation_parameters['slow_time']
         out_param = simulation_parameters['output']
         detuning = simulation_parameters['detuning_array']
         eps = simulation_parameters['noise_level']
+        #dt = simulation_parameters['time_step']#in photon lifetimes
         
         pump = Pump*np.sqrt(1./(hbar*self.w0))
         if Seed[0] == 0:
@@ -114,7 +115,8 @@ class Resonator:
         nn = len(detuning)
         
         t_st = float(T_rn)/len(detuning)
-        dt=1e-3 #t_ph
+        #dt=1e-4 #t_ph
+        
         sol = np.ndarray(shape=(len(detuning), self.N_points), dtype='complex') # define an array to store the data
         sol[0,:] = (seed)
         self.printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
