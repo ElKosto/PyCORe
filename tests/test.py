@@ -58,7 +58,7 @@ PhysicalParameters = {'n0' : 1.9,
                       'kappa_ex' : 25e6*2*np.pi,
                       'Dint' : Dint}
 
-simulation_parameters = {'slow_time' : 1e-5,
+simulation_parameters = {'slow_time' : 1e-6,
                          'detuning_array' : dOm,
                          'noise_level' : 1e-3,
                          'output' : 'map',
@@ -77,7 +77,7 @@ Seed = Pump/100000
 single_ring = pcm.Resonator(PhysicalParameters)
 
 #map2d = single_ring.Propagate_SAM(simulation_parameters, Seed, Pump)
-map2d = single_ring.Propagate_SplitStep(simulation_parameters, Seed, Pump)
+map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump)
 #%%
 plt.figure()
 plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))

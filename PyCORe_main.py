@@ -22,7 +22,7 @@ class Resonator:
         self.height = resonator_parameters['height']
         self.kappa_0 = resonator_parameters['kappa_0']
         self.kappa_ex = resonator_parameters['kappa_ex']
-        self.Dint = np.fft.fftshift(resonator_parameters['Dint'])
+        self.Dint = np.fft.ifftshift(resonator_parameters['Dint'])
         #Auxiliary physical parameters
         self.Tr = 1/self.FSR #round trip time
         self.Aeff = self.width*self.height 
@@ -44,11 +44,9 @@ class Resonator:
         return a*(np.random.uniform(-1,1,self.N_points) + 1j*np.random.uniform(-1,1,self.N_points))
 
     #   Propagate Using the Step Adaptive  Method
-    def Propagate_SAM(self, simulation_parameters,Seed,Pump):
+    def Propagate_SAM(self, simulation_parameters, Pump, Seed=[0]):
         start_time = time.time()
 
-        pump = np.sqrt(Pump/(hbar*self.w0))
-        seed = Seed*np.sqrt(2*self.g0/self.kappa)
         T = simulation_parameters['slow_time']
         abtol = simulation_parameters['absolute_tolerance']
         reltol = simulation_parameters['relative_tolerance']
@@ -56,6 +54,12 @@ class Resonator:
         nmax = simulation_parameters['max_internal_steps']
         detuning = simulation_parameters['detuning_array']
         eps = simulation_parameters['noise_level']
+        
+        pump = Pump*np.sqrt(1./(hbar*self.w0))
+        if Seed[0] == 0:
+            seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa)
+        else:
+            seed = Seed*np.sqrt(2*self.g0/self.kappa)
         ### renarmalization
         T_rn = (self.kappa/2)*T
         f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
@@ -63,7 +67,6 @@ class Resonator:
         print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
         noise_const = self.noise(eps) # set the noise level
         nn = len(detuning)
-        
         ### define the rhs function
         def LLE_1d(Time, A):
             A -= noise_const
@@ -90,17 +93,18 @@ class Resonator:
         else:
             print ('wrong parameter')
        
-    def Propagate_SplitStep(self, simulation_parameters, Seed, Pump):
+    def Propagate_SplitStep(self, simulation_parameters, Pump, Seed=[0]):
         start_time = time.time()
-        pump = np.sqrt(Pump/(hbar*self.w0))
-        seed = Seed*np.sqrt(2*self.g0/self.kappa)
         T = simulation_parameters['slow_time']
-        abtol = simulation_parameters['absolute_tolerance']
-        reltol = simulation_parameters['relative_tolerance']
         out_param = simulation_parameters['output']
-        nmax = simulation_parameters['max_internal_steps']
         detuning = simulation_parameters['detuning_array']
         eps = simulation_parameters['noise_level']
+        
+        pump = Pump*np.sqrt(1./(hbar*self.w0))
+        if Seed[0] == 0:
+            seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa)
+        else:
+            seed = Seed*np.sqrt(2*self.g0/self.kappa)
         ### renarmalization
         T_rn = (self.kappa/2)*T
         f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
@@ -139,7 +143,7 @@ class Resonator:
             print ('wrong parameter')        
 
     def seed_level (self, pump, detuning):
-        f_norm = np.sqrt(pump/(hbar*self.w0))*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
+        f_norm = pump*np.sqrt(1./(hbar*self.w0))*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
         detuning_norm  = detuning*2/self.kappa
         stat_roots = np.roots([1, -2*detuning_norm, (detuning_norm**2+1), -abs(f_norm[0])**2])
         ind_roots = [np.imag(ii)==0 for ii in stat_roots]

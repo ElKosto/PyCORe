@@ -28,7 +28,7 @@ Dint[133] = Dint[133]+0
 #gamma = 0.000032 # n2*2*np.pi*f_pump/c/Aeff
 
 dNu_ini = -5e8
-dNu_end = 5e8
+dNu_end = 25e8
 nn = 1000
 ramp_stop = 0.99
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
@@ -44,7 +44,7 @@ resonator_parameters = {'n0' : 1.9,
                       'kappa_ex' : 150e6*2*np.pi,
                       'Dint' : Dint}
 
-simulation_parameters = {'slow_time' : 1e-6,
+simulation_parameters = {'slow_time' : 1e-7,
                          'detuning_array' : dOm,
                          'noise_level' : 1e-3,
                          'output' : 'map',
@@ -53,21 +53,24 @@ simulation_parameters = {'slow_time' : 1e-6,
                          'max_internal_steps' : 2000}
 
 
-P0 = 10.### W
-tt = np.linspace(-1./28e9/2, 1./28e9/2, Num_of_modes)/1e-12
+P0 = 40### W
+tt = np.linspace(0, 1./28e9, Num_of_modes)/1e-12
  
-Pump = np.fft.fft(P0*np.exp(-tt**2/.5**2/2))/Num_of_modes#np.zeros(len(mu),dtype='complex')
+Pump = np.fft.fft(np.sqrt(P0)*np.exp(-tt**2/5.5**2/2))/Num_of_modes#np.zeros(len(mu),dtype='complex')
 #Pump[0] = P0
-
 #Pump = np.fft.fftshift(Pump)
-
-
+#
+#plt.figure()
+#plt.plot(np.real(Pump))
+#plt.plot(np.imag(Pump))
+#plt.plot(np.abs(Pump))
+#plt.plot(np.angle(Pump))
 
 single_ring = pcm.Resonator(resonator_parameters)
 
-Seed =  Pump/1000#single_ring.seed_soliton(Pump, dOm[0])#single_ring.seed_level(Pump, dOm[0])#
+Seed =  Pump/1000000#single_ring.seed_soliton(Pump, dOm[0])#single_ring.seed_level(Pump, dOm[0])#
 #%%
-map2d = single_ring.Propagate_SplitStep(simulation_parameters, Seed, Pump)
+map2d = single_ring.Propagate_SAM(simulation_parameters,Pump)
 #%%
 plt.figure()
 plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))
