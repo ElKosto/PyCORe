@@ -93,7 +93,7 @@ class Resonator:
         else:
             print ('wrong parameter')
        
-    def Propagate_SplitStep(self, simulation_parameters, Pump, Seed=[0], dt=1e-4):
+    def Propagate_SplitStep(self, simulation_parameters, Pump, Seed=[0], dt=1e-3):
         start_time = time.time()
         T = simulation_parameters['slow_time']
         out_param = simulation_parameters['output']
@@ -323,21 +323,24 @@ class CROW(Resonator):
         self.g0 = hbar*self.w0**2*c*self.n2/self.n0**2/self.Veff
         self.gamma = self.n2*self.w0/c/self.Aeff
         self.kappa = self.kappa_0 + self.kappa_ex
+        self.kappa_max = np.max(self.kappa)
         self.N_points = len(self.Dint[0])
         mu = np.fft.fftshift(np.arange(-self.N_points/2, self.N_points/2))
         ### linear part matrix
-        DINT = np.reshape(np.multiply(self.Dint.T,2/self.kappa).T,(-1,self.Dint.size))[0]
-        self.L = diags(1j*DINT,0,dtype=complex)+identity(self.Dint.size,dtype=complex)
+        DINT = np.reshape(np.multiply(self.Dint.T,2/self.kappa_max).T,(-1,self.Dint.size))[0]
+        KAPPA = np.reshape(np.multiply(self.kappa.T,2/self.kappa_max).T,(-1,self.kappa.size))[0]
+        self.L = diags(1j*DINT,0,dtype=complex) + diags(KAPPA,0,dtype=complex)#+identity(self.Dint.size,dtype=complex)
         ### coupling
-        JJ_up = np.reshape(np.multiply(np.multiply(self.J,np.exp(1j*mu*np.pi)).T,2/self.kappa[1:]).T,(-1,self.Dint.size-self.Dint[0].size))[0]
-        J_down = np.reshape(np.multiply(np.multiply(self.J,np.exp(-1j*mu*np.pi)).T,2/self.kappa[:-1]).T,(-1,self.Dint.size-self.Dint[0].size))[0]
-        self.C = diags(JJ_up, 1, dtype=complex) + diags(J_down, -1, dtype=complex)
-        print(self.C)
-                
-    def SAM_CROW(self, simulation_parameters, Seed,Pump):
+        JJ_up = np.reshape(np.multiply(self.J,np.exp(1j*mu*np.pi)).T*2/self.kappa_max,(-1,self.Dint.size-self.Dint[0].size))[0]
+        J_down = np.reshape(np.multiply(self.J,np.exp(-1j*mu*np.pi))*2/self.kappa_max,(-1,self.Dint.size-self.Dint[0].size))[0]
+        self.C = diags(JJ_up, self.N_points, dtype=complex) + diags(J_down, -1*self.N_points, dtype=complex)
+#        print(self.C)
+    def noise_CROW (self, a):
+        return a*(np.random.uniform(-1,1,self.N_points*self.N_CROW) + 1j*np.random.uniform(-1,1,self.N_points*self.N_CROW))
+    def SAM_CROW(self, simulation_parameters, Pump, Seed):
         start_time = time.time()
-        pump = np.sqrt(Pump/(hbar*self.w0))
-        seed = np.reshape(np.multiply(np.reshape(Seed,(self.N_CROW,-1)).T, np.sqrt(self.g0*2/self.kappa)).T,(-1,self.Dint.size))[0]
+        pump = Pump*np.sqrt(1./(hbar*self.w0))
+        seed = np.reshape(Seed*np.sqrt(self.g0*2/self.kappa_max),(-1,self.Dint.size))[0]
         T = simulation_parameters['slow_time']
         abtol = simulation_parameters['absolute_tolerance']
         reltol = simulation_parameters['relative_tolerance']
@@ -346,25 +349,26 @@ class CROW(Resonator):
         detuning = simulation_parameters['detuning_array']
         eps = simulation_parameters['noise_level']
         ### renarmalization
-        T_rn = (self.kappa/2)*T
-        f0 = np.reshape(np.multiply(np.reshape(pump,(self.N_CROW,-1)).T,np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)).T, (-1,self.Dint.size))[0]
+        T_rn = (self.kappa_max/2)*T
+        f0 = np.multiply(pump.T, np.reshape(np.sqrt(8*self.g0*self.kappa_ex/self.kappa_max**3), (-1,self.Dint.size))[0] )
         print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
-        print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
-        noise_const = self.noise(eps) # set the noise level
+        print('xi [' + str(detuning[0]*2/self.kappa_max) + ',' +str(detuning[-1]*2/self.kappa_max)+ ']')
+        noise_const = self.noise_CROW(eps) # set the noise level
         nn = len(detuning)
         
         ### define the rhs function
         def LLE_1d(Time, A):
             A -= noise_const
-            A_dir = np.reshape(np.fft.ifft(np.reshape(A, (-1, self.N_points)),axes=1), (1,-1))*self.N_points# in the direct space
-#                dAdT =  -1*(1 + 1j*(self.Dint + dOm_curr)*2/self.kappa)*A + 1j*np.fft.fft(A_dir*np.abs(A_dir)**2)/len(A) + f0
-            dAdT = self.L.dot(A) + dOm_curr*2/self.kappa.dot(A) + self.C.dot(A)+ np.abs(A_dir)**2*A + f0 ### apply repeat to kappa
+            A_dir = np.fft.ifft(np.reshape(A, (-1, self.N_points)),axis=1)*self.N_points# in the direct spaces
+            dAdT = -1*(self.L.dot(A) + 1j*dOm_curr*2/self.kappa_max*A) + self.C.dot(A)+ f0 
+            dAdT += 1j*np.reshape(np.fft.fft(np.abs(A_dir)**2*A_dir,axis=1), (-1,1))[0]/self.N_points  ### apply repeat to kappa
             return dAdT
         
         t_st = float(T_rn)/len(detuning)
+        print(t_st)
         r = complex_ode(LLE_1d).set_integrator('dop853', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
         r.set_initial_value(seed, 0)# seed the cavity
-        sol = np.ndarray(shape=(len(detuning), self.N_points), dtype='complex') # define an array to store the data
+        sol = np.ndarray(shape=(len(detuning), self.N_points*self.N_CROW), dtype='complex') # define an array to store the data
         sol[0,:] = seed
         #printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50, fill='elapsed time = ' + str((time.time() - start_time)) + ' s')
         for it in range(1,len(detuning)):

@@ -48,7 +48,7 @@ simulation_parameters = {'slow_time' : 1e-6,
 
 P0 = 0.004### W
 Pump = np.zeros(len(mu),dtype='complex')
-Pump[0] = P0
+Pump[0] = np.sqrt(P0)
 
 #Pump = np.fft.fftshift(Pump)
 
@@ -56,9 +56,9 @@ Pump[0] = P0
 
 single_ring = pcm.Resonator(resonator_parameters)
 
-Seed =  single_ring.seed_soliton(Pump, dOm[0])#single_ring.seed_level(Pump, dOm[0])#
+Seed =  single_ring.seed_soliton(Pump**2, dOm[0])#single_ring.seed_level(Pump, dOm[0])#
 
-map2d = single_ring.Propagate_SAM(simulation_parameters, Seed, Pump)
+map2d = single_ring.Propagate_SAM(simulation_parameters, Pump, Seed)
 #%%
 plt.figure()
 plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))

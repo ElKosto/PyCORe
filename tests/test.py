@@ -4,28 +4,17 @@ import sys
 #sys.path.append('C:/Users/tikan/Documents/Python Scripts/PyCORe')
 sys.path.append('C:/Users/tusnin/Documents/Physics/PhD/epfl/PyCORe')
 import PyCORe_main as pcm
-import time
 
-
-
-Num_of_modes = 512
-#Tr = 1./18.2e9#2*np.pi*R*c/n0
-#L = 11.9e-3#c/n0*Tr#
-###dispersion
-#D1 = 2*np.pi*1/Tr
-#beta2 = -13e-27
-D2 = 4*0.48e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
+Num_of_modes = 512/4
+D2 = 4e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 D3 = 0
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
 Dint = 2*np.pi*(mu**2*D2/2 + mu**3*D3/6)
-Dint[133] = Dint[133]+500e6
-#k = 1.75e-5/Tr  #(alpha+theta_ex)/2
-#alpha = 1.75e-5
-#gamma = 0.000032 # n2*2*np.pi*f_pump/c/Aeff
+Dint[33] = Dint[33]#+500e6
 
-dNu_ini = -2e8
+dNu_ini = -1e8
 dNu_end = 5e8
-nn = 1000
+nn = 4000
 ramp_stop = 0.99
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
 
@@ -58,9 +47,9 @@ PhysicalParameters = {'n0' : 1.9,
                       'kappa_ex' : 25e6*2*np.pi,
                       'Dint' : Dint}
 
-simulation_parameters = {'slow_time' : 1e-6,
+simulation_parameters = {'slow_time' : 4e-6,
                          'detuning_array' : dOm,
-                         'noise_level' : 1e-3,
+                         'noise_level' : 1e-8,
                          'output' : 'map',
                          'absolute_tolerance' : 1e-9,
                          'relative_tolerance' : 1e-9,
@@ -69,7 +58,7 @@ simulation_parameters = {'slow_time' : 1e-6,
 
 P0 = 0.004### W
 Pump = np.zeros(len(mu),dtype='complex')
-Pump[0] = P0
+Pump[0] = np.sqrt(P0)
 #Pump = np.fft.fftshift(Pump)
 
 Seed = Pump/100000
