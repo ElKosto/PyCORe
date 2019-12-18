@@ -93,7 +93,7 @@ class Resonator:
         else:
             print ('wrong parameter')
        
-    def Propagate_SplitStep(self, simulation_parameters, Pump, Seed=[0], dt=1e-3):
+    def Propagate_SplitStep(self, simulation_parameters, Pump, Seed=[0], dt=1e-5):
         start_time = time.time()
         T = simulation_parameters['slow_time']
         out_param = simulation_parameters['output']

@@ -5,7 +5,7 @@ import sys
 sys.path.append('C:/Users/tusnin/Documents/Physics/PhD/epfl/PyCORe')
 import PyCORe_main as pcm
 
-Num_of_modes = 512/4
+Num_of_modes = 512
 D2 = 4e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 D3 = 0
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
@@ -51,8 +51,8 @@ simulation_parameters = {'slow_time' : 4e-6,
                          'detuning_array' : dOm,
                          'noise_level' : 1e-8,
                          'output' : 'map',
-                         'absolute_tolerance' : 1e-9,
-                         'relative_tolerance' : 1e-9,
+                         'absolute_tolerance' : 1e-8,
+                         'relative_tolerance' : 1e-8,
                          'max_internal_steps' : 2000}
 
 
