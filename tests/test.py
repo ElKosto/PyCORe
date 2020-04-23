@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
-#sys.path.append('C:/Users/tikan/Documents/Python Scripts/PyCORe')
-sys.path.append('C:/Users/tusnin/Documents/Physics/PhD/epfl/PyCORe')
+sys.path.append('C:/Users/tikan/Documents/Python Scripts/PyCORe')
+#sys.path.append('C:/Users/tusnin/Documents/Physics/PhD/epfl/PyCORe')
 import PyCORe_main as pcm
 
 Num_of_modes = 512
@@ -12,7 +12,7 @@ mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
 Dint = 2*np.pi*(mu**2*D2/2 + mu**3*D3/6)
 Dint[33] = Dint[33]#+500e6
 
-dNu_ini = -1e8
+dNu_ini = -2e8
 dNu_end = 5e8
 nn = 4000
 ramp_stop = 0.99
@@ -47,7 +47,7 @@ PhysicalParameters = {'n0' : 1.9,
                       'kappa_ex' : 25e6*2*np.pi,
                       'Dint' : Dint}
 
-simulation_parameters = {'slow_time' : 4e-6,
+simulation_parameters = {'slow_time' : 1e-6,
                          'detuning_array' : dOm,
                          'noise_level' : 1e-8,
                          'output' : 'map',
@@ -65,7 +65,7 @@ Seed = Pump/100000
 
 single_ring = pcm.Resonator(PhysicalParameters)
 
-#map2d = single_ring.Propagate_SAM(simulation_parameters, Seed, Pump)
+#map2d = single_ring.Propagate_SAM(simulation_parameters, Pump)
 map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump)
 #%%
 plt.figure()
