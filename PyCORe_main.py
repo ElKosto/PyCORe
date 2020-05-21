@@ -9,6 +9,7 @@ from matplotlib.animation import FuncAnimation
 import matplotlib.image as mpimg
 from scipy.optimize import curve_fit
 import time
+import os
 from scipy.sparse import block_diag,identity,diags
 import ctypes
 
@@ -181,7 +182,7 @@ class Resonator:
         sol[0,:] = (seed)
         
         #%% crtypes defyning
-        LLE_core = ctypes.CDLL('/home/tusnin/Documents/PyCORe/lib/lib_lle_core.so')
+        LLE_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_lle_core.so')
         LLE_core.PropagateSS.restype = ctypes.c_void_p
         #%% defining the ctypes variables
         

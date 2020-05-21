@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import sys
-sys.path.append('C:/Users/tikan/Documents/Python Scripts/PyCORe')
+import sys,os
+sys.path.append(os.path.abspath(__file__)[:-14])
+# sys.path.append('C:/Users/tikan/Documents/Python Scripts/PyCORe')
 #sys.path.append('C:/Users/tusnin/Documents/Physics/PhD/epfl/PyCORe')
 import PyCORe_main as pcm
 
@@ -49,6 +50,7 @@ PhysicalParameters = {'n0' : 1.9,
 
 simulation_parameters = {'slow_time' : 1e-6,
                          'detuning_array' : dOm,
+                         'electro-optical coupling' : 0.,
                          'noise_level' : 1e-8,
                          'output' : 'map',
                          'absolute_tolerance' : 1e-8,
@@ -56,7 +58,7 @@ simulation_parameters = {'slow_time' : 1e-6,
                          'max_internal_steps' : 2000}
 
 
-P0 = 0.004### W
+P0 = 0.001### W
 Pump = np.zeros(len(mu),dtype='complex')
 Pump[0] = np.sqrt(P0)
 #Pump = np.fft.fftshift(Pump)
@@ -66,7 +68,7 @@ Seed = Pump/100000
 single_ring = pcm.Resonator(PhysicalParameters)
 
 #map2d = single_ring.Propagate_SAM(simulation_parameters, Pump)
-map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump)
+map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=1e-3)
 #%%
 plt.figure()
 plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))
