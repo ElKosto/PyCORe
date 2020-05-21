@@ -58,7 +58,7 @@ simulation_parameters = {'slow_time' : 1e-6,
                          'max_internal_steps' : 2000}
 
 
-P0 = 0.001### W
+P0 = 0.003### W
 Pump = np.zeros(len(mu),dtype='complex')
 Pump[0] = np.sqrt(P0)
 #Pump = np.fft.fftshift(Pump)

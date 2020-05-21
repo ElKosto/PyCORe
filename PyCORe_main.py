@@ -130,19 +130,19 @@ class Resonator:
             t=0
             buf = sol[it-1,:]
             buf-=noise_const
-            #buf = np.fft.fftshift(np.fft.ifft(buf)*len(buf))
+            buf = np.fft.ifft(buf)*len(buf)
             while t<t_st:
-                buf_dir = np.fft.ifft(buf)*len(buf)## in the direct space
+                #buf_dir = np.fft.ifft(buf)*len(buf)## in the direct space
                 # First step
-                buf =buf + dt*(1j/len(buf)*np.fft.fft(buf_dir*np.abs(buf_dir)**2) + f0)
-                #buf = np.fft.fft(np.exp(dt*(1j*buf*abs(buf)**2 + np.real(f0[0])/buf))*buf)
+                #buf =buf + dt*(1j/len(buf)*np.fft.fft(buf_dir*np.abs(buf_dir)**2) + f0)
+                buf = np.fft.fft(np.exp(dt*(1j*buf*abs(buf)**2 + f0[0])/buf)*buf)
                 #second step
-                buf = np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) * buf
-                #buf = np.fft.ifft(np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) *buf)
+                #buf = np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) * buf
+                buf = np.fft.ifft(np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) *buf)
                 
                 t+=dt
-            #sol[it,:] = np.fft.fft(buf)/len(buf)
-            sol[it,:] = buf
+            sol[it,:] = np.fft.fft(buf)/len(buf)
+            #sol[it,:] = buf
             
         if out_param == 'map':
             return sol
