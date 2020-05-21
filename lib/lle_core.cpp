@@ -54,9 +54,8 @@ void* PropagateSS(double* In_val_RE, double* In_val_IM, const double f,  const d
 {
     
     std::cout<<"Split Step is running\n";
-    using namespace std::complex_literals;
-    std::complex<double> i = 1i;
-    int check;
+    //using namespace std::complex_literals;
+    std::complex<double> i (0.,1.);
     
     /*std::complex<double> **res = new (std::nothrow) std::complex<double>*[Ndet];
     for (int i=0; i<Ndet; i++){

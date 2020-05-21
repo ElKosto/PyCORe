@@ -5,7 +5,9 @@ sys.path.append(os.path.abspath(__file__)[:-14])
 # sys.path.append('C:/Users/tikan/Documents/Python Scripts/PyCORe')
 #sys.path.append('C:/Users/tusnin/Documents/Physics/PhD/epfl/PyCORe')
 import PyCORe_main as pcm
+import time
 
+start_time = time.time()
 Num_of_modes = 512
 D2 = 4e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 D3 = 0
@@ -68,10 +70,13 @@ Seed = Pump/100000
 single_ring = pcm.Resonator(PhysicalParameters)
 
 #map2d = single_ring.Propagate_SAM(simulation_parameters, Pump)
-map2d = single_ring.Propagate_SplitStepCLIB(simulation_parameters, Pump,dt=1e-3)
+map2d = single_ring.Propagate_SplitStepCLIB(simulation_parameters, Pump,dt=0.7e-3)
+#map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=0.7e-3)
 #%%
 plt.figure()
 plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))
 #%%
 
 pcm.Plot_Map(np.fft.ifft(map2d,axis=1),dOm*2/single_ring.kappa)
+
+print("--- %s seconds ---" % (time.time() - start_time))
