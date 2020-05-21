@@ -96,7 +96,7 @@ class Resonator:
         else:
             print ('wrong parameter')
        
-    def Propagate_SplitStep(self, simulation_parameters, Pump, Seed=[0], dt=1e-3):
+    def Propagate_SplitStep(self, simulation_parameters, Pump, Seed=[0], dt=5e-4):
         start_time = time.time()
         T = simulation_parameters['slow_time']
         out_param = simulation_parameters['output']
@@ -149,8 +149,9 @@ class Resonator:
         elif out_param == 'fin_res':
             return sol[-1, :] 
         else:
-            print ('wrong parameter')  
-    def Propagate_SplitStepCLIB(self, simulation_parameters, Pump, Seed=[0], dt=1e-3):
+            print ('wrong parameter') 
+            
+    def Propagate_SplitStepCLIB(self, simulation_parameters, Pump, Seed=[0], dt=5e-4):
         #start_time = time.time()
         T = simulation_parameters['slow_time']
         out_param = simulation_parameters['output']
@@ -217,7 +218,6 @@ class Resonator:
         LLE_core.PropagateSS(In_val_RE_p, In_val_IM_p, In_f, In_det_p, In_J, In_phi_p, In_Dint_p, In_Ndet, In_Nt, In_dt, In_Nphi, In_noise_amp, In_res_RE_p, In_res_IM_p)
         
         sol = np.reshape(In_res_RE,[len(detuning),self.N_points]) + 1j*np.reshape(In_res_IM,[len(detuning),self.N_points])
-        
                     
         if out_param == 'map':
             return sol
@@ -469,7 +469,7 @@ class CROW(Resonator):
 class Lattice(Resonator):  
     pass
 
-def Plot_Map(map_data, detuning,colormap = 'cubehelix'):
+def Plot_Map(map_data, detuning, colormap = 'cubehelix'):
     dOm = detuning[1]-detuning[0]
     dt=1
    
