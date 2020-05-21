@@ -68,10 +68,10 @@ Seed = Pump/100000
 single_ring = pcm.Resonator(PhysicalParameters)
 
 #map2d = single_ring.Propagate_SAM(simulation_parameters, Pump)
-map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=1e-3)
+map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=0.5*1e-3)
 #%%
 plt.figure()
 plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))
 #%%
 
-pcm.Plot_Map(np.fft.fftshift(np.fft.fft(map2d,axis=1),axes=1))
+pcm.Plot_Map(np.fft.ifft(map2d,axis=1),dOm*2/single_ring.kappa)
