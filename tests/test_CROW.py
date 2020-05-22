@@ -28,7 +28,7 @@ J = [J_0]*(N_crow-1)
 kappa_ex_1 = 100e6*2*np.pi*np.ones(Num_of_modes)
 kappa_ex = [kappa_ex_1, kappa_ex_1/5]
 
-PhysicalParameters = {'J': J,
+PhysicalParameters = {'Inter-resonator_coupling': J,
                       'n0' : 1.9,
                       'n2' : 2.4e-19,### m^2/W
                       'FSR' : 180e9 ,
