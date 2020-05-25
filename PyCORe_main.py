@@ -136,7 +136,7 @@ class Resonator:
                 #buf_dir = np.fft.ifft(buf)*len(buf)## in the direct space
                 # First step
                 #buf =buf + dt*(1j/len(buf)*np.fft.fft(buf_dir*np.abs(buf_dir)**2) + f0)
-                buf = np.fft.fft(np.exp(dt*(1j*buf*abs(buf)**2 + f0)/buf)*buf)
+                buf = np.fft.fft(np.exp(dt*(1j*abs(buf)**2+ f0/buf))*buf)
                 #second step
                 #buf = np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) * buf
                 buf = np.fft.ifft(np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) *buf)
@@ -480,7 +480,8 @@ class CROW(Resonator):#all idenical resonators
             
             sol = np.ndarray(shape=(len(detuning), self.N_points, self.N_CROW), dtype='complex') # define an array to store the data
             sol[0,:,:] = seed
-           
+            ind_phi = np.arange(0,self.N_points)
+            ind_res = np.arange(0,self.N_CROW)
             self.printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
             for it in range(1,len(detuning)):
                 noise_const = self.noise(eps)
@@ -490,16 +491,17 @@ class CROW(Resonator):#all idenical resonators
                 t=0
                 buf  =  sol[it-1,:,:]
                 
-                buf = np.fft.ifft(buf)*len(buf[:,0])
+                f0 = np.fft.ifft(f0,axis=1)*self.N_points
+                buf = np.fft.ifft(buf,axis=1)*len(buf[:,0])
                 while t<t_st:
                     for ii in range(self.N_CROW):
                         #buf_dir = np.fft.ifft(buf)*len(buf)## in the direct space
                         # First step
                         #buf =buf + dt*(1j/len(buf)*np.fft.fft(buf_dir*np.abs(buf_dir)**2) + f0)
-                        buf[:,ii] = np.fft.fft(np.exp(dt*(1j*buf[:,ii]*abs(buf[:,ii])**2 + f0[0])/buf)*buf)
+                        buf[:,ii] = np.fft.fft(np.exp(dt*(1j*buf[:,ii]*abs(buf[:,ii])**2 + f0[:,ii])/buf[:,ii])*buf[:,ii])
                         #second step
                         #buf = np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) * buf
-                        buf[:,ii] = np.fft.ifft(np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) *buf)
+                        buf[:,ii] = np.fft.ifft(np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) *buf[:,ii])
                     
                     t+=dt
                 sol[it,:] = np.fft.fft(buf)/len(buf)
