@@ -50,13 +50,13 @@ void SaveData( std::complex<double> **A, const int Ndet, const int Nphi)
     }
     outFile.close();
 }
-void* PropagateSS(double* In_val_RE, double* In_val_IM, const double f,  const double *detuning, const double J, const double *phi, const double* Dint, const int Ndet, const int Nt, const double dt, const int Nphi, double noise_amp, double* res_RE, double* res_IM)
+void* PropagateSS(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double J, const double *phi, const double* Dint, const int Ndet, const int Nt, const double dt, const int Nphi, double noise_amp, double* res_RE, double* res_IM)
 {
     
     std::cout<<"Split Step is running\n";
 
     std::complex<double> i (0.,1.);
-
+    std::complex<double> f;
     
     /*std::complex<double> **res = new (std::nothrow) std::complex<double>*[Ndet];
     for (int i=0; i<Ndet; i++){
@@ -101,7 +101,9 @@ void* PropagateSS(double* In_val_RE, double* In_val_IM, const double f,  const d
             for (int i_phi=0; i_phi<Nphi; i_phi++){
                 buf.real( buf_spectrum[i_phi][0]);
                 buf.imag( buf_spectrum[i_phi][1]);
-                buf *= std::exp(dt * (-1. - i*detuning[i_det] - i*Dint[i_phi] + f*Nphi/buf*((i_phi==0)? 1.0 : 0.0) )  ); 
+                f.real(Re_F[i_phi]*Nphi);
+                f.imag(Im_F[i_phi]*Nphi);
+                buf *= std::exp(dt * (-1. - i*detuning[i_det] - i*Dint[i_phi] + f/buf )  ); 
                 buf_spectrum[i_phi][0] = buf.real()/Nphi;
                 buf_spectrum[i_phi][1] = buf.imag()/Nphi;
             }

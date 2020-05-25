@@ -50,7 +50,7 @@ PhysicalParameters = {'n0' : 1.9,
                       'kappa_ex' : 25e6*2*np.pi,
                       'Dint' : Dint}
 
-simulation_parameters = {'slow_time' : 3e-6,
+simulation_parameters = {'slow_time' : 1e-6,
                          'detuning_array' : dOm,
                          'electro-optical coupling' : 0.,
                          'noise_level' : 1e-8,

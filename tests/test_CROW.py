@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import sys
-sys.path.append('C:/Users/tikan/Documents/Python Scripts/PyCORe')
+import sys, os
+sys.path.append(os.path.abspath(__file__)[:-19])
 #sys.path.append('C:/Users/tusnin/Documents/Physics/PhD/epfl/PyCORe')
 import PyCORe_main as pcm
 
@@ -12,8 +12,9 @@ N_crow = 2
 D2 = 3e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 D3 = 0
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
-Dint_1 = 2*np.pi*(mu**2*D2/2 + mu**3*D3/6)
-Dint = [Dint_1]*N_crow
+Dint_single = 2*np.pi*(mu**2*D2/2 + mu**3*D3/6)
+Dint = np.zeros([mu.size,N_crow])
+Dint = (Dint_single*np.ones([mu.size,N_crow]).T).T#Making matrix of dispersion with dispersion profile of j-th resonator on the j-th column
 
 dNu_ini = -2e9
 dNu_end = 5e9
@@ -22,11 +23,12 @@ ramp_stop = 0.99
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
 
 
-J_0 = 4.5e9*2*np.pi*np.ones_like(Dint_1)
-J = [J_0]*(N_crow-1)
+J = 4.5e9*2*np.pi*np.ones(mu.size*(N_crow-1))
+
 #delta = 0.1e9*2*np.pi
-kappa_ex_1 = 100e6*2*np.pi*np.ones(Num_of_modes)
-kappa_ex = [kappa_ex_1, kappa_ex_1/5]
+kappa_ex_ampl = 100e6*2*np.pi
+kappa_ex = kappa_ex_ampl*np.ones([Num_of_modes,N_crow])
+
 
 PhysicalParameters = {'Inter-resonator_coupling': J,
                       'n0' : 1.9,
@@ -47,16 +49,16 @@ simulation_parameters = {'slow_time' : 1e-8,
                          'relative_tolerance' : 1e-9,
                          'max_internal_steps' : 2000}
 
-P0 = .5### W
-Pump = np.zeros(len(mu),dtype='complex')
-Pump[0] = np.sqrt(P0)
-Pump = np.concatenate((Pump, 0*Pump))
+P0 = 0.003### W
+Pump = np.zeros([len(mu),N_crow],dtype='complex')
+Pump[0,0] = np.sqrt(P0)
+#Pump = np.concatenate((Pump, 0*Pump))
 
 Seed = Pump/10000
 
 crow = pcm.CROW(PhysicalParameters)
-
-map2d = crow.SAM_CROW(simulation_parameters, Pump, Seed)
+#%%
+map2d = crow.Propagate_SplitStep(simulation_parameters, Pump, Seed)
 #map2d = single_ring.Propagate_SplitStep(simulation_parameters, Seed, Pump)
 #%%
 plt.figure()
