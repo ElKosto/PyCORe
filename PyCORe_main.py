@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import complex_ode,solve_ivp
+from scipy.linalg import expm
 import matplotlib.ticker as ticker
 import matplotlib.colors as mcolors
 from scipy.constants import pi, c, hbar
@@ -57,6 +58,7 @@ class Resonator:
         nmax = simulation_parameters['max_internal_steps']
         detuning = simulation_parameters['detuning_array']
         eps = simulation_parameters['noise_level']
+        J =  simulation_parameters['electro-optical coupling']
         
         pump = Pump*np.sqrt(1./(hbar*self.w0))
         if Seed[0] == 0:
@@ -74,7 +76,7 @@ class Resonator:
         def LLE_1d(Time, A):
             A = A - noise_const#self.noise(eps)
             A_dir = np.fft.ifft(A)*len(A)## in the direct space
-            dAdT =  -1*(1 + 1j*(self.Dint + dOm_curr)*2/self.kappa)*A + 1j*np.fft.fft(A_dir*np.abs(A_dir)**2)/len(A) + f0#*len(A)
+            dAdT =  -1*(1 + 1j*(self.Dint + dOm_curr)*2/self.kappa)*A + 1j*np.fft.fft(A_dir*np.abs(A_dir)**2)/len(A) + 1j*np.fft.fft(J*2/self.kappa*np.cos(self.phi)*A_dir) + f0#*len(A)
             return dAdT
         
         t_st = float(T_rn)/len(detuning)
@@ -102,6 +104,7 @@ class Resonator:
         out_param = simulation_parameters['output']
         detuning = simulation_parameters['detuning_array']
         eps = simulation_parameters['noise_level']
+        J =  simulation_parameters['electro-optical coupling']
         #dt = simulation_parameters['time_step']#in photon lifetimes
         
         pump = Pump*np.sqrt(1./(hbar*self.w0))
@@ -109,14 +112,15 @@ class Resonator:
             seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa)
         else:
             seed = Seed*np.sqrt(2*self.g0/self.kappa)
-        ### renarmalization
+        ### renormalization
         T_rn = (self.kappa/2)*T
         f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
         print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
         print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
         noise_const = self.noise(eps) # set the noise level
         nn = len(detuning)
-        
+        J*=2/self.kappa
+        print('J = ' + str(J))
         t_st = float(T_rn)/len(detuning)
         #dt=1e-4 #t_ph
         
@@ -136,7 +140,7 @@ class Resonator:
                 #buf_dir = np.fft.ifft(buf)*len(buf)## in the direct space
                 # First step
                 #buf =buf + dt*(1j/len(buf)*np.fft.fft(buf_dir*np.abs(buf_dir)**2) + f0)
-                buf = np.fft.fft(np.exp(dt*(1j*abs(buf)**2+ f0/buf))*buf)
+                buf = np.fft.fft(np.exp(dt*(1j*np.abs(buf)**2+1j*J*(np.cos(self.phi) + 0.*np.sin(2*self.phi)) +f0/buf))*buf)
                 #second step
                 #buf = np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) * buf
                 buf = np.fft.ifft(np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) *buf)
@@ -167,7 +171,7 @@ class Resonator:
             seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa)
         else:
             seed = Seed*np.sqrt(2*self.g0/self.kappa)
-        ### renarmalization
+        ### renormalization
         T_rn = (self.kappa/2)*T
         f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
         j = J/self.kappa*2
@@ -221,7 +225,10 @@ class Resonator:
         #%%running simulations
         LLE_core.PropagateSS(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_J, In_phi_p, In_Dint_p, In_Ndet, In_Nt, In_dt, In_Nphi, In_noise_amp, In_res_RE_p, In_res_IM_p)
         
-        sol = np.reshape(In_res_RE,[len(detuning),self.N_points]) + 1j*np.reshape(In_res_IM,[len(detuning),self.N_points])
+        ind_modes = np.arange(self.N_points)
+        for ii in range(0,len(detuning)):
+            sol[ii,ind_modes] = In_res_RE[ii*self.N_points+ind_modes] + 1j*In_res_IM[ii*self.N_points+ind_modes]
+        #sol = np.reshape(In_res_RE,[len(detuning),self.N_points]) + 1j*np.reshape(In_res_IM,[len(detuning),self.N_points])
                     
         if out_param == 'map':
             return sol/np.sqrt(2*self.g0/self.kappa)
@@ -426,6 +433,22 @@ class CROW(Resonator):#all idenical resonators
                 popt, pcov = curve_fit(func, self.mu, self.Dint[:,ii])
                 self.D2[ii] = popt[2]
                 self.D3[ii] = popt[3]
+            M_lin = np.zeros([self.N_CROW*self.N_points,self.N_CROW*self.N_points ],dtype = complex)
+            ind_M = np.arange(0,self.N_CROW*self.N_points)
+            ind_modes = np.arange(0,self.N_points)
+            
+            
+            #M_lin[ind_M[:-self.N_points],ind_M[:-self.N_points]+self.N_points] = self.J.T.reshape(self.J.size)*2/self.kappa_0*np.exp(1j*)
+            for ii in range(self.N_CROW-1):
+                M_lin[ii*self.N_points +ind_modes,(ii+1)*self.N_points +ind_modes] =  self.J.T.reshape(self.J.size)*2/self.kappa_0*np.exp(-1j*ind_modes*np.pi)
+            M_lin+=np.conj(M_lin.T)
+            
+            M_lin*=1j
+            
+            M_lin[ind_M,ind_M] = -(self.kappa.T.reshape(self.kappa.size)/self.kappa_0+1j*self.Dint.T.reshape(self.Dint.size)*2/self.kappa_0)
+            self.M_lin = M_lin
+
+            
            
             
         def seed_level (self, pump, detuning):
@@ -439,21 +462,21 @@ class CROW(Resonator):#all idenical resonators
                 LinearM[ind_modes+ii*self.N_points,ind_modes+(ii+1)*self.N_points] = 1j*self.J[ind_modes]*2/self.kappa_0
             LinearM += LinearM.T
             indM = np.arange(self.N_points*self.N_CROW)
-            LinearM[indM,indM] = -(self.kappa.reshape(self.kappa.size)[indM]/self.kappa_0 + 1j*detuning_norm)
+            LinearM[indM,indM] = -(self.kappa.T.reshape(self.kappa.size)[indM]/self.kappa_0 + 1j*detuning_norm)
             
            
             
             res_seed = np.zeros_like(f_norm.reshape(f_norm.size))
-            res_seed = np.linalg.solve(LinearM,f_norm.reshape(f_norm.size))
+            res_seed = np.linalg.solve(LinearM,f_norm.T.reshape(f_norm.size))
             res_seed*= 1/np.sqrt(2*self.g0/self.kappa_0)
-            res_seed.reshape((self.N_points,self.N_CROW))
+            #res_seed.reshape((self.N_points,self.N_CROW))
             
             return res_seed
         def noise(self, a):
 #        return a*np.exp(1j*np.random.uniform(-1,1,self.N_points)*np.pi)
             return a*(np.random.uniform(-1,1,self.N_points*self.N_CROW) + 1j*np.random.uniform(-1,1,self.N_points*self.N_CROW))
         
-        def Propagate_SplitStep(self, simulation_parameters, Pump, Seed=[0], dt=5e-4):
+        def Propagate_SplitStep(self, simulation_parameters, Pump, Seed=[0], dt=1e-4):
             start_time = time.time()
             T = simulation_parameters['slow_time']
             out_param = simulation_parameters['output']
@@ -462,7 +485,7 @@ class CROW(Resonator):#all idenical resonators
             #dt = simulation_parameters['time_step']#in photon lifetimes
             
             pump = Pump*np.sqrt(1./(hbar*self.w0))
-            if Seed[0,0] == 0:
+            if Seed[0] == 0:
                 seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa_0)
             else:
                 seed = Seed*np.sqrt(2*self.g0/self.kappa_0)
@@ -479,32 +502,40 @@ class CROW(Resonator):#all idenical resonators
             #dt=1e-4 #t_ph
             
             sol = np.ndarray(shape=(len(detuning), self.N_points, self.N_CROW), dtype='complex') # define an array to store the data
-            sol[0,:,:] = seed
-            ind_phi = np.arange(0,self.N_points)
-            ind_res = np.arange(0,self.N_CROW)
+            
+            ind_modes = np.arange(self.N_points)
+            for ii in range(self.N_CROW):
+                sol[0,ind_modes,ii] = seed[ii*self.N_points+ind_modes]
+           
             self.printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
+            f0 = np.fft.ifft(f0,axis=0)*self.N_points
             for it in range(1,len(detuning)):
                 noise_const = self.noise(eps)
-                sol[it-1,:,:] += noise_const.reshape((self.N_points,N_CROW))
+                sol[it-1,:,:] += noise_const.reshape((self.N_points,self.N_CROW))
                 self.printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete,', time='elapsed time = ' + '{:04.1f}'.format(time.time() - start_time) + ' s', length = 50)
                 dOm_curr = detuning[it] # detuning value
                 t=0
                 buf  =  sol[it-1,:,:]
                 
-                f0 = np.fft.ifft(f0,axis=1)*self.N_points
-                buf = np.fft.ifft(buf,axis=1)*len(buf[:,0])
+                
+                buf = np.fft.ifft(buf,axis=0)*self.N_points
+               
                 while t<t_st:
                     for ii in range(self.N_CROW):
                         #buf_dir = np.fft.ifft(buf)*len(buf)## in the direct space
                         # First step
                         #buf =buf + dt*(1j/len(buf)*np.fft.fft(buf_dir*np.abs(buf_dir)**2) + f0)
-                        buf[:,ii] = np.fft.fft(np.exp(dt*(1j*buf[:,ii]*abs(buf[:,ii])**2 + f0[:,ii])/buf[:,ii])*buf[:,ii])
+                        buf[:,ii] = np.fft.fft(np.exp(dt*(1j*abs(buf[:,ii])**2 +f0[:,ii]/buf[:,ii]))*buf[:,ii])
                         #second step
                         #buf = np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) * buf
-                        buf[:,ii] = np.fft.ifft(np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) *buf[:,ii])
+                        #if ii!=0 and ii!=(self.N_CROW-1):
+                        #    buf[:,ii] = np.fft.ifft(np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa_0 )) *buf[:,ii])
+                    buf_vec = np.dot( expm(dt*(self.M_lin -1j*dOm_curr*2/self.kappa_0 *np.eye(self.M_lin[:,0].size))),buf.T.reshape(buf.size) )
+                    for ii in range(self.N_CROW):
+                        buf[ind_modes,ii] = np.fft.ifft(buf_vec[ii*self.N_points+ind_modes])
                     
                     t+=dt
-                sol[it,:] = np.fft.fft(buf)/len(buf)
+                sol[it,:,:] = np.fft.fft(buf,axis=0)/len(buf)
                 #sol[it,:] = buf
                 
             if out_param == 'map':

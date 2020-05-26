@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(__file__)[:-19])
 import PyCORe_main as pcm
 
 
-Num_of_modes = 128
+Num_of_modes = 2**7
 N_crow = 2
 
 D2 = 3e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
@@ -16,9 +16,9 @@ Dint_single = 2*np.pi*(mu**2*D2/2 + mu**3*D3/6)
 Dint = np.zeros([mu.size,N_crow])
 Dint = (Dint_single*np.ones([mu.size,N_crow]).T).T#Making matrix of dispersion with dispersion profile of j-th resonator on the j-th column
 
-dNu_ini = -2e9
+dNu_ini = 4e9
 dNu_end = 5e9
-nn = 1000
+nn = 100
 ramp_stop = 0.99
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
 
@@ -26,7 +26,7 @@ dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dN
 J = 4.5e9*2*np.pi*np.ones(mu.size*(N_crow-1))
 
 #delta = 0.1e9*2*np.pi
-kappa_ex_ampl = 100e6*2*np.pi
+kappa_ex_ampl = 50e6*2*np.pi
 kappa_ex = kappa_ex_ampl*np.ones([Num_of_modes,N_crow])
 
 
@@ -41,9 +41,9 @@ PhysicalParameters = {'Inter-resonator_coupling': J,
                       'kappa_ex' : kappa_ex,
                       'Dint' : Dint}
 
-simulation_parameters = {'slow_time' : 1e-8,
+simulation_parameters = {'slow_time' : 1e-7,
                          'detuning_array' : dOm,
-                         'noise_level' : 1e-5,
+                         'noise_level' : 1e-8,
                          'output' : 'map',
                          'absolute_tolerance' : 1e-9,
                          'relative_tolerance' : 1e-9,
@@ -54,27 +54,15 @@ Pump = np.zeros([len(mu),N_crow],dtype='complex')
 Pump[0,0] = np.sqrt(P0)
 #Pump = np.concatenate((Pump, 0*Pump))
 
-Seed = Pump/10000
 
 crow = pcm.CROW(PhysicalParameters)
 #%%
-map2d = crow.Propagate_SplitStep(simulation_parameters, Pump, Seed)
+map2d = crow.Propagate_SplitStep(simulation_parameters, Pump)
 #map2d = single_ring.Propagate_SplitStep(simulation_parameters, Seed, Pump)
 #%%
 plt.figure()
-plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d[:,:len(mu)])**2,axis=1))
-plt.plot(dOm//2/np.pi,np.mean(np.abs(map2d[:,len(mu):])**2,axis=1))
-#%% 
-ind = 400
-plt.figure()### spectra
-plt.subplot(211)
-plt.plot(np.linspace(-np.pi,np.pi,len(mu)),np.abs(np.fft.ifft(map2d[ind,:len(mu)]))**2)
-plt.plot(np.linspace(-np.pi,np.pi,len(mu)),np.abs(np.fft.ifft(map2d[ind,len(mu):]))**2)
-plt.subplot(212)
-m_norm = max(np.abs(map2d[ind,:len(mu)])**2)
-plt.plot(10*np.log10(np.abs(map2d[ind,:len(mu)])**2/m_norm))
-plt.plot(10*np.log10(np.abs(map2d[ind,len(mu):])**2/m_norm))
-plt.ylim(-100,0)
+plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d[:,:,0])**2,axis=1))
+plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d[:,:,1])**2,axis=1))
 
 
 

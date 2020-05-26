@@ -103,7 +103,8 @@ void* PropagateSS(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im
                 buf.imag( buf_spectrum[i_phi][1]);
                 f.real(Re_F[i_phi]*Nphi);
                 f.imag(Im_F[i_phi]*Nphi);
-                buf *= std::exp(dt * (-1. - i*detuning[i_det] - i*Dint[i_phi] + f/buf )  ); 
+                //buf *= std::exp(dt * (-1. - i*detuning[i_det] - i*Dint[i_phi] + f/buf )  ); 
+                buf = std::exp(dt * (-1. - i*detuning[i_det] - i*Dint[i_phi] )  )*buf + f/(-1. - i*detuning[i_det] - i*Dint[i_phi])*(std::exp(dt * (-1. - i*detuning[i_det] - i*Dint[i_phi] ) ) - 1.); 
                 buf_spectrum[i_phi][0] = buf.real()/Nphi;
                 buf_spectrum[i_phi][1] = buf.imag()/Nphi;
             }
