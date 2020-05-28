@@ -474,7 +474,7 @@ class CROW(Resonator):#all idenical resonators
             return res_seed
         def noise(self, a):
 #        return a*np.exp(1j*np.random.uniform(-1,1,self.N_points)*np.pi)
-            return a*(np.random.uniform(-1,1,self.N_points*self.N_CROW) + 1j*np.random.uniform(-1,1,self.N_points*self.N_CROW))
+            return a*(np.random.uniform(-1,1,self.N_points*self.N_CROW)+ 1j*np.random.uniform(-1,1,self.N_points*self.N_CROW))
         
         def Propagate_SplitStep(self, simulation_parameters, Pump, Seed=[0], dt=1e-4):
             start_time = time.time()
@@ -522,14 +522,10 @@ class CROW(Resonator):#all idenical resonators
                
                 while t<t_st:
                     for ii in range(self.N_CROW):
-                        #buf_dir = np.fft.ifft(buf)*len(buf)## in the direct space
                         # First step
-                        #buf =buf + dt*(1j/len(buf)*np.fft.fft(buf_dir*np.abs(buf_dir)**2) + f0)
                         buf[:,ii] = np.fft.fft(np.exp(dt*(1j*abs(buf[:,ii])**2 +f0[:,ii]/buf[:,ii]))*buf[:,ii])
                         #second step
-                        #buf = np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) * buf
-                        #if ii!=0 and ii!=(self.N_CROW-1):
-                        #    buf[:,ii] = np.fft.ifft(np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa_0 )) *buf[:,ii])
+                        
                     buf_vec = np.dot( expm(dt*(self.M_lin -1j*dOm_curr*2/self.kappa_0 *np.eye(self.M_lin[:,0].size))),buf.T.reshape(buf.size) )
                     for ii in range(self.N_CROW):
                         buf[ind_modes,ii] = np.fft.ifft(buf_vec[ii*self.N_points+ind_modes])

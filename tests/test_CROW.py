@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(__file__)[:-19])
 import PyCORe_main as pcm
 
 
-Num_of_modes = 2**7
+Num_of_modes = 2**5
 N_crow = 2
 
 D2 = 3e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
@@ -41,7 +41,7 @@ PhysicalParameters = {'Inter-resonator_coupling': J,
                       'kappa_ex' : kappa_ex,
                       'Dint' : Dint}
 
-simulation_parameters = {'slow_time' : 1e-7,
+simulation_parameters = {'slow_time' : 5e-7,
                          'detuning_array' : dOm,
                          'noise_level' : 1e-8,
                          'output' : 'map',
@@ -49,7 +49,7 @@ simulation_parameters = {'slow_time' : 1e-7,
                          'relative_tolerance' : 1e-9,
                          'max_internal_steps' : 2000}
 
-P0 = 0.003### W
+P0 = 0.3### W
 Pump = np.zeros([len(mu),N_crow],dtype='complex')
 Pump[0,0] = np.sqrt(P0)
 #Pump = np.concatenate((Pump, 0*Pump))
