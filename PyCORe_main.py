@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import complex_ode,solve_ivp
-from scipy.linalg import expm
+from scipy.sparse.linalg import expm
 import matplotlib.ticker as ticker
 import matplotlib.colors as mcolors
 from scipy.constants import pi, c, hbar
@@ -11,8 +11,10 @@ import matplotlib.image as mpimg
 from scipy.optimize import curve_fit
 import time
 import os
-from scipy.sparse import block_diag,identity,diags
+from scipy.sparse import block_diag,identity,diags, eye, csc_matrix
 import ctypes
+
+
 
 class Resonator:
     def __init__(self, resonator_parameters):
@@ -433,20 +435,13 @@ class CROW(Resonator):#all idenical resonators
                 popt, pcov = curve_fit(func, self.mu, self.Dint[:,ii])
                 self.D2[ii] = popt[2]
                 self.D3[ii] = popt[3]
-            M_lin = np.zeros([self.N_CROW*self.N_points,self.N_CROW*self.N_points ],dtype = complex)
-            ind_M = np.arange(0,self.N_CROW*self.N_points)
-            ind_modes = np.arange(0,self.N_points)
             
+            ind_phase_modes = np.arange(0,(self.N_CROW-1)*self.N_points)
+            ind_phase_modes = ind_phase_modes%self.N_points
+            M_lin = diags(-(self.kappa.T.reshape(self.kappa.size)/self.kappa_0+1j*self.Dint.T.reshape(self.Dint.size)*2/self.kappa_0),0) + 1j*diags(self.J.T.reshape(self.J.size)*2/self.kappa_0 *np.exp(-1j*ind_phase_modes*np.pi),self.N_points) + 1j*diags(self.J.T.reshape(self.J.size)*2/self.kappa_0 *np.exp(1j*ind_phase_modes*np.pi),-self.N_points)
             
-            #M_lin[ind_M[:-self.N_points],ind_M[:-self.N_points]+self.N_points] = self.J.T.reshape(self.J.size)*2/self.kappa_0*np.exp(1j*)
-            for ii in range(self.N_CROW-1):
-                M_lin[ii*self.N_points +ind_modes,(ii+1)*self.N_points +ind_modes] =  self.J.T.reshape(self.J.size)*2/self.kappa_0*np.exp(-1j*ind_modes*np.pi)
-            M_lin+=np.conj(M_lin.T)
-            
-            M_lin*=1j
-            
-            M_lin[ind_M,ind_M] = -(self.kappa.T.reshape(self.kappa.size)/self.kappa_0+1j*self.Dint.T.reshape(self.Dint.size)*2/self.kappa_0)
-            self.M_lin = M_lin
+            #self.M_lin = M_lin
+            self.M_lin = M_lin.todense()
 
             
            
@@ -459,7 +454,7 @@ class CROW(Resonator):#all idenical resonators
             LinearM = np.eye(self.N_points*self.N_CROW,dtype = complex)
             ind_modes = np.arange(self.N_points)
             for ii in range(0,self.N_CROW-1):
-                LinearM[ind_modes+ii*self.N_points,ind_modes+(ii+1)*self.N_points] = 1j*self.J[ind_modes]*2/self.kappa_0
+                LinearM[ind_modes+ii*self.N_points,ind_modes+(ii+1)*self.N_points] = 1j*self.J.T.reshape(self.J.size)[ii*self.N_points +ind_modes]*2/self.kappa_0
             LinearM += LinearM.T
             indM = np.arange(self.N_points*self.N_CROW)
             LinearM[indM,indM] = -(self.kappa.T.reshape(self.kappa.size)[indM]/self.kappa_0 + 1j*detuning_norm)
@@ -504,6 +499,7 @@ class CROW(Resonator):#all idenical resonators
             sol = np.ndarray(shape=(len(detuning), self.N_points, self.N_CROW), dtype='complex') # define an array to store the data
             
             ind_modes = np.arange(self.N_points)
+            ind_res = np.arange(self.N_CROW)
             for ii in range(self.N_CROW):
                 sol[0,ind_modes,ii] = seed[ii*self.N_points+ind_modes]
            
@@ -522,11 +518,17 @@ class CROW(Resonator):#all idenical resonators
                
                 while t<t_st:
                     for ii in range(self.N_CROW):
-                        # First step
+                        #First step
                         buf[:,ii] = np.fft.fft(np.exp(dt*(1j*abs(buf[:,ii])**2 +f0[:,ii]/buf[:,ii]))*buf[:,ii])
                         #second step
-                        
-                    buf_vec = np.dot( expm(dt*(self.M_lin -1j*dOm_curr*2/self.kappa_0 *np.eye(self.M_lin[:,0].size))),buf.T.reshape(buf.size) )
+                    
+                    #buf_vec = np.dot( expm(dt*(self.M_lin -1j*dOm_curr*2/self.kappa_0 *np.eye(self.M_lin[:,0].size))),buf.T.reshape(buf.size) )
+                    
+                    
+                    #buf_vec = expm(csc_matrix(dt*(self.M_lin -1j*dOm_curr*2/self.kappa_0* eye(self.N_points*self.N_CROW) ))).dot(buf.T.reshape(buf.size))
+                    #buf_vec = expm((dt*(self.M_lin -1j*dOm_curr*2/self.kappa_0* eye(self.N_points*self.N_CROW) )).todense()).dot(buf.T.reshape(buf.size))
+                    buf_vec = expm(dt*(self.M_lin -1j*dOm_curr*2/self.kappa_0* eye(self.N_points*self.N_CROW) )).dot(buf.T.reshape(buf.size))
+                  
                     for ii in range(self.N_CROW):
                         buf[ind_modes,ii] = np.fft.ifft(buf_vec[ii*self.N_points+ind_modes])
                     
@@ -539,8 +541,74 @@ class CROW(Resonator):#all idenical resonators
             elif out_param == 'fin_res':
                 return sol[-1, :]/np.sqrt(2*self.g0/self.kappa)
             else:
-                print ('wrong parameter') 
+                print ('wrong parameter')
             
+        def Propagate_SAM(self, simulation_parameters, Pump, Seed=[0]):
+            start_time = time.time()
+            
+            T = simulation_parameters['slow_time']
+            abtol = simulation_parameters['absolute_tolerance']
+            reltol = simulation_parameters['relative_tolerance']
+            out_param = simulation_parameters['output']
+            nmax = simulation_parameters['max_internal_steps']
+            detuning = simulation_parameters['detuning_array']
+            eps = simulation_parameters['noise_level']
+            #dt = simulation_parameters['time_step']#in photon lifetimes
+            
+            pump = Pump*np.sqrt(1./(hbar*self.w0))
+            if Seed[0] == 0:
+                seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa_0)
+            else:
+                seed = Seed*np.sqrt(2*self.g0/self.kappa_0)
+            ### renarmalization
+            T_rn = (self.kappa_0/2)*T
+            f0 = pump*np.sqrt(8*self.g0*np.max(self.kappa_ex)/self.kappa_0**3)
+            
+            print('f0^2 = ' + str(np.round(np.max(abs(f0)**2), 2)))
+            print('xi [' + str(detuning[0]*2/self.kappa_0) + ',' +str(detuning[-1]*2/self.kappa_0)+ '] (normalized on ' r'$kappa_0/2)$')
+            noise_const = self.noise(eps) # set the noise level
+            nn = len(detuning)
+            
+            t_st = float(T_rn)/len(detuning)
+            #dt=1e-4 #t_ph
+            
+            sol = np.ndarray(shape=(len(detuning), self.N_points, self.N_CROW), dtype='complex') # define an array to store the data
+            ind_modes = np.arange(self.N_points)
+            ind_res = np.arange(self.N_CROW)
+            for ii in range(self.N_CROW):
+                sol[0,ind_modes,ii] = seed[ii*self.N_points+ind_modes]
+           
+            self.printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
+            f0 = np.fft.ifft(f0,axis=0)*self.N_points
+            
+            def RHS(Time, A):
+                A = A - noise_const#self.noise(eps)
+                A_dir = np.zeros(A.size,dtype=complex)
+                for ii in range(self.N_CROW):
+                    A_dir[ii*self.N_points+ind_modes] = np.fft.ifft(A[ii*self.N_points+ind_modes])## in the direct space
+                A_dir*=self.N_points
+                dAdT =  (self.M_lin -1j*dOm_curr*2/self.kappa_0* np.eye(self.N_points*self.N_CROW)).dot(A) + f0.reshape(f0.size) 
+                for ii in range(self.N_CROW):
+                    dAdT[0,ii*self.N_points+ind_modes]+=1j*np.fft.fft(A_dir[ii*self.N_points+ind_modes]*np.abs(A_dir[ii*self.N_points+ind_modes])**2)/self.N_points
+                return dAdT
+            r = complex_ode(RHS).set_integrator('dop853', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
+            
+            r.set_initial_value(seed, 0)# seed the cavity
+            
+            for it in range(1,len(detuning)):
+                self.printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete,', time='elapsed time = ' + '{:04.1f}'.format(time.time() - start_time) + ' s', length = 50)
+                dOm_curr = detuning[it] # detuning value
+                res = r.integrate(r.t+t_st)
+                for ii in range(self.N_CROW):
+                    sol[it,ind_modes,ii] = res[ii*self.N_points+ind_modes]
+                
+                
+            if out_param == 'map':
+                return sol/np.sqrt(2*self.g0/self.kappa)
+            elif out_param == 'fin_res':
+                return sol[-1, :]/np.sqrt(2*self.g0/self.kappa)
+            else:
+                print ('wrong parameter')
         
 class Lattice(Resonator):  
     pass
@@ -683,6 +751,8 @@ def Plot_Map(map_data, detuning, colormap = 'cubehelix'):
 #    f.colorbar(pc)
     plt.subplots_adjust(left=0.07, bottom=0.07, right=0.95, top=0.93, wspace=None, hspace=0.4)
     f.canvas.mpl_connect('button_press_event', onclick)                
+
+
 """
 here is a set of useful standard functions
 """

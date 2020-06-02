@@ -2,8 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys,os
 sys.path.append(os.path.abspath(__file__)[:-14])
-# sys.path.append('C:/Users/tikan/Documents/Python Scripts/PyCORe')
-#sys.path.append('C:/Users/tusnin/Documents/Physics/PhD/epfl/PyCORe')
+
 import PyCORe_main as pcm
 import time
 
@@ -21,24 +20,6 @@ nn = 500
 ramp_stop = 0.99
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
 
-#### MgF2
-#PhysicalParameters = {'n0' : 1.37,
-#                      'n2' : 9e-21,### m^2/W
-#                      'FSR' : 18.2e9 ,
-#                      'w0' : 2*np.pi*192e12,
-#                      'width' : 1.665e-7,
-#                      'height' : 1.665e-7,
-#                      'kappa_0' : 1.75e-5/Tr,
-#                      'kappa_ex' : 1.75e-5/Tr,
-#                      'Dint' : np.fft.fftshift(Dint)}
-#
-#simulation_parameters = {'slow_time' : 1e-3,
-#                         'detuning_array' : dOm,
-#                         'noise_level' : 1e-9,
-#                         'output' : 'map',
-#                         'absolute_tolerance' : 1e-9,
-#                         'relative_tolerance' : 1e-9,
-#                         'max_internal_steps' : 20000}
 
 PhysicalParameters = {'n0' : 1.9,
                       'n2' : 2.4e-19,### m^2/W
@@ -63,9 +44,6 @@ simulation_parameters = {'slow_time' : 1*1/(25e6*2*np.pi)*nn,
 P0 = 0.002### W
 Pump = np.zeros(len(mu),dtype='complex')
 Pump[0] = np.sqrt(P0)
-#Pump = np.fft.fftshift(Pump)
-
-Seed = Pump/100000
 
 single_ring = pcm.Resonator(PhysicalParameters)
 
