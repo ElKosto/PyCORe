@@ -537,9 +537,9 @@ class CROW(Resonator):#all idenical resonators
                 #sol[it,:] = buf
                 
             if out_param == 'map':
-                return sol/np.sqrt(2*self.g0/self.kappa)
+                return sol/np.sqrt(2*self.g0/self.kappa_0)
             elif out_param == 'fin_res':
-                return sol[-1, :]/np.sqrt(2*self.g0/self.kappa)
+                return sol[-1, :]/np.sqrt(2*self.g0/self.kappa_0)
             else:
                 print ('wrong parameter')
             
@@ -618,9 +618,9 @@ class CROW(Resonator):#all idenical resonators
                 
                 
             if out_param == 'map':
-                return sol/np.sqrt(2*self.g0/self.kappa)
+                return sol/np.sqrt(2*self.g0/self.kappa_0)
             elif out_param == 'fin_res':
-                return sol[-1, :]/np.sqrt(2*self.g0/self.kappa)
+                return sol[-1, :]/np.sqrt(2*self.g0/self.kappa_0)
             else:
                 print ('wrong parameter')
         
