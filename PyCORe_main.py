@@ -398,7 +398,7 @@ class Resonator:
         # Print New Line on Complete
         if iteration == total: 
                 print()
-                
+ #%%              
 class CROW(Resonator):#all idenical resonators
         def __init__(self, resonator_parameters):
         #Physical parameters initialization
@@ -440,8 +440,8 @@ class CROW(Resonator):#all idenical resonators
             ind_phase_modes = ind_phase_modes%self.N_points
             M_lin = diags(-(self.kappa.T.reshape(self.kappa.size)/self.kappa_0+1j*self.Dint.T.reshape(self.Dint.size)*2/self.kappa_0),0) + 1j*diags(self.J.T.reshape(self.J.size)*2/self.kappa_0 *np.exp(-1j*ind_phase_modes*np.pi),self.N_points) + 1j*diags(self.J.T.reshape(self.J.size)*2/self.kappa_0 *np.exp(1j*ind_phase_modes*np.pi),-self.N_points)
             
-            #self.M_lin = M_lin
-            self.M_lin = M_lin.todense()
+            self.M_lin = M_lin
+            #self.M_lin = M_lin.todense()
 
             
            
@@ -560,7 +560,7 @@ class CROW(Resonator):#all idenical resonators
                 seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa_0)
             else:
                 seed = Seed*np.sqrt(2*self.g0/self.kappa_0)
-            ### renarmalization
+            ### renormalization
             T_rn = (self.kappa_0/2)*T
             f0 = pump*np.sqrt(8*self.g0*np.max(self.kappa_ex)/self.kappa_0**3)
             
@@ -579,17 +579,31 @@ class CROW(Resonator):#all idenical resonators
                 sol[0,ind_modes,ii] = seed[ii*self.N_points+ind_modes]
            
             self.printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
-            f0 = np.fft.ifft(f0,axis=0)*self.N_points
             
+            #def RHS(Time, A):
+            #    A = A - noise_const#self.noise(eps)
+            #    A_dir = np.zeros(A.size,dtype=complex)
+              
+            #    for ii in range(self.N_CROW):
+            #        A_dir[ii*self.N_points+ind_modes] = np.fft.ifft(A[ii*self.N_points+ind_modes])## in the direct space
+            #    A_dir*=self.N_points
+            #    dAdT =  (self.M_lin -1j*dOm_curr*2/self.kappa_0* np.eye(self.N_points*self.N_CROW)).dot(A) + f0.reshape(f0.size) 
+            #    for ii in range(self.N_CROW):
+            #        dAdT[0,ii*self.N_points+ind_modes]+=1j*np.fft.fft(A_dir[ii*self.N_points+ind_modes]*np.abs(A_dir[ii*self.N_points+ind_modes])**2)/self.N_points
+            #    return dAdT
             def RHS(Time, A):
                 A = A - noise_const#self.noise(eps)
                 A_dir = np.zeros(A.size,dtype=complex)
+                dAdT = np.zeros(A.size,dtype=complex)
+              
                 for ii in range(self.N_CROW):
                     A_dir[ii*self.N_points+ind_modes] = np.fft.ifft(A[ii*self.N_points+ind_modes])## in the direct space
                 A_dir*=self.N_points
-                dAdT =  (self.M_lin -1j*dOm_curr*2/self.kappa_0* np.eye(self.N_points*self.N_CROW)).dot(A) + f0.reshape(f0.size) 
-                for ii in range(self.N_CROW):
-                    dAdT[0,ii*self.N_points+ind_modes]+=1j*np.fft.fft(A_dir[ii*self.N_points+ind_modes]*np.abs(A_dir[ii*self.N_points+ind_modes])**2)/self.N_points
+                dAdT =  (-self.kappa.T.reshape(self.kappa.size)/2-1j*self.Dint.T.reshape(self.Dint.size) -1j*dOm_curr)*A*2/self.kappa_0 + f0.reshape(f0.size) 
+                dAdT[0*self.N_points+ind_modes] += 1j*self.J[0,:]*2/self.kappa_0 *np.exp(-1j*ind_modes*np.pi)*A[1*self.N_points+ind_modes]+1j*np.fft.fft(A_dir[0*self.N_points+ind_modes]*np.abs(A_dir[0*self.N_points+ind_modes])**2)/self.N_points
+                dAdT[(self.N_CROW-1)*self.N_points+ind_modes] += 1j*self.J[self.N_CROW-1,:]*2/self.kappa_0 *np.exp(1j*ind_modes*np.pi)*A[((self.N_CROW-2))*self.N_points+ind_modes]+1j*np.fft.fft(A_dir[(self.N_CROW-1)*self.N_points+ind_modes]*np.abs(A_dir[(self.N_CROW-1)*self.N_points+ind_modes])**2)/self.N_points
+                for ii in range(1,self.N_CROW-1):
+                    dAdT[ii*self.N_points+ind_modes]+= 1j*self.J[ii,:]*2/self.kappa_0 *np.exp(-1j*ind_modes*np.pi)*A[(ii+1)*self.N_points+ind_modes] + 1j*self.J[ii-1,:]*2/self.kappa_0 *np.exp(1j*ind_modes*np.pi)*A[(ii-1)*self.N_points+ind_modes] +  1j*np.fft.fft(A_dir[ii*self.N_points+ind_modes]*np.abs(A_dir[ii*self.N_points+ind_modes])**2)/self.N_points
                 return dAdT
             r = complex_ode(RHS).set_integrator('dop853', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
             
@@ -721,7 +735,9 @@ def Plot_Map(map_data, detuning, colormap = 'cubehelix'):
     ax.set_xlim(detuning.min(),detuning.max())
     ix=0
     
-    x = int(np.floor((ix-detuning.min())/dOm))
+    x = int(((ix-detuning.min())/dOm))
+    if (x<0) or (x>detuning.size):
+        x = 0
     max_val = (abs(map_data[x,:])**2).max()
     plt.suptitle('Chosen detuning '+r'$\zeta_0$'+ '= %f km'%ix, fontsize=20)
     ax.lines.pop(0)
