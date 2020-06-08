@@ -44,15 +44,15 @@ PhysicalParameters = {'Inter-resonator_coupling': J,
                       'kappa_ex' : kappa_ex,
                       'Dint' : Dint}
 
-simulation_parameters = {'slow_time' : 10e-6,
+simulation_parameters = {'slow_time' : 1e-6,
                          'detuning_array' : dOm,
                          'noise_level' : 1e-6,
                          'output' : 'map',
-                         'absolute_tolerance' : 1e-9,
-                         'relative_tolerance' : 1e-9,
+                         'absolute_tolerance' : 1e-8,
+                         'relative_tolerance' : 1e-8,
                          'max_internal_steps' : 2000}
 
-P0 = 0.5### W
+P0 = 0.3### W
 Pump = np.zeros([len(mu),N_crow],dtype='complex')
 Pump[0,0] = np.sqrt(P0)
 #Pump = np.concatenate((Pump, 0*Pump))

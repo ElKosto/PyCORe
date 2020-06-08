@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.integrate import complex_ode,solve_ivp
+from scipy.integrate import complex_ode,solve_ivp, ode
 from scipy.sparse.linalg import expm
 import matplotlib.ticker as ticker
 import matplotlib.colors as mcolors
@@ -50,7 +50,7 @@ class Resonator:
         return a*(np.random.uniform(-1,1,self.N_points) + 1j*np.random.uniform(-1,1,self.N_points))
 
     #   Propagate Using the Step Adaptive  Method
-    def Propagate_SAM(self, simulation_parameters, Pump, Seed=[0]):
+    def Propagate_SAM(self, simulation_parameters, Pump, Seed=[0], Normalized_Units=False):
         start_time = time.time()
 
         T = simulation_parameters['slow_time']
@@ -62,16 +62,29 @@ class Resonator:
         eps = simulation_parameters['noise_level']
         J =  simulation_parameters['electro-optical coupling']
         
-        pump = Pump*np.sqrt(1./(hbar*self.w0))
-        if Seed[0] == 0:
-            seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa)
+        if Normalized_Units == False:
+            pump = Pump*np.sqrt(1./(hbar*self.w0))
+            if Seed[0] == 0:
+                seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa,Normalized_Units)
+            else:
+                seed = Seed*np.sqrt(2*self.g0/self.kappa,Normalized_Units)
+            ### renormalization
+            T_rn = (self.kappa/2)*T
+            f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
+            J*=2/self.kappa
+            print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
+            print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
         else:
-            seed = Seed*np.sqrt(2*self.g0/self.kappa)
-        ### renarmalization
-        T_rn = (self.kappa/2)*T
-        f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
-        print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
-        print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
+            pump = Pump
+            if Seed[0] == 0:
+                seed = self.seed_level(Pump, detuning[0],Normalized_Units)
+            else:
+                seed = Seed
+            T_rn = T
+            f0 = pump
+            print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
+            print('xi [' + str(detuning[0]) + ',' +str(detuning[-1])+ ']')
+            detuning*=self.kappa/2
         noise_const = self.noise(eps) # set the noise level
         nn = len(detuning)
         ### define the rhs function
@@ -83,6 +96,7 @@ class Resonator:
         
         t_st = float(T_rn)/len(detuning)
         r = complex_ode(LLE_1d).set_integrator('dop853', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
+        #r = ode(LLE_1d).set_integrator('zvode', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
         r.set_initial_value(seed, 0)# seed the cavity
         sol = np.ndarray(shape=(len(detuning), self.N_points), dtype='complex') # define an array to store the data
         sol[0,:] = seed
@@ -94,13 +108,17 @@ class Resonator:
             sol[it] = r.integrate(r.t+t_st)
             
         if out_param == 'map':
-            return sol/np.sqrt(2*self.g0/self.kappa)
+            if Normalized_Units == False :
+                return sol/np.sqrt(2*self.g0/self.kappa)
+            else:
+                detuning/=self.kappa/2
+                return sol
         elif out_param == 'fin_res':
             return sol[-1, :]/np.sqrt(2*self.g0/self.kappa)
         else:
             print ('wrong parameter')
        
-    def Propagate_SplitStep(self, simulation_parameters, Pump, Seed=[0], dt=5e-4):
+    def Propagate_SplitStep(self, simulation_parameters, Pump, Seed=[0], dt=5e-4, Normalized_Units=False):
         start_time = time.time()
         T = simulation_parameters['slow_time']
         out_param = simulation_parameters['output']
@@ -109,19 +127,33 @@ class Resonator:
         J =  simulation_parameters['electro-optical coupling']
         #dt = simulation_parameters['time_step']#in photon lifetimes
         
-        pump = Pump*np.sqrt(1./(hbar*self.w0))
-        if Seed[0] == 0:
-            seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa)
+        if Normalized_Units == False:
+            pump = Pump*np.sqrt(1./(hbar*self.w0))
+            if Seed[0] == 0:
+                seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa,Normalized_Units)
+            else:
+                seed = Seed*np.sqrt(2*self.g0/self.kappa,Normalized_Units)
+            ### renormalization
+            T_rn = (self.kappa/2)*T
+            f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
+            J*=2/self.kappa
+            print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
+            print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
         else:
-            seed = Seed*np.sqrt(2*self.g0/self.kappa)
-        ### renormalization
-        T_rn = (self.kappa/2)*T
-        f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
-        print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
-        print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
+            pump = Pump
+            if Seed[0] == 0:
+                seed = self.seed_level(Pump, detuning[0],Normalized_Units)
+            else:
+                seed = Seed
+            T_rn = T
+            f0 = pump
+            print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
+            print('xi [' + str(detuning[0]) + ',' +str(detuning[-1])+ ']')
+            detuning*=self.kappa/2
+        
         noise_const = self.noise(eps) # set the noise level
         nn = len(detuning)
-        J*=2/self.kappa
+        
         print('J = ' + str(J))
         t_st = float(T_rn)/len(detuning)
         #dt=1e-4 #t_ph
@@ -152,7 +184,11 @@ class Resonator:
             #sol[it,:] = buf
             
         if out_param == 'map':
-            return sol/np.sqrt(2*self.g0/self.kappa)
+            if Normalized_Units == False :
+                return sol/np.sqrt(2*self.g0/self.kappa)
+            else:
+                detuning/=self.kappa/2
+                return sol
         elif out_param == 'fin_res':
             return sol[-1, :]/np.sqrt(2*self.g0/self.kappa)
         else:
@@ -240,13 +276,21 @@ class Resonator:
             print ('wrong parameter')
     #%%
 
-    def seed_level (self, pump, detuning):
-        f_norm = pump*np.sqrt(1./(hbar*self.w0))*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
-        detuning_norm  = detuning*2/self.kappa
-        stat_roots = np.roots([1, -2*detuning_norm, (detuning_norm**2+1), -abs(f_norm[0])**2])
-        ind_roots = [np.imag(ii)==0 for ii in stat_roots]
-        res_seed = np.zeros_like(f_norm)
-        res_seed[0] = abs(np.min(stat_roots[ind_roots]))**.5/np.sqrt(2*self.g0/self.kappa)
+    def seed_level (self, pump, detuning, Normalized_Units=False):
+        if Normalized_Units == False:
+            f_norm = pump*np.sqrt(1./(hbar*self.w0))*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
+            detuning_norm  = detuning*2/self.kappa
+            stat_roots = np.roots([1, -2*detuning_norm, (detuning_norm**2+1), -abs(f_norm[0])**2])
+            ind_roots = [np.imag(ii)==0 for ii in stat_roots]
+            res_seed = np.zeros_like(f_norm)
+            res_seed[0] = abs(np.min(stat_roots[ind_roots]))**.5/np.sqrt(2*self.g0/self.kappa)
+        else:
+            f_norm = pump
+            detuning_norm  = detuning
+            stat_roots = np.roots([1, -2*detuning_norm, (detuning_norm**2+1), -abs(f_norm[0])**2])
+            ind_roots = [np.imag(ii)==0 for ii in stat_roots]
+            res_seed = np.zeros_like(f_norm)
+            res_seed[0] = abs(np.min(stat_roots[ind_roots]))**.5
         return res_seed
     
     def seed_soliton(self, pump, detuning):
@@ -606,6 +650,7 @@ class CROW(Resonator):#all idenical resonators
                     dAdT[ii*self.N_points+ind_modes]+= 1j*self.J[ii,:]*2/self.kappa_0 *np.exp(-1j*ind_modes*np.pi)*A[(ii+1)*self.N_points+ind_modes] + 1j*self.J[ii-1,:]*2/self.kappa_0 *np.exp(1j*ind_modes*np.pi)*A[(ii-1)*self.N_points+ind_modes] +  1j*np.fft.fft(A_dir[ii*self.N_points+ind_modes]*np.abs(A_dir[ii*self.N_points+ind_modes])**2)/self.N_points
                 return dAdT
             r = complex_ode(RHS).set_integrator('dop853', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
+            #r = ode(RHS).set_integrator('zvode', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
             
             r.set_initial_value(seed, 0)# seed the cavity
             
