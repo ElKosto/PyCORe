@@ -13,7 +13,7 @@ import time
 import os
 from scipy.sparse import block_diag,identity,diags, eye, csc_matrix
 import ctypes
-
+from scipy.linalg import eig
 
 
 class Resonator:
@@ -470,6 +470,26 @@ class CROW(Resonator):#all idenical resonators
         def noise(self, a):
 #        return a*np.exp(1j*np.random.uniform(-1,1,self.N_points)*np.pi)
             return a*(np.random.uniform(-1,1,self.N_points*self.N_CROW)+ 1j*np.random.uniform(-1,1,self.N_points*self.N_CROW))
+        
+        def Linear_analysis(self,ploter=True):
+            M = np.zeros((self.N_CROW,self.N_CROW),dtype='complex')
+            ev_arr = np.array([],dtype='complex')
+            for ii in range(self.N_points):
+                for jj in range(self.N_CROW):
+                    M[jj,jj] = 1*self.Dint[ii,jj]
+                    if jj<self.N_CROW-1:
+                        M[jj,jj+1] = self.J[0,jj]
+                        M[jj+1,jj] = self.J[0,jj]
+                    ev,a = eig(M)
+                ev_arr = np.append(ev_arr,ev.T)
+            if ploter:
+                plt.figure()
+                for kk in range(self.N_CROW):
+                    plt.plot(self.mu,np.real(ev_arr[kk::self.N_CROW]),'k.')
+                    plt.xlabel('Mode number')
+                    plt.ylabel('Hybridized D$_{int}$')
+                    plt.grid('on')
+            return ev_arr
         
         def Propagate_SplitStep(self, simulation_parameters, Pump, Seed=[0], dt=1e-4):
             start_time = time.time()
