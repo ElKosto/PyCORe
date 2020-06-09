@@ -16,7 +16,7 @@ Dint[33] = Dint[33]#+500e6
 
 dNu_ini = -3e8
 dNu_end = 5e8
-nn = 500
+nn = 1000
 ramp_stop = 0.99
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
 
@@ -33,12 +33,14 @@ PhysicalParameters = {'n0' : 1.9,
 
 simulation_parameters = {'slow_time' : 1*1/(25e6*2*np.pi)*nn,
                          'detuning_array' : dOm,
-                         'electro-optical coupling' : -9*(25e6*2*np.pi),
+                         'electro-optical coupling' : -9*(25e6*2*np.pi)*0,
                          'noise_level' : 1e-8,
                          'output' : 'map',
                          'absolute_tolerance' : 1e-8,
                          'relative_tolerance' : 1e-8,
                          'max_internal_steps' : 2000}
+
+
 
 
 P0 = 0.002### W
@@ -47,9 +49,9 @@ Pump[0] = np.sqrt(P0)
 
 single_ring = pcm.Resonator(PhysicalParameters)
 
-#map2d = single_ring.Propagate_SAM(simulation_parameters, Pump)
+map2d = single_ring.Propagate_SAM(simulation_parameters, Pump)
 #map2d = single_ring.Propagate_SplitStepCLIB(simulation_parameters, Pump,dt=1e-3)
-map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=1e-3)
+#map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=1e-3)
 #%%
 plt.figure()
 plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))
