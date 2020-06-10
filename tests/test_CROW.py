@@ -7,7 +7,7 @@ import PyCORe_main as pcm
 
 
 Num_of_modes = 2**9
-N_crow = 2
+N_crow = 20
 
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 
@@ -16,7 +16,8 @@ mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
 Dint_single = 2*np.pi*(mu**2*D2/2 + mu**3*D3/6)
 Dint = np.zeros([mu.size,N_crow])
 Dint = (Dint_single*np.ones([mu.size,N_crow]).T).T#Making matrix of dispersion with dispersion profile of j-th resonator on the j-th column
-
+for ll in range(N_crow):
+    Dint[:,ll] = Dint[:,ll]*(-1)**(ll+1)
 #dNu_ini = 4e9
 #dNu_end = 8e9
 dNu_ini = -5e9
@@ -27,6 +28,10 @@ dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dN
 
 
 J = 4.5e9*2*np.pi*np.ones([mu.size,(N_crow-1)])
+#J = np.zeros(N_crow-1)
+#for pp in range(N_crow-1):
+#    if pp%2: J[pp] = 4.5e9*2*np.pi
+#    else: J[pp] = 0.9e9*2*np.pi
 
 #delta = 0.1e9*2*np.pi
 kappa_ex_ampl = 50e6*2*np.pi
@@ -59,13 +64,14 @@ Pump[0,0] = np.sqrt(P0)
 
 #%%
 crow = pcm.CROW(PhysicalParameters)
+ev = crow.Linear_analysis()
 #%%
 #map2d = crow.Propagate_SplitStep(simulation_parameters, Pump)
-map2d = crow.Propagate_SAM(simulation_parameters, Pump)
+#map2d = crow.Propagate_SAM(simulation_parameters, Pump)
 #%%
-plt.figure()
-plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d[:,:,0])**2,axis=1))
-plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d[:,:,1])**2,axis=1))
+#plt.figure()
+#plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d[:,:,0])**2,axis=1))
+#plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d[:,:,1])**2,axis=1))
 
 
 
