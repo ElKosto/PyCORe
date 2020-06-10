@@ -664,10 +664,10 @@ class CROW(Resonator):#all idenical resonators
                     A_dir[ii*self.N_points+ind_modes] = np.fft.ifft(A[ii*self.N_points+ind_modes])## in the direct space
                 A_dir*=self.N_points
                 dAdT =  (-self.kappa.T.reshape(self.kappa.size)/2-1j*self.Dint.T.reshape(self.Dint.size) -1j*dOm_curr)*A*2/self.kappa_0 + f0.reshape(f0.size) 
-                dAdT[0*self.N_points+ind_modes] += 1j*self.J[:,0]*2/self.kappa_0 *np.exp(-1j*crow.mu*np.pi)*A[1*self.N_points+ind_modes]+1j*np.fft.fft(A_dir[0*self.N_points+ind_modes]*np.abs(A_dir[0*self.N_points+ind_modes])**2)/self.N_points
-                dAdT[(self.N_CROW-1)*self.N_points+ind_modes] += 1j*self.J[:,self.N_CROW-2]*2/self.kappa_0 *np.exp(1j*crow.mu*np.pi)*A[((self.N_CROW-2))*self.N_points+ind_modes]+1j*np.fft.fft(A_dir[(self.N_CROW-1)*self.N_points+ind_modes]*np.abs(A_dir[(self.N_CROW-1)*self.N_points+ind_modes])**2)/self.N_points
+                dAdT[0*self.N_points+ind_modes] += 1j*self.J[:,0]*2/self.kappa_0 *np.exp(-1j*self.mu*np.pi)*A[1*self.N_points+ind_modes]+1j*np.fft.fft(A_dir[0*self.N_points+ind_modes]*np.abs(A_dir[0*self.N_points+ind_modes])**2)/self.N_points
+                dAdT[(self.N_CROW-1)*self.N_points+ind_modes] += 1j*self.J[:,self.N_CROW-2]*2/self.kappa_0 *np.exp(1j*self.mu*np.pi)*A[((self.N_CROW-2))*self.N_points+ind_modes]+1j*np.fft.fft(A_dir[(self.N_CROW-1)*self.N_points+ind_modes]*np.abs(A_dir[(self.N_CROW-1)*self.N_points+ind_modes])**2)/self.N_points
                 for ii in range(1,self.N_CROW-1):
-                    dAdT[ii*self.N_points+ind_modes]+= 1j*self.J[:,ii]*2/self.kappa_0 *np.exp(-1j*crow.mu*np.pi)*A[(ii+1)*self.N_points+ind_modes] + 1j*self.J[:,ii-1]*2/self.kappa_0 *np.exp(1j*crow.mu*np.pi)*A[(ii-1)*self.N_points+ind_modes] +  1j*np.fft.fft(A_dir[ii*self.N_points+ind_modes]*np.abs(A_dir[ii*self.N_points+ind_modes])**2)/self.N_points
+                    dAdT[ii*self.N_points+ind_modes]+= 1j*self.J[:,ii]*2/self.kappa_0 *np.exp(-1j*self.mu*np.pi)*A[(ii+1)*self.N_points+ind_modes] + 1j*self.J[:,ii-1]*2/self.kappa_0 *np.exp(1j*self.mu*np.pi)*A[(ii-1)*self.N_points+ind_modes] +  1j*np.fft.fft(A_dir[ii*self.N_points+ind_modes]*np.abs(A_dir[ii*self.N_points+ind_modes])**2)/self.N_points
                 return dAdT
             r = complex_ode(RHS).set_integrator('dop853', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
             #r = ode(RHS).set_integrator('zvode', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
