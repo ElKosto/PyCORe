@@ -161,7 +161,7 @@ class Resonator:
         sol = np.ndarray(shape=(len(detuning), self.N_points), dtype='complex') # define an array to store the data
         sol[0,:] = seed
         #f0 = np.fft.ifft(f0)*self.N_points
-        f0*=self.N_points
+        #f0*=self.N_points
         self.printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
         for it in range(1,len(detuning)):
             noise_const = self.noise(eps)
@@ -180,7 +180,7 @@ class Resonator:
                 #second step
                 
                 #buf = np.fft.ifft(np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) *buf)
-                buf = np.fft.ifft(np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) *buf + f0/(-1-1j*(self.Dint + dOm_curr)*2/self.kappa)*(np.exp(dt*(-1-1j*(self.Dint + dOm_curr)*2/self.kappa)) -1.))
+                buf = np.fft.ifft(np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) *buf + f0*self.N_points/(-1-1j*(self.Dint + dOm_curr)*2/self.kappa)*(np.exp(dt*(-1-1j*(self.Dint + dOm_curr)*2/self.kappa)) -1.))
                 
                 t+=dt
             sol[it,:] = np.fft.fft(buf)/len(buf)

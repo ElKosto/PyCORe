@@ -16,7 +16,7 @@ Dint[33] = Dint[33]#+500e6
 
 dNu_ini = -3e8
 dNu_end = 5e8
-nn = 1000
+nn = 100
 ramp_stop = 0.99
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
 
