@@ -127,6 +127,7 @@ class Resonator:
         detuning = simulation_parameters['detuning_array']
         eps = simulation_parameters['noise_level']
         J =  simulation_parameters['electro-optical coupling']
+        
         #dt = simulation_parameters['time_step']#in photon lifetimes
         
         if Normalized_Units == False:
@@ -243,6 +244,7 @@ class Resonator:
         In_f_RE = np.array(np.real(f0),dtype=ctypes.c_double)
         In_f_IM = np.array(np.imag(f0),dtype=ctypes.c_double)
         In_J = ctypes.c_double(j)
+        
         In_det = np.array(2/self.kappa*detuning,dtype=ctypes.c_double)
         In_Ndet = ctypes.c_int(len(detuning))
         In_Dint = np.array(self.Dint*2/self.kappa,dtype=ctypes.c_double)
@@ -271,6 +273,93 @@ class Resonator:
         ind_modes = np.arange(self.N_points)
         for ii in range(0,len(detuning)):
             sol[ii,ind_modes] = In_res_RE[ii*self.N_points+ind_modes] + 1j*In_res_IM[ii*self.N_points+ind_modes]
+        #sol = np.reshape(In_res_RE,[len(detuning),self.N_points]) + 1j*np.reshape(In_res_IM,[len(detuning),self.N_points])
+                    
+        if out_param == 'map':
+            return sol/np.sqrt(2*self.g0/self.kappa)
+        elif out_param == 'fin_res':
+            return sol[-1, :]/np.sqrt(2*self.g0/self.kappa)
+        else:
+            print ('wrong parameter')
+        
+    def Propagate_SAMCLIB(self, simulation_parameters, Pump, Seed=[0], dt=5e-4):
+        #start_time = time.time()
+        T = simulation_parameters['slow_time']
+        out_param = simulation_parameters['output']
+        detuning = simulation_parameters['detuning_array']
+        eps = simulation_parameters['noise_level']
+        J =  simulation_parameters['electro-optical coupling']
+        abtol = simulation_parameters['absolute_tolerance']
+        reltol = simulation_parameters['relative_tolerance']
+        #dt = simulation_parameters['time_step']#in photon lifetimes
+        
+        pump = Pump*np.sqrt(1./(hbar*self.w0))
+        
+        if Seed[0] == 0:
+            seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa)
+        else:
+            seed = Seed*np.sqrt(2*self.g0/self.kappa)
+        ### renormalization
+        T_rn = (self.kappa/2)*T
+        f0 = np.fft.ifft(pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3))*self.N_points
+        j = J/self.kappa*2
+        print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
+        print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
+        print('J = ' + str(j))
+        #noise_const = self.noise(eps) # set the noise level
+        #nn = len(detuning)
+        
+        t_st = float(T_rn)/len(detuning)
+        #dt=1e-4 #t_ph
+        
+        sol = np.ndarray(shape=(len(detuning), self.N_points), dtype='complex') # define an array to store the data
+        sol[0,:] = (seed)/self.N_points
+        
+        #%% crtypes defyning
+        LLE_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_lle_core.so')
+        LLE_core.PropagateSAM.restype = ctypes.c_void_p
+        #%% defining the ctypes variables
+        
+        A = seed/self.N_points
+        
+        In_val_RE = np.array(np.real(A),dtype=ctypes.c_double)
+        In_val_IM = np.array(np.imag(A),dtype=ctypes.c_double)
+        In_phi = np.array(self.phi,dtype=ctypes.c_double)
+        In_Nphi = ctypes.c_int(self.N_points)
+        In_f_RE = np.array(np.real(f0),dtype=ctypes.c_double)
+        In_f_IM = np.array(np.imag(f0),dtype=ctypes.c_double)
+        In_atol = ctypes.c_double(abtol)
+        In_rtol = ctypes.c_double(reltol)
+        In_J = ctypes.c_double(j)
+        In_det = np.array(2/self.kappa*detuning,dtype=ctypes.c_double)
+        In_Ndet = ctypes.c_int(len(detuning))
+        In_Dint = np.array(self.Dint*2/self.kappa,dtype=ctypes.c_double)
+        In_Tmax = ctypes.c_double(t_st)
+        In_Nt = ctypes.c_int(int(t_st/dt)+1)
+        In_dt = ctypes.c_double(dt)
+        In_noise_amp = ctypes.c_double(eps)
+        
+        In_res_RE = np.zeros(len(detuning)*self.N_points,dtype=ctypes.c_double)
+        In_res_IM = np.zeros(len(detuning)*self.N_points,dtype=ctypes.c_double)
+        
+        double_p=ctypes.POINTER(ctypes.c_double)
+        In_val_RE_p = In_val_RE.ctypes.data_as(double_p)
+        In_val_IM_p = In_val_IM.ctypes.data_as(double_p)
+        In_phi_p = In_phi.ctypes.data_as(double_p)
+        In_det_p = In_det.ctypes.data_as(double_p)
+        In_Dint_p = In_Dint.ctypes.data_as(double_p)
+        In_f_RE_p = In_f_RE.ctypes.data_as(double_p)
+        In_f_IM_p = In_f_IM.ctypes.data_as(double_p)
+        
+        In_res_RE_p = In_res_RE.ctypes.data_as(double_p)
+        In_res_IM_p = In_res_IM.ctypes.data_as(double_p)
+        #%%running simulations
+        LLE_core.PropagateSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_J, In_phi_p, In_Dint_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_noise_amp, In_res_RE_p, In_res_IM_p)
+        
+        ind_modes = np.arange(self.N_points)
+        for ii in range(0,len(detuning)):
+            sol[ii,ind_modes] = np.fft.fft(In_res_RE[ii*self.N_points+ind_modes] + 1j*In_res_IM[ii*self.N_points+ind_modes])
+            
         #sol = np.reshape(In_res_RE,[len(detuning),self.N_points]) + 1j*np.reshape(In_res_IM,[len(detuning),self.N_points])
                     
         if out_param == 'map':

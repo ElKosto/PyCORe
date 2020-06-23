@@ -50,6 +50,50 @@ void SaveData( std::complex<double> **A, const int Ndet, const int Nphi)
     }
     outFile.close();
 }
+
+void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double J, const double *phi, const double* Dint, const int Ndet, const int Nt, const double dt,  const double atol, const double rtol, const int Nphi, double noise_amp, double* res_RE, double* res_IM)
+{
+    
+    std::cout<<"Step adaptative Dopri853 from NR3 is running\n";
+    std::complex<double>* noise = new (std::nothrow) std::complex<double>[Nphi];
+    const double t0=0., t1=(Nt-1)*dt, dtmin=0.;
+    double *f = new(std::nothrow) double[2*Nphi];
+    VecDoub res_buf(2*Nphi);
+
+
+    noise=WhiteNoise(noise_amp,Nphi);
+    for (int i_phi = 0; i_phi<Nphi; i_phi++){
+        res_RE[i_phi] = In_val_RE[i_phi];
+        res_IM[i_phi] = In_val_IM[i_phi];
+        res_buf[i_phi] = res_RE[i_phi] + noise[i_phi].real();
+        res_buf[i_phi+Nphi] = res_IM[i_phi] + noise[i_phi].imag();
+        f[i_phi] = Re_F[i_phi];
+        f[i_phi+Nphi] = Im_F[i_phi];
+    }
+
+    Output out;
+    rhs_lle lle(Nphi, Dint, detuning[0],f,Dint[1],phi,std::abs(phi[1]-phi[0]),J);
+    
+    for (int i_det=0; i_det<Ndet; i_det++){
+        lle.det = detuning[i_det];
+        noise=WhiteNoise(noise_amp,Nphi);
+        Odeint<StepperDopr853<rhs_lle> > ode(res_buf,t0,t1,atol,rtol,dt,dtmin,out,lle);
+        ode.integrate();
+        for (int i_phi=0; i_phi<Nphi; i_phi++){
+            res_RE[i_det*Nphi+i_phi] = res_buf[i_phi];
+            res_IM[i_det*Nphi+i_phi] = res_buf[i_phi+Nphi];
+            res_buf[i_phi] += noise[i_phi].real();
+            res_buf[i_phi+Nphi] += noise[i_phi].imag();
+
+        }
+        printProgress((i_det+1.)/Ndet);
+
+    }
+    delete [] noise;
+    delete [] f;
+//    delete [] res_buf;
+    std::cout<<"Step adaptative Dopri853 from NR3 is finished\n";
+}
 void* PropagateSS(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double J, const double *phi, const double* Dint, const int Ndet, const int Nt, const double dt, const int Nphi, double noise_amp, double* res_RE, double* res_IM)
 {
     
