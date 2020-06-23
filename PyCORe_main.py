@@ -14,7 +14,9 @@ import os
 from scipy.sparse import block_diag,identity,diags, eye, csc_matrix
 import ctypes
 from scipy.linalg import eig
-
+from matplotlib.patches import Wedge
+from matplotlib.collections import PatchCollection
+import matplotlib.cm as cm
 
 class Resonator:
     def __init__(self, resonator_parameters):
@@ -518,7 +520,7 @@ class CROW(Resonator):#all idenical resonators
 #        return a*np.exp(1j*np.random.uniform(-1,1,self.N_points)*np.pi)
             return a*(np.random.uniform(-1,1,self.N_points*self.N_CROW)+ 1j*np.random.uniform(-1,1,self.N_points*self.N_CROW))
         
-        def Linear_analysis(self,ploter=True):
+        def Linear_analysis(self,plot_dint=True,plot_evec=True):
             M = np.zeros((self.N_CROW,self.N_CROW),dtype='complex')
             ev_arr = np.array([],dtype='complex')
             for ii in range(self.N_points):
@@ -528,14 +530,31 @@ class CROW(Resonator):#all idenical resonators
                         M[jj,jj+1] = self.J[0,jj]
                         M[jj+1,jj] = self.J[0,jj]
                     ev,a = eig(M)
+                if self.mu[ii]==0:
+                    evec_r = np.real(a.reshape(self.N_CROW**2))
                 ev_arr = np.append(ev_arr,ev.T)
-            if ploter:
+            if plot_dint:
                 plt.figure()
                 for kk in range(self.N_CROW):
                     plt.plot(self.mu,np.real(ev_arr[kk::self.N_CROW]),'k.')
                     plt.xlabel('Mode number')
                     plt.ylabel('Hybridized D$_{int}$')
                     plt.grid('on')
+            if plot_evec:
+                fig, ax = plt.subplots()
+                patches = []
+                for ii in range(self.N_CROW):
+                    for jj in range(self.N_CROW):
+                        wedge = Wedge((ii*1., jj*1.), .47, 0, 360, width=0.1)
+                        patches.append(wedge)
+                colors = evec_r
+                p = PatchCollection(patches, cmap=cm.seismic,alpha=1)
+                p.set_array(np.array(colors))
+                ax.add_collection(p)
+                fig.colorbar(p, ax=ax)
+#                plt.title('J$_0$='+str(self.J/2/np.pi/1e9)+' GHz'+'; Factor='+str(fact)+'; N CROW=' +str(N_crow))
+                plt.ylim(-0.5,self.N_CROW*1.-0.5)
+                plt.xlim(-0.5,self.N_CROW*1.-0.5)
             return ev_arr
         
         def Propagate_SplitStep(self, simulation_parameters, Pump, Seed=[0], dt=1e-4):
