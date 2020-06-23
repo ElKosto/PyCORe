@@ -65,9 +65,9 @@ class Resonator:
         if Normalized_Units == False:
             pump = Pump*np.sqrt(1./(hbar*self.w0))
             if Seed[0] == 0:
-                seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa,Normalized_Units)
+                seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa)
             else:
-                seed = Seed*np.sqrt(2*self.g0/self.kappa,Normalized_Units)
+                seed = Seed*np.sqrt(2*self.g0/self.kappa)
             ### renormalization
             T_rn = (self.kappa/2)*T
             f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
@@ -497,7 +497,7 @@ class CROW(Resonator):#all idenical resonators
             f_norm = pump*np.sqrt(1./(hbar*self.w0))*np.sqrt(8*self.g0*self.kappa_ex/self.kappa_0**3)#we pump the first ring
             detuning_norm  = detuning*2/self.kappa_0
             
-            
+            #redo
             LinearM = np.eye(self.N_points*self.N_CROW,dtype = complex)
             ind_modes = np.arange(self.N_points)
             for ii in range(0,self.N_CROW-1):
