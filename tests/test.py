@@ -16,7 +16,7 @@ Dint[33] = Dint[33]#+500e6
 
 dNu_ini = -3e8
 dNu_end = 5e8
-nn = 1000
+nn = 8000
 ramp_stop = 0.99
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
 
@@ -31,10 +31,10 @@ PhysicalParameters = {'n0' : 1.9,
                       'kappa_ex' : 25e6*2*np.pi,
                       'Dint' : Dint}
 
-simulation_parameters = {'slow_time' : 1e-6,
+simulation_parameters = {'slow_time' : 20e-6,
                          'detuning_array' : dOm,
                          'electro-optical coupling' : -3*(25e6*2*np.pi)*0,
-                         'noise_level' : 1e-7,
+                         'noise_level' : 1e-9,
                          'output' : 'map',
                          'absolute_tolerance' : 1e-9,
                          'relative_tolerance' : 1e-9,
@@ -43,7 +43,7 @@ simulation_parameters = {'slow_time' : 1e-6,
 
 
 
-P0 = 0.002### W
+P0 = 0.004### W
 Pump = np.zeros(len(mu),dtype='complex')
 Pump[0] = np.sqrt(P0)
 

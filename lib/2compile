@@ -1,1 +1,2 @@
 g++ -fPIC -shared -lfftw3 -lm -O3 -o lib_lle_core.so lle_core.cpp 
+g++ -fPIC -shared -lfftw3 -lm -O3 -o lib_crow_core.so crow_core.cpp 
