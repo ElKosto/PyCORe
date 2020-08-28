@@ -104,3 +104,11 @@ venv.bak/
 .mypy_cache/
 .DS_Store
 lib/lib_lle_core.so
+tests/map2d.npy
+tests/map2d_1000.npy
+tests/map2d_3500.npy
+tests/map2d_3900.npy
+tests/map2d_650.npy
+tests/map2d_680.npy
+tests/dOm_scan.npy
+tests/map2d_scan.npy

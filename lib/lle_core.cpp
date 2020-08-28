@@ -137,7 +137,8 @@ void* PropagateSS(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im
                 buf.real( buf_direct[i_phi][0] );
                 buf.imag( buf_direct[i_phi][1]);
                 buf+=(noise[i_phi]);
-                buf*= std::exp(dt *(i*buf*std::conj(buf)  +i*J*(std::cos(phi[i_phi])+0.*std::sin(2*phi[i_phi]))  ) );
+                //buf*= std::exp(dt *(i*buf*std::conj(buf)  +i*J*(std::cos(phi[i_phi])+0.*std::sin(2*phi[i_phi]))  ) );
+                buf*= std::exp(dt *(i*buf*std::conj(buf)    ) );
                 buf_direct[i_phi][0] = buf.real();
                 buf_direct[i_phi][1] = buf.imag();
             }

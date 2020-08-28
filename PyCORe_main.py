@@ -135,7 +135,7 @@ class Resonator:
             if Seed[0] == 0:
                 seed = self.seed_level(Pump, detuning[0],Normalized_Units)*np.sqrt(2*self.g0/self.kappa)
             else:
-                seed = Seed*np.sqrt(2*self.g0/self.kappa,Normalized_Units)
+                seed = Seed*np.sqrt(2*self.g0/self.kappa)
             ### renormalization
             T_rn = (self.kappa/2)*T
             f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
@@ -200,7 +200,7 @@ class Resonator:
         else:
             print ('wrong parameter') 
             
-    def Propagate_SplitStepCLIB(self, simulation_parameters, Pump, Seed=[0], dt=5e-4):
+    def Propagate_SplitStepCLIB(self, simulation_parameters, Pump, Seed=[0], dt=5e-4, HardSeed=False):
         #start_time = time.time()
         T = simulation_parameters['slow_time']
         out_param = simulation_parameters['output']
@@ -211,7 +211,7 @@ class Resonator:
         
         pump = Pump*np.sqrt(1./(hbar*self.w0))
         
-        if Seed[0] == 0:
+        if HardSeed == False:
             seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa)
         else:
             seed = Seed*np.sqrt(2*self.g0/self.kappa)
@@ -236,7 +236,8 @@ class Resonator:
         LLE_core.PropagateSS.restype = ctypes.c_void_p
         #%% defining the ctypes variables
         
-        A = np.fft.ifft(seed)*len(seed)
+        A = np.fft.ifft(seed)*(len(seed))
+        #A = seed
         In_val_RE = np.array(np.real(A),dtype=ctypes.c_double)
         In_val_IM = np.array(np.imag(A),dtype=ctypes.c_double)
         In_phi = np.array(self.phi,dtype=ctypes.c_double)
@@ -626,6 +627,7 @@ class CROW(Resonator):#all idenical resonators
                 plt.figure()
                 for kk in range(self.N_CROW):
                     plt.plot(self.mu,np.real(ev_arr[kk::self.N_CROW]),'k.')
+                    plt.xlim(self.mu.min(),self.mu.max())
                     plt.xlabel('Mode number')
                     plt.ylabel('Hybridized D$_{int}$')
                     plt.grid('on')
