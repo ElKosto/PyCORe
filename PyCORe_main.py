@@ -802,7 +802,7 @@ class CROW(Resonator):#all idenical resonators
             else:
                 print ('wrong parameter')
                 
-        def Propagate_SAMCLIB(self, simulation_parameters, Pump, Seed=[0], dt=5e-4,HardSeed=False):
+        def Propagate_SAMCLIB(self, simulation_parameters, Pump, BC, Seed=[0], dt=5e-4,HardSeed=False):
             
             
             T = simulation_parameters['slow_time']
@@ -846,7 +846,12 @@ class CROW(Resonator):#all idenical resonators
             
             f0 =(f0.T.reshape(f0.size))
             #%% crtypes defyning
-            CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_crow_core.so')
+            if BC=='OPEN':
+                CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_crow_core.so')
+            elif BC=='PERIODIC':
+                CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_periodic_crow_core.so')
+            else:
+                sys.exit('None solver has been found')
             
             CROW_core.PropagateSAM.restype = ctypes.c_void_p
             

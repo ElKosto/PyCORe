@@ -63,4 +63,4 @@ Pump[0,0] = np.sqrt(P0)
 crow = pcm.CROW(PhysicalParameters)
 #%%
 #map2d = crow.Propagate_SplitStep(simulation_parameters, Pump)
-map2d = crow.Propagate_SAM(simulation_parameters, Pump)
+map2d = crow.Propagate_SAMCLIB(simulation_parameters, Pump)

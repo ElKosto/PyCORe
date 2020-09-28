@@ -50,10 +50,10 @@ Pump[0] = np.sqrt(P0)
 single_ring = pcm.Resonator(PhysicalParameters)
 
 #map2d = single_ring.Propagate_SAM(simulation_parameters, Pump)
-#map2d = single_ring.Propagate_SplitStepCLIB(simulation_parameters, Pump,dt=1e-3)
+map2d = single_ring.Propagate_SplitStepCLIB(simulation_parameters, Pump,dt=1e-3)
 #map2d = single_ring.Propagate_SAMCLIB(simulation_parameters, Pump,dt=0.5e-3)
 #%%
-map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=1e-3)
+#map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=1e-3)
 #%%
 plt.figure()
 plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))
@@ -61,5 +61,5 @@ plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))
 
 pcm.Plot_Map(np.fft.ifft(map2d,axis=1),dOm*2/single_ring.kappa)
 
-np.save('map2d_scan',map2d,allow_pickle=True)
+#np.save('map2d_scan',map2d,allow_pickle=True)
 print("--- %s seconds ---" % (time.time() - start_time))
