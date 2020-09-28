@@ -622,6 +622,10 @@ class CROW(Resonator):#all idenical resonators
                     if jj<self.N_CROW-1:
                         M[jj,jj+1] = self.J[0,jj]
                         M[jj+1,jj] = self.J[0,jj]
+                        
+                    if self.J[0,:].size==self.N_CROW:
+                        M[0,self.N_CROW-1] = self.J[0,self.N_CROW-1]
+                        M[self.N_CROW-1,0] = self.J[0,self.N_CROW-1]
                     ev,a = eig(M)
                 if self.mu[ii]==0:
                     evec_r = np.real(a.reshape(self.N_CROW**2))
@@ -838,9 +842,9 @@ class CROW(Resonator):#all idenical resonators
             
             ind_modes = np.arange(self.N_points)
             ind_res = np.arange(self.N_CROW)
-            j = np.zeros(self.N_CROW-1)
+            j = np.zeros(self.J[0,:].size)
             kappa = np.zeros(self.N_CROW)
-            for ii in range(self.N_CROW-1):
+            for ii in range(self.J[0,:].size):
                 j[ii] = self.J[0,ii]
             for ii in range(self.N_CROW):
                 sol[0,ind_modes,ii] = seed[ii*self.N_points+ind_modes]
@@ -854,7 +858,7 @@ class CROW(Resonator):#all idenical resonators
             elif BC=='PERIODIC':
                 CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_periodic_crow_core.so')
             else:
-                sys.exit('None solver has been found')
+                sys.exit('Solver has not been found')
             
             CROW_core.PropagateSAM.restype = ctypes.c_void_p
             

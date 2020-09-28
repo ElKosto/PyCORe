@@ -58,7 +58,7 @@ struct rhs_crow{
         for (int i_crow = 0; i_crow<Ncrow; i_crow++){
             J[i_crow] = Ji[i_crow]*2./kappa0;
         }
-        std::cout<<"CROW is initialized\n";
+        std::cout<<"peridoic CROW is initialized\n";
     }
     ~rhs_crow()
     {
