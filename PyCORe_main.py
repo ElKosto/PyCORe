@@ -577,7 +577,10 @@ class CROW(Resonator):#all idenical resonators
             
             ind_phase_modes = np.arange(0,(self.N_CROW-1)*self.N_points)
             ind_phase_modes = ind_phase_modes%self.N_points
-            M_lin = diags(-(self.kappa.T.reshape(self.kappa.size)/self.kappa_0+1j*self.Dint.T.reshape(self.Dint.size)*2/self.kappa_0),0) + 1j*diags(self.J.T.reshape(self.J.size)*2/self.kappa_0 *np.exp(-1j*ind_phase_modes*np.pi),self.N_points) + 1j*diags(self.J.T.reshape(self.J.size)*2/self.kappa_0 *np.exp(1j*ind_phase_modes*np.pi),-self.N_points)
+            M_lin = diags(-(self.kappa.T.reshape(self.kappa.size)/self.kappa_0+1j*self.Dint.T.reshape(self.Dint.size)*2/self.kappa_0),0) + 1j*diags(self.J[:,:self.N_CROW-1].T.reshape(self.J[:,:self.N_CROW-1].size)*2/self.kappa_0 *np.exp(-1j*ind_phase_modes*np.pi),self.N_points) + 1j*diags(self.J[:,:self.N_CROW-1].T.reshape(self.J[:,:self.N_CROW-1].size)*2/self.kappa_0 *np.exp(1j*ind_phase_modes*np.pi),-self.N_points)
+            if self.J[0,:].size == self.N_CROW:
+                M_lin+= 1j*diags(self.J[:,self.N_CROW-1].T.reshape(self.J[:,self.N_CROW-1].size)*2/self.kappa_0 *np.exp(-1j*ind_phase_modes[:self.N_points]*np.pi),(self.N_CROW-1)*self.N_points)
+                M_lin+= 1j*diags(self.J[:,self.N_CROW-1].T.reshape(self.J[:,self.N_CROW-1].size)*2/self.kappa_0 *np.exp(1j*ind_phase_modes[:self.N_points]*np.pi),-(self.N_CROW-1)*self.N_points)
             
             self.M_lin = M_lin
             #self.M_lin = M_lin.todense()

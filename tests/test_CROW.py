@@ -9,8 +9,8 @@ import time
 
 start_time = time.time()
 
-Num_of_modes = 2**9
-N_crow = 2
+Num_of_modes = 2**5
+N_crow = 10
 
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 
@@ -30,7 +30,7 @@ ramp_stop = 0.99
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
 
 
-J = 4.5e9*2*np.pi*np.ones([mu.size,(N_crow-1)])
+J = 4.5e9*2*np.pi*np.ones([mu.size,(N_crow)])
 #J = np.zeros(N_crow-1)
 #for pp in range(N_crow-1):
 #    if pp%2: J[pp] = 4.5e9*2*np.pi
@@ -54,7 +54,7 @@ PhysicalParameters = {'Inter-resonator_coupling': J,
                       'kappa_ex' : kappa_ex,
                       'Dint' : Dint}
 
-simulation_parameters = {'slow_time' : 10e-6,
+simulation_parameters = {'slow_time' : 1e-6,
                          'detuning_array' : dOm,
                          'noise_level' : 1e-6,
                          'output' : 'map',
@@ -74,7 +74,7 @@ crow = pcm.CROW(PhysicalParameters)
 #ev = crow.Linear_analysis()
 #%%
 
-map2d = crow.Propagate_SAMCLIB(simulation_parameters, Pump)
+map2d = crow.Propagate_SAMCLIB(simulation_parameters, Pump, BC='PERIODIC')
 #map2d = crow.Propagate_SAMCLIB_PSEUD_SPECT(simulation_parameters, Pump)
 #map2d = crow.Propagate_SAM(simulation_parameters, Pump)
 #%%
