@@ -1179,6 +1179,11 @@ def Plot_Map(map_data, detuning, colormap = 'cubehelix'):
 """
 here is a set of useful standard functions
 """
+class FieldTheoryCROW:
+    def __init__(self, resonator_parameters):
+
+        
+        
 if __name__ == '__main__':
     print('PyCORe')
     

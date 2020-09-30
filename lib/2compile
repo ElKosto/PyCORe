@@ -1,3 +1,4 @@
 g++ -fPIC -shared -lfftw3 -lm -O3 -o lib_lle_core.so lle_core.cpp 
 g++ -fPIC -shared -lfftw3 -lm -O3 -o lib_crow_core.so crow_core.cpp 
 g++ -fPIC -shared -lfftw3 -lm -O3 -o lib_periodic_crow_core.so periodic_crow_core.cpp 
+g++ -fPIC -shared -lfftw3 -lm -O3 -o lib_2D_lle_core.so 2D_lle_core.cpp 
