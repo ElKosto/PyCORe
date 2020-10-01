@@ -39,10 +39,10 @@ std::complex<double>* WhiteNoise(const double amp, const int N)
     return res;
 }
 
-void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double J, const double *phi, const double* theta, const double delta_theta, const double d2, const double j2,  const int Ndet, const int Nt, const double dt,  const double atol, const double rtol, const int Nphi, const int Ntheta, double noise_amp, double* res_RE, double* res_IM)
+void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double *phi, const double* theta, const double delta_theta, const double d2, const double J,  const int Ndet, const int Nt, const double dt,  const double atol, const double rtol, const int Nphi, const int Ntheta, double noise_amp, double* res_RE, double* res_IM)
 {
     
-    std::cout<<"Core on C++ is running";
+    std::cout<<"Core on C++ is running\n";
     std::complex<double>* noise = new (std::nothrow) std::complex<double>[Nphi*Ntheta];
     const double t0=0., t1=(Nt-1)*dt, dtmin=0.;
     double *f = new(std::nothrow) double[2*Nphi*Ntheta];

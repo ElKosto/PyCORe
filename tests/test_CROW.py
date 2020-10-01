@@ -10,7 +10,7 @@ import time
 start_time = time.time()
 
 Num_of_modes = 2**9
-N_crow = 10
+N_crow = 20
 
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 
@@ -21,10 +21,10 @@ Dint = np.zeros([mu.size,N_crow])
 Dint = (Dint_single*np.ones([mu.size,N_crow]).T).T#Making matrix of dispersion with dispersion profile of j-th resonator on the j-th column
 #for ll in range(N_crow):
  #   Dint[:,ll] = Dint[:,ll]*(-1)**(ll)
-#dNu_ini = 8e9
-#dNu_end = 10e9
-dNu_ini = -10e9
-dNu_end = -7e9
+dNu_ini = 8e9
+dNu_end = 10e9
+#dNu_ini = -10e9
+#dNu_end = -7e9
 nn = 4000
 ramp_stop = 0.99
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
@@ -63,12 +63,12 @@ simulation_parameters = {'slow_time' : 1e-6,
                          'relative_tolerance' : 1e-8,
                          'max_internal_steps' : 2000}
 
-P0 = 1.5### W
+P0 = 0.3### W
 #P0 = 0.006### W
 Pump = np.zeros([len(mu),N_crow],dtype='complex')
-#for ii in range(N_crow):
-#    Pump[0,ii] = np.sqrt(P0/N_crow)
-Pump[0,3] = np.sqrt(P0)
+for ii in range(N_crow):
+    Pump[0,ii] = np.sqrt(P0/N_crow)
+#Pump[0,3] = np.sqrt(P0)
 #Pump[0,9] = np.sqrt(P0/2)
 #Pump = np.concatenate((Pump, 0*Pump))
 

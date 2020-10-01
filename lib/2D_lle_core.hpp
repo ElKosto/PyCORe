@@ -67,34 +67,38 @@ struct rhs_crow{
         delete [] DispTerm;
     }
     void operator() (const Doub x, VecDoub &y, VecDoub &dydx) {
+        double disp_coef_phi, disp_coef_theta;
+
+        disp_coef_phi = d2/dphi/dphi;
+        disp_coef_theta = delta_theta*delta_theta*j2/dtheta/dtheta;
         
         for (int i_theta = 0; i_theta<Ntheta; i_theta++){//Dispersion for phi 
-            DispTerm[i_theta*2*Nphi+ 0] = (d2)*(y[i_theta*2*Nphi+1] - 2*y[i_theta*2*Nphi+0]+ y[i_theta*2*Nphi+Nphi-1])/dphi/dphi ;
-            DispTerm[i_theta*2*Nphi+ Nphi-1] = (d2)*(y[i_theta*2*Nphi+0] - 2*y[i_theta*2*Nphi+Nphi-1]+ y[i_theta*2*Nphi+Nphi-2])/dphi/dphi;
+            DispTerm[i_theta*2*Nphi+ 0] = disp_coef_phi*(y[i_theta*2*Nphi+1] - 2*y[i_theta*2*Nphi+0]+ y[i_theta*2*Nphi+Nphi-1]);
+            DispTerm[i_theta*2*Nphi+ Nphi-1] = disp_coef_phi*(y[i_theta*2*Nphi+0] - 2*y[i_theta*2*Nphi+Nphi-1]+ y[i_theta*2*Nphi+Nphi-2]);
 
-            DispTerm[i_theta*2*Nphi+Nphi] = (d2)*(y[i_theta*2*Nphi+Nphi+1] - 2*y[i_theta*2*Nphi+Nphi]+ y[i_theta*2*Nphi+2*Nphi-1])/dphi/dphi;
-            DispTerm[i_theta*2*Nphi+2*Nphi-1] = (d2)*(y[i_theta*2*Nphi+Nphi] - 2*y[i_theta*2*Nphi+2*Nphi-1]+ y[i_theta*2*Nphi+2*Nphi-2])/dphi/dphi;
+            DispTerm[i_theta*2*Nphi+Nphi] = disp_coef_phi*(y[i_theta*2*Nphi+Nphi+1] - 2*y[i_theta*2*Nphi+Nphi]+ y[i_theta*2*Nphi+2*Nphi-1]);
+            DispTerm[i_theta*2*Nphi+2*Nphi-1] = disp_coef_phi*(y[i_theta*2*Nphi+Nphi] - 2*y[i_theta*2*Nphi+2*Nphi-1]+ y[i_theta*2*Nphi+2*Nphi-2]);
 
 
             for (int i_phi = 1; i_phi<Nphi-1; i_phi++){
-                DispTerm[i_theta*2*Nphi+i_phi] = (d2)*(y[i_theta*2*Nphi+i_phi+1] - 2*y[i_theta*2*Nphi+i_phi]+ y[i_theta*2*Nphi+i_phi-1])/dphi/dphi;
-                DispTerm[i_theta*2*Nphi+i_phi+Nphi] = (d2)*(y[i_theta*2*Nphi+i_phi+Nphi+1] - 2*y[i_theta*2*Nphi+i_phi+Nphi]+ y[i_theta*2*Nphi+i_phi+Nphi-1])/dphi/dphi;
+                DispTerm[i_theta*2*Nphi+i_phi] = disp_coef_phi*(y[i_theta*2*Nphi+i_phi+1] - 2*y[i_theta*2*Nphi+i_phi]+ y[i_theta*2*Nphi+i_phi-1]);
+                DispTerm[i_theta*2*Nphi+i_phi+Nphi] = disp_coef_phi*(y[i_theta*2*Nphi+i_phi+Nphi+1] - 2*y[i_theta*2*Nphi+i_phi+Nphi]+ y[i_theta*2*Nphi+i_phi+Nphi-1]);
             }
         }
 
 
         for (int i_phi = 0; i_phi<Nphi; i_phi++){//Dispersion for theta 
             // i_theta = 0;
-            DispTerm[i_phi]+= delta_theta*j2*(y[2*Nphi+i_phi] - 2*y[i_phi]+ y[(Ntheta-1)*2*Nphi+i_phi])/dtheta/dtheta;
-            DispTerm[i_phi+Nphi]+= delta_theta*j2*(y[2*Nphi+i_phi+Nphi] - 2*y[i_phi+Nphi]+ y[(Ntheta-1)*2*Nphi+i_phi+Nphi])/dtheta/dtheta;
+            DispTerm[i_phi]+= disp_coef_theta*(y[2*Nphi+i_phi] - 2*y[i_phi]+ y[(Ntheta-1)*2*Nphi+i_phi]);
+            DispTerm[i_phi+Nphi]+= disp_coef_theta*(y[2*Nphi+i_phi+Nphi] - 2*y[i_phi+Nphi]+ y[(Ntheta-1)*2*Nphi+i_phi+Nphi]);
             
             // i_theta = Ntheta-1;
-            DispTerm[(Ntheta-1)*2*Nphi+i_phi]+= delta_theta*j2*(y[(0)*2*Nphi+i_phi] - 2*y[(Ntheta-1)*2*Nphi+i_phi]+ y[(Ntheta-2)*2*Nphi+i_phi])/dtheta/dtheta;
-            DispTerm[(Ntheta-1)*2*Nphi+i_phi+Nphi]+= delta_theta*j2*(y[(0)*2*Nphi+i_phi+Nphi] - 2*y[(Ntheta-1)*2*Nphi+i_phi+Nphi]+ y[(Ntheta-2)*2*Nphi+i_phi+Nphi])/dtheta/dtheta;
+            DispTerm[(Ntheta-1)*2*Nphi+i_phi]+= disp_coef_theta*(y[(0)*2*Nphi+i_phi] - 2*y[(Ntheta-1)*2*Nphi+i_phi]+ y[(Ntheta-2)*2*Nphi+i_phi]);
+            DispTerm[(Ntheta-1)*2*Nphi+i_phi+Nphi]+= disp_coef_theta*(y[(0)*2*Nphi+i_phi+Nphi] - 2*y[(Ntheta-1)*2*Nphi+i_phi+Nphi]+ y[(Ntheta-2)*2*Nphi+i_phi+Nphi]);
             
             for (int i_theta = 1; i_theta<Ntheta-1; i_theta++){
-                DispTerm[i_theta*2*Nphi+i_phi]+= delta_theta*j2*(y[(i_theta+1)*2*Nphi+i_phi] - 2*y[i_theta*2*Nphi+i_phi]+ y[(i_theta-1)*2*Nphi+i_phi])/dtheta/dtheta;
-                DispTerm[i_theta*2*Nphi+i_phi+Nphi]+= delta_theta*j2*(y[(i_theta)*2*Nphi+i_phi+Nphi] - 2*y[i_theta*2*Nphi+i_phi+Nphi]+ y[(i_theta-1)*2*Nphi+i_phi+Nphi])/dtheta/dtheta;
+                DispTerm[i_theta*2*Nphi+i_phi]+= disp_coef_theta*(y[(i_theta+1)*2*Nphi+i_phi] - 2*y[i_theta*2*Nphi+i_phi]+ y[(i_theta-1)*2*Nphi+i_phi]);
+                DispTerm[i_theta*2*Nphi+i_phi+Nphi]+= disp_coef_theta*(y[(i_theta)*2*Nphi+i_phi+Nphi] - 2*y[i_theta*2*Nphi+i_phi+Nphi]+ y[(i_theta-1)*2*Nphi+i_phi+Nphi]);
             }
 
         }
@@ -114,7 +118,7 @@ struct rhs_crow{
 
 void printProgress (double percentage);
 std::complex<double>* WhiteNoise(const double amp, const int Nphi);
-void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_f, double *Im_F,  const double *detuning, const double J, const double *phi, const double* theta, const double delta_theta, const double d2, const double j2, const int Ndet, const int Nt, const double dt, const double atol, const double rtol, const int Nphi, const int Ntheta, double noise_amp, double* res_RE, double* res_IM);
+void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_f, double *Im_F,  const double *detuning, const double *phi, const double* theta, const double delta_theta, const double d2, const double j2, const int Ndet, const int Nt, const double dt, const double atol, const double rtol, const int Nphi, const int Ntheta, double noise_amp, double* res_RE, double* res_IM);
 
 
 #ifdef  __cplusplus

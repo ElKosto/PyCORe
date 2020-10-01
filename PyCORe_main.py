@@ -822,7 +822,7 @@ class CROW(Resonator):#all idenical resonators
             
             pump = Pump*np.sqrt(1./(hbar*self.w0))
             
-            pump = Pump*np.sqrt(1./(hbar*self.w0))
+           
             if HardSeed == False:
                 seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa_0)
             else:
@@ -1181,8 +1181,140 @@ here is a set of useful standard functions
 """
 class FieldTheoryCROW:
     def __init__(self, resonator_parameters):
-
+   #Physical parameters initialization
+       
+       
+        self.J = resonator_parameters['Inter-resonator_coupling']
+        self.N_CROW = resonator_parameters['N_res']
+        self.N_theta = resonator_parameters['N_theta']
+        self.D2 = resonator_parameters['D2']
+        self.kappa_ex = resonator_parameters['kappa_ex']
+        self.kappa_0 = resonator_parameters['kappa_0']
+        self.kappa = self.kappa_0 + self.kappa_ex
+        self.d2 = self.D2/self.kappa
+        self.j = 2*self.J/self.kappa
+        self.N_points = resonator_parameters['Number of modes']
+        self.mu = np.fft.fftshift(np.arange(-self.N_points/2, self.N_points/2))
+        self.phi = np.linspace(0,2*np.pi,self.N_points)
+        self.theta =np.linspace(0,2*np.pi,self.N_theta)
+        self.delta_theta = 2*np.pi/self.N_CROW
+    
+    def seed_level (self, pump, detuning):
+        f_norm = pump
+        detuning_norm  = detuning
+        res_seed = np.zeros_like(f_norm)
+        res_seed = f_norm/(1-1j*detuning_norm)
+        return res_seed
+        #res_seed[0] = abs(np.min(stat_roots[ind_roots]))**.5
         
+    def noise(self, a):
+        return a*(np.random.uniform(-1,1,self.N_points*self.N_theta)+ 1j*np.random.uniform(-1,1,self.N_points*self.N_theta))
+
+    def Propagate_SAMCLIB(self, simulation_parameters, Pump, Seed=[0], dt=5e-4,HardSeed=False):
+        
+        
+        T = simulation_parameters['slow_time']
+        abtol = simulation_parameters['absolute_tolerance']
+        reltol = simulation_parameters['relative_tolerance']
+        out_param = simulation_parameters['output']
+        nmax = simulation_parameters['max_internal_steps']
+        detuning = simulation_parameters['detuning_array']
+        eps = simulation_parameters['noise_level']
+        
+        
+        if HardSeed == False:
+            seed = self.seed_level(Pump, detuning[0])
+        else:
+            seed = Seed.T.reshape(Seed.size)
+        ### renormalization
+        T_rn = (self.kappa/2)*T
+        f0 = np.fft.ifft(Pump,axis=0)*self.N_points
+        
+        print('xi [' + str(detuning[0]) + ',' +str(detuning[-1])+ '] (normalized on ' r'$kappa/2)$')
+        noise_const = self.noise(eps) # set the noise level
+        nn = len(detuning)
+        
+        t_st = float(T_rn)/len(detuning)
+            
+        sol = np.ndarray(shape=(len(detuning), self.N_points, self.N_theta), dtype='complex') # define an array to store the data
+        
+        ind_modes = np.arange(self.N_points)
+        ind_res = np.arange(self.N_CROW)
+        j = self.j
+        kappa = self.kappa
+        seed = seed.T.reshape(seed.size)
+        for ii in range(self.N_theta):
+            sol[0,ind_modes,ii] = seed[ii*self.N_points+ind_modes]
+        
+        f0 =(f0.T.reshape(f0.size))
+        #%% crtypes defyning
+        CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_2D_lle_core.so')
+        #else:
+        #    sys.exit('Solver has not been found')
+        
+        CROW_core.PropagateSAM.restype = ctypes.c_void_p
+        
+        A = np.zeros([self.N_theta*self.N_points],dtype=complex)
+        for ii in range(self.N_theta):    
+            A[ii*self.N_points+ind_modes] = np.fft.ifft( seed[ii*self.N_points+ind_modes])*self.N_points
+    
+        In_val_RE = np.array(np.real(A),dtype=ctypes.c_double)
+        In_val_IM = np.array(np.imag(A),dtype=ctypes.c_double)
+        In_phi = np.array(self.phi,dtype=ctypes.c_double)
+        In_Nphi = ctypes.c_int(self.N_points)
+        In_Ncrow = ctypes.c_int(self.N_CROW)
+        In_theta = np.array(self.theta,dtype=ctypes.c_double)
+        In_Ntheta = ctypes.c_int(self.N_theta)
+        In_f_RE = np.array(np.real(f0 ),dtype=ctypes.c_double)
+        In_f_IM = np.array(np.imag(f0 ),dtype=ctypes.c_double)
+        In_atol = ctypes.c_double(abtol)
+        In_rtol = ctypes.c_double(reltol)
+        In_d2 = ctypes.c_double(self.d2)
+        In_j = ctypes.c_double(self.j)
+        In_kappa = ctypes.c_double(self.kappa)
+        In_delta_theta = ctypes.c_double(self.delta_theta)
+
+        In_det = np.array(detuning,dtype=ctypes.c_double)
+        In_Ndet = ctypes.c_int(len(detuning))
+        
+        In_Tmax = ctypes.c_double(t_st)
+        In_Nt = ctypes.c_int(int(t_st/dt)+1)
+        In_dt = ctypes.c_double(dt)
+        In_noise_amp = ctypes.c_double(eps)
+        
+        In_res_RE = np.zeros(len(detuning)*self.N_points*self.N_theta,dtype=ctypes.c_double)
+        In_res_IM = np.zeros(len(detuning)*self.N_points*self.N_theta,dtype=ctypes.c_double)
+        
+        double_p=ctypes.POINTER(ctypes.c_double)
+        In_val_RE_p = In_val_RE.ctypes.data_as(double_p)
+        In_val_IM_p = In_val_IM.ctypes.data_as(double_p)
+        In_phi_p = In_phi.ctypes.data_as(double_p)
+        In_theta_p = In_theta.ctypes.data_as(double_p)
+        In_det_p = In_det.ctypes.data_as(double_p)
+        
+        In_f_RE_p = In_f_RE.ctypes.data_as(double_p)
+        In_f_IM_p = In_f_IM.ctypes.data_as(double_p)
+        
+        In_res_RE_p = In_res_RE.ctypes.data_as(double_p)
+        In_res_IM_p = In_res_IM.ctypes.data_as(double_p)
+        
+        CROW_core.PropagateSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_phi_p, In_theta_p, In_delta_theta, In_d2, In_j, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_Ntheta, In_noise_amp, In_res_RE_p, In_res_IM_p)
+            
+        
+        ind_modes = np.arange(self.N_points)
+        for ii in range(0,len(detuning)):
+            for jj in range(self.N_theta):
+                sol[ii,ind_modes,jj] = (In_res_RE[ii*self.N_points*self.N_theta + jj*self.N_points+ind_modes] + 1j*In_res_IM[ii*self.N_points*self.N_theta+ jj*self.N_points+ind_modes])
+            
+        #sol = np.reshape(In_res_RE,[len(detuning),self.N_points]) + 1j*np.reshape(In_res_IM,[len(detuning),self.N_points])
+                    
+        if out_param == 'map':
+            return sol
+        elif out_param == 'fin_res':
+            return sol[-1, :]
+        else:
+            print ('wrong parameter')
+
         
 if __name__ == '__main__':
     print('PyCORe')
