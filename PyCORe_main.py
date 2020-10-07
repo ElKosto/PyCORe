@@ -1228,7 +1228,8 @@ class FieldTheoryCROW:
             seed = Seed.T.reshape(Seed.size)
         ### renormalization
         T_rn = (self.kappa/2)*T
-        f0 = np.fft.ifft(Pump,axis=0)*self.N_points
+        #f0 = np.fft.ifft(Pump,axis=0)*self.N_points
+        f0=Pump
         print('f0='+str(f0.max()))
         print('xi [' + str(detuning[0]) + ',' +str(detuning[-1])+ '] (normalized on ' r'$kappa/2)$')
         noise_const = self.noise(eps) # set the noise level
@@ -1256,7 +1257,9 @@ class FieldTheoryCROW:
         
         A = np.zeros([self.N_theta*self.N_points],dtype=complex)
         for ii in range(self.N_theta):    
-            A[ii*self.N_points+ind_modes] = np.fft.ifft( seed[ii*self.N_points+ind_modes])*self.N_points
+        #    A[ii*self.N_points+ind_modes] = np.fft.ifft( seed[ii*self.N_points+ind_modes])*self.N_points
+            A[ii*self.N_points+ind_modes] =  seed[ii*self.N_points+ind_modes]
+        
     
         In_val_RE = np.array(np.real(A),dtype=ctypes.c_double)
         In_val_IM = np.array(np.imag(A),dtype=ctypes.c_double)
