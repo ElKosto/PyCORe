@@ -9,11 +9,11 @@ import time
 
 start_time = time.time()
 
-Num_of_modes = 2**7
-N_theta = 2**5
-N_crow = 200
+Num_of_modes = 2**9
+N_theta = 2**7
+N_crow = 20
 D2 = 4.1e6*2*np.pi
-J = 4.5e6*2*np.pi
+J = 1e8*2*np.pi
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
 kappa0=50e6*2*np.pi
 kappa_ex=50e6*2*np.pi
@@ -26,7 +26,7 @@ zeta_end = 10
 nu_ini = zeta_ini*2/kappa
 nu_end = zeta_end*2/kappa
 
-nn = 4000
+nn = 400
 
 zeta = np.linspace(zeta_ini,zeta_end,nn)
 
@@ -39,7 +39,7 @@ PhysicalParameters = {'Inter-resonator_coupling': J,
                       'kappa_0' : 50e6*2*np.pi,
                       'kappa_ex' : kappa_ex,
                       'Number of modes':Num_of_modes}
-simulation_parameters = {'slow_time' : 1e-7,
+simulation_parameters = {'slow_time' : 1e-9,
                          'detuning_array' : zeta,
                          'noise_level' : 1e-6,
                          'output' : 'map',
@@ -52,7 +52,7 @@ f = np.sqrt(f2)
 
 Sin = np.zeros([len(mu),N_theta],dtype='complex')
 for ii in range(N_theta):
-    Sin[0,ii] = f/np.sqrt(N_theta)
+    Sin[:,ii] = f/np.sqrt(N_theta)
 
 crow = pcm.FieldTheoryCROW(PhysicalParameters)
 #%%

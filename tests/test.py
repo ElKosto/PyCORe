@@ -9,7 +9,7 @@ import time
 start_time = time.time()
 Num_of_modes = 512
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
-D3 = 75.5e3
+D3 = 0*75.5e3
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
 Dint = 2*np.pi*(mu**2*D2/2 + mu**3*D3/6)
 Dint[33] = Dint[33]#+500e6
@@ -28,7 +28,7 @@ PhysicalParameters = {'n0' : 1.9,
                       'width' : 1.5e-6,
                       'height' : 0.85e-6,
                       'kappa_0' : 50e6*2*np.pi,
-                      'kappa_ex' : 100e6*2*np.pi,
+                      'kappa_ex' : 50e6*2*np.pi,
                       'Dint' : Dint}
 
 simulation_parameters = {'slow_time' : 1e-6,
@@ -43,7 +43,7 @@ simulation_parameters = {'slow_time' : 1e-6,
 
 
 
-P0 = 0.1### W
+P0 = 0.01### W
 Pump = np.zeros(len(mu),dtype='complex')
 Pump[0] = np.sqrt(P0)
 
