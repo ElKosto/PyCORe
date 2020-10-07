@@ -98,7 +98,7 @@ struct rhs_crow{
             
             for (int i_theta = 1; i_theta<Ntheta-1; i_theta++){
                 DispTerm[i_theta*2*Nphi+i_phi]+= disp_coef_theta*(y[(i_theta+1)*2*Nphi+i_phi] - 2*y[i_theta*2*Nphi+i_phi]+ y[(i_theta-1)*2*Nphi+i_phi]);
-                DispTerm[i_theta*2*Nphi+i_phi+Nphi]+= disp_coef_theta*(y[(i_theta)*2*Nphi+i_phi+Nphi] - 2*y[i_theta*2*Nphi+i_phi+Nphi]+ y[(i_theta-1)*2*Nphi+i_phi+Nphi]);
+                DispTerm[i_theta*2*Nphi+i_phi+Nphi]+= disp_coef_theta*(y[(i_theta+1)*2*Nphi+i_phi+Nphi] - 2*y[i_theta*2*Nphi+i_phi+Nphi]+ y[(i_theta-1)*2*Nphi+i_phi+Nphi]);
             }
 
         }
