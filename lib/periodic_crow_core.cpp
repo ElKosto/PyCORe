@@ -82,7 +82,7 @@ void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* I
 
             }
         }
-        printProgress((i_det+1.)/Ndet);
+//        printProgress((i_det+1.)/Ndet);
 
     }
     delete [] noise;
