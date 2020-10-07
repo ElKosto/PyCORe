@@ -1229,7 +1229,7 @@ class FieldTheoryCROW:
         ### renormalization
         T_rn = (self.kappa/2)*T
         f0 = np.fft.ifft(Pump,axis=0)*self.N_points
-        
+        print('f0='+str(f0.max()))
         print('xi [' + str(detuning[0]) + ',' +str(detuning[-1])+ '] (normalized on ' r'$kappa/2)$')
         noise_const = self.noise(eps) # set the noise level
         nn = len(detuning)

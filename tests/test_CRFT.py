@@ -8,11 +8,19 @@ import time
 
 start_time = time.time()
 
+<<<<<<< HEAD
 Num_of_modes = 2**8
 N_theta = 2**8
 N_crow = 20
 D2 = 8.2e6*2*np.pi
 J = 41.4e6*2*np.pi
+=======
+Num_of_modes = 2**9
+N_theta = 2**7
+N_crow = 20
+D2 = 4.1e6*2*np.pi
+J = 1e8*2*np.pi
+>>>>>>> PyCORe++
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
 kappa0=50e6*2*np.pi
 kappa_ex=50e6*2*np.pi
@@ -37,7 +45,11 @@ PhysicalParameters = {'Inter-resonator_coupling': J,
                       'kappa_0' : 50e6*2*np.pi,
                       'kappa_ex' : kappa_ex,
                       'Number of modes':Num_of_modes}
+<<<<<<< HEAD
 simulation_parameters = {'slow_time' : 1e-8,
+=======
+simulation_parameters = {'slow_time' : 1e-9,
+>>>>>>> PyCORe++
                          'detuning_array' : zeta,
                          'noise_level' : 1e-6,
                          'output' : 'map',
@@ -50,14 +62,19 @@ f = np.sqrt(f2)
 
 Sin = np.zeros([len(mu),N_theta],dtype='complex')
 for ii in range(N_theta):
-    Sin[0,ii] = f/np.sqrt(N_theta)
+    Sin[:,ii] = f/np.sqrt(N_theta)
 
 crow = pcm.FieldTheoryCROW(PhysicalParameters)
 #%%
 map2d = crow.Propagate_SAMCLIB(simulation_parameters, Sin)
 
 #%%
+<<<<<<< HEAD
 #plt.figure()
 #plt.plot(zeta,np.mean(np.mean(np.abs(map2d[:,:,:])**2,axis=1),axis=1))
 np.save('map2d',map2d,allow_pickle=True)
 
+=======
+plt.figure()
+plt.plot(zeta,np.mean(np.mean(np.abs(map2d[:,:,:])**2,axis=1),axis=1))
+>>>>>>> PyCORe++
