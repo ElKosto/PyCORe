@@ -49,9 +49,6 @@ Pump[0] = np.sqrt(P0)
 
 single_ring = pcm.Resonator(PhysicalParameters)
 
-#map2d = single_ring.Propagate_SAM(simulation_parameters, Pump)
-map2d = single_ring.Propagate_SplitStepCLIB(simulation_parameters, Pump,dt=1e-3)
-#map2d = single_ring.Propagate_SAMCLIB(simulation_parameters, Pump,dt=0.5e-3)
 #%%
 #map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=1e-3)
 #%%
