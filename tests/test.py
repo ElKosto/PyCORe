@@ -9,7 +9,7 @@ import time
 start_time = time.time()
 Num_of_modes = 512
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
-D3 = 0*75.5e3
+D3 = 75.5e3
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
 Dint = 2*np.pi*(mu**2*D2/2 + mu**3*D3/6)
 Dint[33] = Dint[33]#+500e6
@@ -43,10 +43,10 @@ simulation_parameters = {'slow_time' : 1e-6,
 
 
 
-P0 = 0.01### W
+P0 = 0.1### W
 Pump = np.zeros(len(mu),dtype='complex')
 Pump[0] = np.sqrt(P0)
-
+#%%
 single_ring = pcm.Resonator(PhysicalParameters)
 
 #map2d = single_ring.Propagate_SAM(simulation_parameters, Pump)
@@ -61,5 +61,5 @@ plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))
 
 pcm.Plot_Map(np.fft.ifft(map2d,axis=1),dOm*2/single_ring.kappa)
 
-#np.save('map2d_scan',map2d,allow_pickle=True)
+np.save('map2d_scan',map2d,allow_pickle=True)
 print("--- %s seconds ---" % (time.time() - start_time))

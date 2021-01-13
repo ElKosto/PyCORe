@@ -283,7 +283,7 @@ class Resonator:
         else:
             print ('wrong parameter')
         
-    def Propagate_SAMCLIB(self, simulation_parameters, Pump, Seed=[0], dt=5e-4):
+    def Propagate_SAMCLIB(self, simulation_parameters, Pump, Seed=[0], dt=5e-4,HardSeed=False):
         #start_time = time.time()
         T = simulation_parameters['slow_time']
         out_param = simulation_parameters['output']
@@ -296,7 +296,7 @@ class Resonator:
         
         pump = Pump*np.sqrt(1./(hbar*self.w0))
         
-        if Seed[0] == 0:
+        if HardSeed == False:
             seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa)
         else:
             seed = Seed*np.sqrt(2*self.g0/self.kappa)
