@@ -14,8 +14,8 @@ sys.path.append(os.path.abspath(__file__)[:-13])
 import PyCORe_main as pcm
 import time
 
-map2d_scan=np.load('map2d.npy')
-map2d=np.load('map2d_623.npy')
+map2d_scan=np.load('map2d_scan.npy')
+map2d=np.load('map2d_630.npy')
 dOm=np.load('dOm_scan.npy')
 nn = map2d[:,0].size
 
@@ -39,8 +39,8 @@ NDR =np.fft.fftshift(np.fft.fft2(map2d_direct[:,:]))
 max_val =np.max(np.abs(NDR[:,:])) 
 fig = plt.figure(figsize=[3.6,2.2],frameon=True)
 ax = fig.add_subplot(1,1,1)
-colbar=ax.pcolormesh(mu,-slow_freq*2*np.pi,10*np.log10(np.abs(NDR)**2/max_val**2),cmap='afmhot',rasterized=True)
-colbar.set_clim(-100,0)
+colbar=ax.pcolormesh(mu,-slow_freq,10*np.log10(np.abs(NDR)**2/max_val**2),cmap='afmhot',rasterized=True)
+colbar.set_clim(-150,0)
 ax.set_xlim(-200,200)
 #ax.set_xticks([-256,0,255])
 

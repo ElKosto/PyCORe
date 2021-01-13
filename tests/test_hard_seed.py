@@ -23,9 +23,9 @@ nn = 2000
 ramp_stop = 0.99
 dOm_scan = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
 
-nn=10000
-map2d_scan = np.load('map2d.npy')
-idet = 623
+nn=20000
+map2d_scan = np.load('map2d_scan.npy')
+idet = 630
 dOm = np.ones(nn)*dOm_scan[idet]
 
 PhysicalParameters = {'n0' : 1.9,
@@ -38,7 +38,7 @@ PhysicalParameters = {'n0' : 1.9,
                       'kappa_ex' : 50e6*2*np.pi,
                       'Dint' : Dint}
 
-simulation_parameters = {'slow_time' : 5e-6,
+simulation_parameters = {'slow_time' : 1e-6,
                          'detuning_array' : dOm,
                          'electro-optical coupling' : -3*(25e6*2*np.pi)*0,
                          'noise_level' : 1e-8,

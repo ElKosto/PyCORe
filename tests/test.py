@@ -58,5 +58,5 @@ plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))
 
 pcm.Plot_Map(np.fft.ifft(map2d,axis=1),dOm*2/single_ring.kappa)
 
-#np.save('map2d_scan',map2d,allow_pickle=True)
+np.save('map2d_scan',map2d,allow_pickle=True)
 print("--- %s seconds ---" % (time.time() - start_time))
