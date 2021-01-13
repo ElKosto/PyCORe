@@ -119,7 +119,7 @@ class Resonator:
         else:
             print ('wrong parameter')
        
-    def Propagate_SplitStep(self, simulation_parameters, Pump, Seed=[0], dt=5e-4, Normalized_Units=False):
+    def Propagate_SplitStep(self, simulation_parameters, Pump, Seed=[0], dt=5e-4, HardSeed=False, Normalized_Units=False):
         start_time = time.time()
         T = simulation_parameters['slow_time']
         out_param = simulation_parameters['output']
@@ -152,7 +152,10 @@ class Resonator:
             print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
             print('xi [' + str(detuning[0]) + ',' +str(detuning[-1])+ ']')
             detuning*=self.kappa/2
-        
+        if HardSeed == False:
+            seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa)
+        else:
+            seed = Seed*np.sqrt(2*self.g0/self.kappa)
         noise_const = self.noise(eps) # set the noise level
         nn = len(detuning)
         
