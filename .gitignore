@@ -112,3 +112,4 @@ tests/map2d_650.npy
 tests/map2d_680.npy
 tests/dOm_scan.npy
 tests/map2d_scan.npy
+*.npy
