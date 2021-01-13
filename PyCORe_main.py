@@ -355,7 +355,13 @@ class Resonator:
                 print()
                 
             
-def Plot_Map(map_data,dt=1,dz=1,colormap = 'cubehelix',z0=0):
+def Plot_Map(map_data, detuning, colormap = 'cubehelix'):
+    dOm = detuning[1]-detuning[0]
+    dt=1
+   
+   
+    Num_of_modes = map_data[0,:].size
+    mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
     def shiftedColorMap(cmap, start=0, midpoint=0.5, stop=1.0, name='shiftedcmap'):
         '''
         Function to offset the "center" of a colormap. Useful for
@@ -409,66 +415,87 @@ def Plot_Map(map_data,dt=1,dz=1,colormap = 'cubehelix',z0=0):
 
 
     def onclick(event):
+        
         ix, iy = event.xdata, event.ydata
-        x = int(np.floor(ix/dz))
-        plt.suptitle('Chosen distance z = %f km'%ix, fontsize=20)
+        x = int(np.floor((ix-detuning.min())/dOm))
+        max_val = (abs(map_data[x,:])**2).max()
+        plt.suptitle('Chosen detuning '+r'$\zeta_0$'+ '= %f'%ix, fontsize=20)
         ax.lines.pop(0)
-        ax.plot([ix,ix], [0, dt*np.size(map_data,1)],'r')
+        ax.plot([ix,ix], [-np.pi, np.pi ],'r')
 
-        ax2 = plt.subplot2grid((4, 1), (2, 0))            
-        ax2.plot(np.arange(0,dt*np.size(map_data,1),dt), abs(map_data[x,:])**2, 'r')
-        ax2.set_ylabel('Power (W)')
-        ax2.set_xlim(0, dt*np.size(map_data,1))        
-        ax3 = plt.subplot2grid((4, 1), (3, 0))
-        ax3.plot(np.arange(0,dt*np.size(map_data,1),dt), np.angle(map_data[x,:])/(np.pi),'b')
-        if max( np.unwrap(np.angle(map_data[x,:]))/(np.pi)) - min( np.unwrap(np.angle(map_data[x,:]))/(np.pi))<10:
-            ax3.plot(np.arange(0,dt*np.size(map_data,1),dt), np.unwrap(np.angle(map_data[x,:]))/(np.pi),'g')
-        ax3.set_xlabel('Time (ps)')
+        ax2 = plt.subplot2grid((5, 1), (2, 0))            
+        ax2.plot(phi, abs(map_data[x,:])**2/max_val, 'r')
+        ax2.set_ylabel('Intracavity power [a.u.]')
+        ax2.set_xlim(-np.pi,np.pi)
+        ax2.set_ylim(0,1)        
+        ax3 = plt.subplot2grid((5, 1), (3, 0))
+        ax3.plot(phi, np.angle(map_data[x,:])/(np.pi),'b')
+#        if max( np.unwrap(np.angle(map_data[x,:]))/(np.pi)) - min( np.unwrap(np.angle(map_data[x,:]))/(np.pi))<10:
+#            ax3.plot(np.arange(0,dt*np.size(map_data,1),dt), np.unwrap(np.angle(map_data[x,:]))/(np.pi),'g')
+        ax3.set_xlabel(r'$\varphi$')
         ax3.set_ylabel('Phase (rad)')
-        ax3.set_xlim(0, dt*np.size(map_data,1))
+        ax3.set_xlim(-np.pi,np.pi)
         ax3.yaxis.set_major_locator(ticker.MultipleLocator(base=1.0))
         ax3.yaxis.set_major_formatter(ticker.FormatStrFormatter('%g $\pi$'))
         ax3.grid(True)
+        
+        ax4 = plt.subplot2grid((5, 1), (4, 0))            
+        ax4.plot(mu,10*np.log10(abs(np.fft.fftshift(np.fft.fft(map_data[x,:])))**2/(abs(np.fft.fft(map_data[x,:]))**2).max()),'-o', color='black',markersize=3)
+        ax4.set_ylabel('Spectrum, dB')
+        ax4.set_xlim(mu.min(),mu.max())
+        #ax4.set_ylim(-100,3)   
         plt.show()
         f.canvas.draw()
         
+    
     f = plt.figure()
-    ax = plt.subplot2grid((4, 1), (0, 0), rowspan=2)
-    plt.suptitle('Choose the coordinate', fontsize=20)
+    ax = plt.subplot2grid((5, 1), (0, 0), rowspan=2)
+    plt.suptitle('Choose the detuning', fontsize=20)
     f.set_size_inches(10,8)
-    Z,T = np.meshgrid( np.arange(0,dz*np.size(map_data,0),dz), np.arange(0, dt*np.size(map_data,1),dt))
+    phi = np.linspace(-np.pi,np.pi,map_data[0,:].size)
 #    orig_cmap = plt.get_cmap('viridis')
 #    colormap = shiftedColorMap(orig_cmap, start=0., midpoint=.5, stop=1., name='shrunk')
-    pc = ax.pcolormesh(Z, T, abs(np.transpose(map_data))**2, cmap=colormap)
-    ax.plot([0, 0], [0, dt*np.size(map_data,1)-dt], 'r')
-    ax.set_xlabel('Distance (km)')
-    ax.set_ylabel('Time (ps)')
-    ax.set_ylim(0, dt*np.size(map_data,1))
-    ax.set_xlim(0, dz*np.size(map_data,0)-5*dz)
-    ix=z0
-    x = int(np.floor(ix/dz))
-    plt.suptitle('Chosen distance z = %f km'%ix, fontsize=20)
+    pc = ax.pcolormesh(detuning, phi, abs(np.transpose(map_data))**2, cmap=colormap)
+    ax.plot([0, 0], [-np.pi, np.pi], 'r')
+    ax.set_xlabel('Detuning')
+    ax.set_ylabel(r'$\varphi$')
+    ax.set_ylim(-np.pi, np.pi)
+    ax.set_xlim(detuning.min(),detuning.max())
+    ix=0
+    
+    x = int(((ix-detuning.min())/dOm))
+    if (x<0) or (x>detuning.size):
+        x = 0
+    max_val = (abs(map_data[x,:])**2).max()
+    plt.suptitle('Chosen detuning '+r'$\zeta_0$'+ '= %f km'%ix, fontsize=20)
     ax.lines.pop(0)
     
-    ax.plot([ix,ix], [0, dt*np.size(map_data,1)],'r')
-
-    ax2 = plt.subplot2grid((4, 1), (2, 0))            
-    ax2.plot(np.arange(0,dt*np.size(map_data,1),dt), abs(map_data[x,:])**2, 'r')
-    ax2.set_ylabel('Power (W)')
-    ax2.set_xlim(0, dt*np.size(map_data,1))        
-    ax3 = plt.subplot2grid((4, 1), (3, 0))
-    ax3.plot(np.arange(0,dt*np.size(map_data,1),dt), np.angle(map_data[x,:])/(np.pi),'b')
-    if max( np.unwrap(np.angle(map_data[x,:]))/(np.pi)) - min( np.unwrap(np.angle(map_data[x,:]))/(np.pi))<10:
-        ax3.plot(np.arange(0,dt*np.size(map_data,1),dt), np.unwrap(np.angle(map_data[x,:]))/(np.pi),'g')
-    ax3.set_xlabel('Time (ps)')
+    ax.plot([ix,ix], [-np.pi, np.pi ],'r')
+    
+    ax2 = plt.subplot2grid((5, 1), (2, 0))            
+    ax2.plot(phi,abs(map_data[x,:])**2/max_val, 'r')
+    ax2.set_ylabel('Intracavity power [a.u.]')
+    ax2.set_xlim(-np.pi,np.pi)
+    ax2.set_ylim(0,1)        
+    ax3 = plt.subplot2grid((5, 1), (3, 0))
+    ax3.plot(phi, np.angle(map_data[x,:])/(np.pi),'b')
+#    if max( np.unwrap(np.angle(map_data[x,:]))/(np.pi)) - min( np.unwrap(np.angle(map_data[x,:]))/(np.pi))<10:
+#        ax3.plot(np.arange(0,dt*np.size(map_data,1),dt), np.unwrap(np.angle(map_data[x,:]))/(np.pi),'g')
+    ax3.set_xlabel(r'$\varphi$')
     ax3.set_ylabel('Phase (rad)')
-    ax3.set_xlim(0, dt*np.size(map_data,1))
+    ax3.set_xlim(-np.pi,np.pi)
     ax3.yaxis.set_major_locator(ticker.MultipleLocator(base=1.0))
     ax3.yaxis.set_major_formatter(ticker.FormatStrFormatter('%g $\pi$'))
     ax3.grid(True)
+    ax4 = plt.subplot2grid((5, 1), (4, 0))            
+    ax4.plot(mu,10*np.log10(abs(np.fft.fftshift(np.fft.fft(map_data[x,:])))**2/(abs(np.fft.fft(map_data[x,:]))**2).max()), '-o',color='black',markersize=3)
+    ax4.set_ylabel('Spectrum, dB')
+    ax4.set_xlim(mu.min(),mu.max())
+    #ax4.set_ylim(-50,3)        
 #    f.colorbar(pc)
     plt.subplots_adjust(left=0.07, bottom=0.07, right=0.95, top=0.93, wspace=None, hspace=0.4)
-    f.canvas.mpl_connect('button_press_event', onclick)
+    f.canvas.mpl_connect('button_press_event', onclick)                
+
 """
 here is a set of useful standard functions
 """
