@@ -46,7 +46,7 @@ class Resonator:
         self.D3 = popt[3]
         
         
-def noise(self, a):
+    def noise(self, a):
 #        return a*np.exp(1j*np.random.uniform(-1,1,self.N_points)*np.pi)
         return a*(np.random.uniform(-1,1,self.N_points) + 1j*np.random.uniform(-1,1,self.N_points))
 
@@ -132,7 +132,7 @@ def noise(self, a):
         if Normalized_Units == False:
             pump = Pump*np.sqrt(1./(hbar*self.w0))
             if Seed[0] == 0:
-                seed = self.seed_level(Pump, detuning[0],Normalized_Units)*np.sqrt(2*self.g0/self.kappa)
+                seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa)
             else:
                 seed = Seed*np.sqrt(2*self.g0/self.kappa)
             ### renormalization
