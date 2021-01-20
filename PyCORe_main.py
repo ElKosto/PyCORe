@@ -558,6 +558,7 @@ class CROW(Resonator):#all idenical resonators
             self.g0 = hbar*self.w0**2*c*self.n2/self.n0**2/self.Veff
             self.gamma = self.n2*self.w0/c/self.Aeff
             self.J = np.array(resonator_parameters['Inter-resonator_coupling'])
+            self.Delta = np.array(resonator_parameters['Resonator detunings'])
             self.N_CROW = len(self.Dint[0,:])
             self.D2 = np.zeros(self.N_CROW)
             self.D3 = np.zeros(self.N_CROW)
@@ -599,7 +600,7 @@ class CROW(Resonator):#all idenical resonators
                 LinearM[ind_modes+ii*self.N_points,ind_modes+(ii+1)*self.N_points] = 1j*self.J.T.reshape(self.J.size)[ii*self.N_points +ind_modes]*2/self.kappa_0
             LinearM += LinearM.T
             indM = np.arange(self.N_points*self.N_CROW)
-            LinearM[indM,indM] = -(self.kappa.T.reshape(self.kappa.size)[indM]/self.kappa_0 + 1j*detuning_norm)
+            LinearM[indM,indM] = -(self.kappa.T.reshape(self.kappa.size)[indM]/self.kappa_0 +1j*self.Delta.T.reshape(self.Delta.size)[indM]/self.kappa_0+ 1j*detuning_norm)
             
            
             
@@ -618,7 +619,7 @@ class CROW(Resonator):#all idenical resonators
             ev_arr = np.array([],dtype='complex')
             for ii in range(self.N_points):
                 for jj in range(self.N_CROW):
-                    M[jj,jj] = 1*self.Dint[ii,jj]
+                    M[jj,jj] = 1*self.Dint[ii,jj] + self.Delta[ii,jj]
                     if jj<self.N_CROW-1:
                         M[jj,jj+1] = self.J[0,jj]
                         M[jj+1,jj] = self.J[0,jj]
@@ -843,12 +844,14 @@ class CROW(Resonator):#all idenical resonators
             ind_modes = np.arange(self.N_points)
             ind_res = np.arange(self.N_CROW)
             j = np.zeros(self.J[0,:].size)
+            delta = np.zeros(self.Delta[0,:].size)
             kappa = np.zeros(self.N_CROW)
             for ii in range(self.J[0,:].size):
                 j[ii] = self.J[0,ii]
             for ii in range(self.N_CROW):
                 sol[0,ind_modes,ii] = seed[ii*self.N_points+ind_modes]
                 kappa[ii] = self.kappa[0,ii]
+                delta[ii] = self.Delta[0,ii]
             
             
             f0 =(f0.T.reshape(f0.size))
@@ -882,6 +885,7 @@ class CROW(Resonator):#all idenical resonators
             In_D2 = np.array(self.D2,dtype=ctypes.c_double)
             
             In_kappa = np.array(kappa,dtype=ctypes.c_double)
+            In_delta = np.array(delta,dtype=ctypes.c_double)
             In_kappa_0 = ctypes.c_double(self.kappa_0)
             In_J = np.array(j,dtype=ctypes.c_double)
             In_Tmax = ctypes.c_double(t_st)
@@ -900,6 +904,7 @@ class CROW(Resonator):#all idenical resonators
             In_D2_p = In_D2.ctypes.data_as(double_p)
             
             In_kappa_p = In_kappa.ctypes.data_as(double_p)
+            In_delta_p = In_delta.ctypes.data_as(double_p)
             In_J_p = In_J.ctypes.data_as(double_p)
             In_f_RE_p = In_f_RE.ctypes.data_as(double_p)
             In_f_IM_p = In_f_IM.ctypes.data_as(double_p)
@@ -907,7 +912,7 @@ class CROW(Resonator):#all idenical resonators
             In_res_RE_p = In_res_RE.ctypes.data_as(double_p)
             In_res_IM_p = In_res_IM.ctypes.data_as(double_p)
             
-            CROW_core.PropagateSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_kappa_p, In_kappa_0, In_J_p, In_phi_p, In_D2_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_Ncrow, In_noise_amp, In_res_RE_p, In_res_IM_p)
+            CROW_core.PropagateSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_kappa_p, In_kappa_0, In_delta_p, In_J_p, In_phi_p, In_D2_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_Ncrow, In_noise_amp, In_res_RE_p, In_res_IM_p)
                 
             
             ind_modes = np.arange(self.N_points)
