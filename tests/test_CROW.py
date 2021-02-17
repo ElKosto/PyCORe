@@ -10,7 +10,7 @@ import time
 start_time = time.time()
 
 Num_of_modes = 2**9
-N_crow = 4
+N_crow = 2
 
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 
@@ -23,8 +23,8 @@ for ll in range(N_crow):
     Dint[:,ll] = Dint[:,ll]*(-1)**(ll)
 #dNu_ini = 8e9
 #dNu_end = 10e9
-dNu_ini = -10e9
-dNu_end = 10e9
+dNu_ini = -5e8
+dNu_end = 15e8
 #dNu_ini = -1e9
 #dNu_end = 1e9
 #dNu_ini = -10e9
@@ -34,7 +34,7 @@ ramp_stop = 0.99
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
 
 
-J = 5e9*2*np.pi*np.ones([mu.size,(N_crow)])
+J = 0.5*50e6*2*np.pi*np.ones([mu.size,(N_crow-1)])
 #J = np.zeros(N_crow-1)
 #for pp in range(N_crow-1):
 #    if pp%2: J[pp] = 4.5e9*2*np.pi
@@ -44,13 +44,14 @@ J = 5e9*2*np.pi*np.ones([mu.size,(N_crow)])
 kappa_ex_ampl = 50e6*2*np.pi
 kappa_ex = np.zeros([Num_of_modes,N_crow])
 #kappa_ex[:,-1] = 2/5*kappa_ex_ampl*np.ones([Num_of_modes])
-#kappa_ex[:,0] = 2*kappa_ex_ampl*np.ones([Num_of_modes])
-for ii in range(N_crow):
-    kappa_ex[:,ii] = kappa_ex_ampl*np.ones([Num_of_modes])
-    
+kappa_ex[:,0] = 2*kappa_ex_ampl*np.ones([Num_of_modes])
+kappa_ex[:,1] = 1*kappa_ex_ampl*np.ones([Num_of_modes])
+#for ii in range(N_crow):
+#    kappa_ex[:,ii] = kappa_ex_ampl*np.ones([Num_of_modes])
+J = (kappa_ex[:,0]/2-kappa_ex[:,1]/2)/2*2*np.pi*np.ones([mu.size,(N_crow-1)])    
 Delta = np.zeros([mu.size,(N_crow)])
 
-Delta[:,0] = 2*np.pi*1e9*np.ones([Num_of_modes])
+#Delta[:,0] = 2*np.pi*1e9*np.ones([Num_of_modes])
 
 PhysicalParameters = {'Inter-resonator_coupling': J,
                       'Resonator detunings' : Delta,
@@ -72,12 +73,13 @@ simulation_parameters = {'slow_time' : 1e-6,
                          'relative_tolerance' : 1e-8,
                          'max_internal_steps' : 2000}
 
-P0 = 0.5### W
+P0 = 0.1### W
 #P0 = 0.006### W
 Pump = np.zeros([len(mu),N_crow],dtype='complex')
 #for ii in range(N_crow):
 #    Pump[0,ii] = np.sqrt(P0/N_crow)#*np.exp(1j*2*np.pi*2*ii/10)
 Pump[0,0] = np.sqrt(P0)
+Pump[0,1] = -1j*np.sqrt(P0)
 #Pump[0,9] = np.sqrt(P0/2)
 #Pump = np.concatenate((Pump, 0*Pump))
 
@@ -86,7 +88,7 @@ crow = pcm.CROW(PhysicalParameters)
 #ev = crow.Linear_analysis()
 #%%
 
-map2d = crow.Propagate_SAMCLIB(simulation_parameters, Pump, BC='PERIODIC')
+map2d = crow.Propagate_SAMCLIB(simulation_parameters, Pump, BC='OPEN')
 #map2d = crow.Propagate_SAMCLIB_PSEUD_SPECT(simulation_parameters, Pump)
 #map2d = crow.Propagate_SAM(simulation_parameters, Pump)
 #%%
