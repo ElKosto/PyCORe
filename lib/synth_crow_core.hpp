@@ -27,12 +27,14 @@ struct rhs_crow{
     double *kappa;
     double *delta;
     double *J;
+    double *J_EO;
+    double *phase_EO;
     double* phi;
     double* DispTerm;
     double* f;
     double *d2;
     Complex i=1i;
-    rhs_crow(Int Nphii, Int Ncrowi, Doub deti, const double* fi, const double* d2i, const double* phii, Doub dphii, const double* Ji, const double* kappai, Doub kappa0i, const double* deltai)
+    rhs_crow(Int Nphii, Int Ncrowi, Doub deti, const double* fi, const double* d2i, const double* phii, Doub dphii, const double* Ji, const double* J_EOi, const double* phase_EOi, const double* kappai, Doub kappa0i, const double* deltai)
     {
         std::cout<<"Initializing CROW\n";
         kappa0 = kappa0i;
@@ -42,6 +44,8 @@ struct rhs_crow{
         dphi = dphii;
         d2 = new (std::nothrow) double[Ncrow];
         J = new (std::nothrow) double[Ncrow-1];
+        J_EO = new (std::nothrow) double[Ncrow];
+        phase_EO = new (std::nothrow) double[Ncrow];
         kappa = new (std::nothrow) double[Ncrow];
         delta = new (std::nothrow) double[Ncrow];
         phi = new (std::nothrow) double[Nphi];
@@ -56,7 +60,10 @@ struct rhs_crow{
         for (int i_crow = 0; i_crow<Ncrow; i_crow++){
             d2[i_crow] = d2i[i_crow]/kappa0;
             kappa[i_crow] = kappai[i_crow]/kappa0;
-	    delta[i_crow] = deltai[i_crow]*2./kappa0;
+            delta[i_crow] = deltai[i_crow]*2./kappa0;
+            
+            J_EO[i_crow] = J_EOi[i_crow]*2./kappa0;
+            phase_EO[i_crow] = phase_EOi[i_crow]*2./kappa0;
         }
         for (int i_crow = 0; i_crow<Ncrow-1; i_crow++){
             J[i_crow] = Ji[i_crow]*2./kappa0;
@@ -71,6 +78,8 @@ struct rhs_crow{
         delete [] d2;
         delete [] f;
         delete [] J;
+        delete [] J_EO;
+        delete [] phase_EO;
         delete [] DispTerm;
     }
     void operator() (const Doub x, VecDoub &y, VecDoub &dydx) {
@@ -92,8 +101,8 @@ struct rhs_crow{
 
             for (int i_phi = 0; i_phi<Nphi; i_phi++){
 
-                dydx[i_crow*2*Nphi+i_phi] = -y[i_crow*2*Nphi+i_phi]*(kappa[i_crow]) + y[i_crow*2*Nphi+i_phi+Nphi]*(det+delta[i_crow])  - DispTerm[i_crow*2*Nphi+i_phi+Nphi]  - (y[i_crow*2*Nphi+i_phi]*y[i_crow*2*Nphi+i_phi]+y[i_crow*2*Nphi+i_phi+Nphi]*y[i_crow*2*Nphi+i_phi+Nphi])*y[i_crow*2*Nphi+i_phi+Nphi] + f[i_crow*2*Nphi+i_phi];//- J*cos(phi[i_phi])*y[i_phi+Nphi]
-                dydx[i_crow*2*Nphi+i_phi+Nphi] = -y[i_crow*2*Nphi+i_phi+Nphi]*(kappa[i_crow]) - y[i_crow*2*Nphi+i_phi]*(det+delta[i_crow])  + DispTerm[i_crow*2*Nphi+i_phi] +(y[i_crow*2*Nphi+i_phi]*y[i_crow*2*Nphi+i_phi]+y[i_crow*2*Nphi+i_phi+Nphi]*y[i_crow*2*Nphi+i_phi+Nphi])*y[i_crow*2*Nphi+i_phi] + f[i_crow*2*Nphi+i_phi+Nphi];//+ J*cos(phi[i_phi])*y[i_phi]
+                dydx[i_crow*2*Nphi+i_phi] = -y[i_crow*2*Nphi+i_phi]*(kappa[i_crow]) + y[i_crow*2*Nphi+i_phi+Nphi]*(det+delta[i_crow])  - DispTerm[i_crow*2*Nphi+i_phi+Nphi]  - (y[i_crow*2*Nphi+i_phi]*y[i_crow*2*Nphi+i_phi]+y[i_crow*2*Nphi+i_phi+Nphi]*y[i_crow*2*Nphi+i_phi+Nphi])*y[i_crow*2*Nphi+i_phi+Nphi] + f[i_crow*2*Nphi+i_phi] - J_EO[i_crow]*cos(phi[i_phi]+phase_EO[i_crow])*y[i_crow*2*Nphi+i_phi+Nphi];
+                dydx[i_crow*2*Nphi+i_phi+Nphi] = -y[i_crow*2*Nphi+i_phi+Nphi]*(kappa[i_crow]) - y[i_crow*2*Nphi+i_phi]*(det+delta[i_crow])  + DispTerm[i_crow*2*Nphi+i_phi] +(y[i_crow*2*Nphi+i_phi]*y[i_crow*2*Nphi+i_phi]+y[i_crow*2*Nphi+i_phi+Nphi]*y[i_crow*2*Nphi+i_phi+Nphi])*y[i_crow*2*Nphi+i_phi] + f[i_crow*2*Nphi+i_phi+Nphi] + J_EO[i_crow]*cos(phi[i_phi]+phase_EO[i_crow])*y[i_crow*2*Nphi+i_phi];
 
             }
         }
@@ -138,7 +147,7 @@ void printKappa(rhs_crow lle)
 
 void printProgress (double percentage);
 std::complex<double>* WhiteNoise(const double amp, const int Nphi);
-void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_f, double *Im_F,  const double *detuning, const double* kappa, const double kappa0, const double *Delta ,const double* J, const double *phi,  const double* d2, const int Ndet, const int Nt, const double dt,const double atol, const double rtol, const int Nphi, const int Ncrow, double noise_amp, double* res_RE, double* res_IM);
+void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_f, double *Im_F,  const double *detuning, const double* kappa, const double kappa0, const double *Delta ,const double* J, const double* J_EO, const double* phase_EO, const double *phi,  const double* d2, const int Ndet, const int Nt, const double dt,const double atol, const double rtol, const int Nphi, const int Ncrow, double noise_amp, double* res_RE, double* res_IM);
 
 
 #ifdef  __cplusplus

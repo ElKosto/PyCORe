@@ -1,4 +1,4 @@
-#include "crow_core.hpp"
+#include "synth_crow_core.hpp"
 
 void printProgress (double percentage)
 {
@@ -39,7 +39,7 @@ std::complex<double>* WhiteNoise(const double amp, const int N)
     return res;
 }
 
-void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double* kappa, const double kappa0, const double *delta, const double* J, const double *phi,  const double* d2, const int Ndet, const int Nt, const double dt,  const double atol, const double rtol, const int Nphi, const int Ncrow, double noise_amp, double* res_RE, double* res_IM)
+void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double* kappa, const double kappa0, const double *delta, const double* J, const double* J_EO, const double* phase_EO, const double *phi,  const double* d2, const int Ndet, const int Nt, const double dt,  const double atol, const double rtol, const int Nphi, const int Ncrow, double noise_amp, double* res_RE, double* res_IM)
 {
     
     std::cout<<"Core on C++ is running";
@@ -64,7 +64,7 @@ void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* I
     }
 
     Output out;
-    rhs_crow crow(Nphi, Ncrow, detuning[0], f, d2,phi,std::abs(phi[1]-phi[0]),J, kappa, kappa0, delta);
+    rhs_crow crow(Nphi, Ncrow, detuning[0], f, d2,phi,std::abs(phi[1]-phi[0]),J,J_EO, phase_EO, kappa, kappa0, delta);
 
     
     std::cout<<"Step adaptative Dopri853 from NR3 is running\n";
