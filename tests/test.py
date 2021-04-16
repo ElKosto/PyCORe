@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import sys,os
+from scipy.constants import hbar
 sys.path.append(os.path.abspath(__file__)[:-14])
 
 import PyCORe_main as pcm
@@ -18,8 +19,8 @@ dNu_ini = -1e9
 dNu_end = 3e9
 nn = 2000
 ramp_stop = 0.99
-dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
-
+#dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
+dOm = 2*np.pi*np.linspace(dNu_ini,dNu_end,nn)
 
 PhysicalParameters = {'n0' : 1.9,
                       'n2' : 2.4e-19,### m^2/W
@@ -43,20 +44,23 @@ simulation_parameters = {'slow_time' : 1e-6,
 
 
 
-P0 = 0.1### W
+P0 = 0.3### W
 Pump = np.zeros(len(mu),dtype='complex')
 Pump[0] = np.sqrt(P0)
 
 single_ring = pcm.Resonator(PhysicalParameters)
 
 #%%
-map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=1e-3)
+map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=0.5e-3)
 #%%
 plt.figure()
 plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))
 #%%
 
-pcm.Plot_Map(np.fft.ifft(map2d,axis=1),dOm*2/single_ring.kappa)
+#pcm.Plot_Map(np.fft.ifft(map2d,axis=1),dOm*2/single_ring.kappa)
+S = Pump/np.sqrt(single_ring.w0*hbar)
+
+pcm.Plot_Map(np.fft.ifft(map2d,axis=1),dOm*2/single_ring.kappa,S,single_ring.kappa_ex,output='exp')
 
 np.save('map2d_scan',map2d,allow_pickle=True)
 print("--- %s seconds ---" % (time.time() - start_time))

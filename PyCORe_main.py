@@ -358,7 +358,7 @@ class Resonator:
                 print()
                 
             
-def Plot_Map(map_data, detuning, colormap = 'cubehelix'):
+def Plot_Map(map_data, detuning, S=[0],kappa_ex=0,output='field',colormap = 'cubehelix'):
     dOm = detuning[1]-detuning[0]
     dt=1
    
@@ -443,9 +443,16 @@ def Plot_Map(map_data, detuning, colormap = 'cubehelix'):
         ax3.grid(True)
         
         ax4 = plt.subplot2grid((5, 1), (4, 0))            
-        ax4.plot(mu,10*np.log10(abs(np.fft.fftshift(np.fft.fft(map_data[x,:])))**2/(abs(np.fft.fft(map_data[x,:]))**2).max()),'-o', color='black',markersize=3)
-        ax4.set_ylabel('Spectrum, dB')
-        ax4.set_xlim(mu.min(),mu.max())
+        if output=='field':            
+            ax4.plot(mu,10*np.log10(abs(np.fft.fftshift(np.fft.fft(map_data[x,:])))**2/(abs(np.fft.fft(map_data[x,:]))**2).max()), '-o',color='black',markersize=3)
+            ax4.set_ylabel('Spectrum, dB')
+            ax4.set_xlim(mu.min(),mu.max())
+        else:
+            trans = S - np.sqrt(kappa_ex)*np.fft.fft(map_data[x,:])
+            ax4.plot(mu,10*np.log10(abs(np.fft.fftshift(trans))**2/abs(S[0])**2), '-o',color='black',markersize=3)
+            ax4.set_ylim(-100,1)
+            ax4.set_ylabel('Spectrum, dBc')
+            ax4.set_xlim(mu.min(),mu.max())
         #ax4.set_ylim(-100,3)   
         plt.show()
         f.canvas.draw()
@@ -490,10 +497,17 @@ def Plot_Map(map_data, detuning, colormap = 'cubehelix'):
     ax3.yaxis.set_major_locator(ticker.MultipleLocator(base=1.0))
     ax3.yaxis.set_major_formatter(ticker.FormatStrFormatter('%g $\pi$'))
     ax3.grid(True)
-    ax4 = plt.subplot2grid((5, 1), (4, 0))            
-    ax4.plot(mu,10*np.log10(abs(np.fft.fftshift(np.fft.fft(map_data[x,:])))**2/(abs(np.fft.fft(map_data[x,:]))**2).max()), '-o',color='black',markersize=3)
-    ax4.set_ylabel('Spectrum, dB')
-    ax4.set_xlim(mu.min(),mu.max())
+    ax4 = plt.subplot2grid((5, 1), (4, 0))
+    if output=='field':            
+        ax4.plot(mu,10*np.log10(abs(np.fft.fftshift(np.fft.fft(map_data[x,:])))**2/(abs(np.fft.fft(map_data[x,:]))**2).max()), '-o',color='black',markersize=3)
+        ax4.set_ylabel('Spectrum, dB')
+        ax4.set_xlim(mu.min(),mu.max())
+    else:
+        trans = S - np.sqrt(kappa_ex)*np.fft.fft(map_data[x,:])
+        ax4.plot(mu,10*np.log10(abs(np.fft.fftshift(trans))**2/abs(S[0])**2), '-o',color='black',markersize=3)
+        ax4.set_ylim(-100,1)
+        ax4.set_ylabel('Spectrum, dBc')
+        ax4.set_xlim(mu.min(),mu.max())
     #ax4.set_ylim(-50,3)        
 #    f.colorbar(pc)
     plt.subplots_adjust(left=0.07, bottom=0.07, right=0.95, top=0.93, wspace=None, hspace=0.4)

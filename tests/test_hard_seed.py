@@ -25,7 +25,7 @@ dOm_scan = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop
 
 nn=20000
 map2d_scan = np.load('map2d_scan.npy')
-idet = 630
+idet = 700
 dOm = np.ones(nn)*dOm_scan[idet]
 
 PhysicalParameters = {'n0' : 1.9,
@@ -50,7 +50,7 @@ simulation_parameters = {'slow_time' : 1e-6,
 
 
 
-P0 = 0.1### W
+P0 = 0.3### W
 Pump = np.zeros(len(mu),dtype='complex')
 Pump[0] = np.sqrt(P0)
 Seed = (map2d_scan[idet,:])#/np.sqrt(Num_of_modes)
@@ -60,7 +60,7 @@ single_ring = pcm.Resonator(PhysicalParameters)
 #map2d = single_ring.Propagate_SAM(simulation_parameters, Pump)
 #map2d = single_ring.Propagate_SplitStepCLIB(simulation_parameters, Pump,Seed=Seed,dt=1e-3, HardSeed=True)
 #map2d = single_ring.Propagate_SAMCLIB(simulation_parameters, Pump,dt=0.5e-3)
-map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump, Seed=Seed, dt=1e-3, HardSeed=True)
+map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump, Seed=Seed, dt=0.5e-3, HardSeed=True)
 #%%
 #plt.figure()
 #plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))
