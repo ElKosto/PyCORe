@@ -61,7 +61,9 @@ void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* I
             f[i_crow*2*Nphi+i_phi] = Re_F[i_crow*Nphi+i_phi];
             f[i_crow*2*Nphi+i_phi+Nphi] = Im_F[i_crow*Nphi+i_phi];
         }
+        std::cout<<phase_EO[i_crow]<<" ";
     }
+    std::cout<<"\n";
 
     Output out;
     rhs_crow crow(Nphi, Ncrow, detuning[0], f, d2,phi,std::abs(phi[1]-phi[0]),J,J_EO, phase_EO, kappa, kappa0, delta);

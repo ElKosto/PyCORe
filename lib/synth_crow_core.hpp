@@ -63,7 +63,8 @@ struct rhs_crow{
             delta[i_crow] = deltai[i_crow]*2./kappa0;
             
             J_EO[i_crow] = J_EOi[i_crow]*2./kappa0;
-            phase_EO[i_crow] = phase_EOi[i_crow]*2./kappa0;
+            phase_EO[i_crow] = phase_EOi[i_crow];
+            
         }
         for (int i_crow = 0; i_crow<Ncrow-1; i_crow++){
             J[i_crow] = Ji[i_crow]*2./kappa0;

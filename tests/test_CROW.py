@@ -9,7 +9,7 @@ import time
 
 start_time = time.time()
 
-Num_of_modes = 2**10
+Num_of_modes = 2**9
 N_crow = 8
 
 D2 = 1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
@@ -33,7 +33,7 @@ dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dN
 
 
 J = 3e9*2*np.pi*np.ones([mu.size,(N_crow-1)])
-J_EO = -3e9*2*np.pi*np.ones([mu.size,(N_crow)])
+J_EO = -3e9*2*np.pi*np.ones([mu.size,(N_crow)])*2
 phase_EO = np.zeros([mu.size,(N_crow)])
 for ii in range(1,N_crow):
     phase_EO[:,ii] = phase_EO[:,ii-1]+ np.pi/2
@@ -63,7 +63,7 @@ PhysicalParameters = {'Inter-resonator_coupling': J,
                       'kappa_ex' : kappa_ex,
                       'Dint' : Dint}
 
-simulation_parameters = {'slow_time' : 10e-6,
+simulation_parameters = {'slow_time' : 1e-6,
                          'detuning_array' : dOm,
                          'noise_level' : 1e-6,
                          'output' : 'map',
@@ -71,7 +71,7 @@ simulation_parameters = {'slow_time' : 10e-6,
                          'relative_tolerance' : 1e-8,
                          'max_internal_steps' : 2000}
 
-P0 = 1.0### W
+P0 = 0.5## W
 #P0 = 0.006### W
 Pump = np.zeros([len(mu),N_crow],dtype='complex')
 Pump[0,0] = np.sqrt(P0)
