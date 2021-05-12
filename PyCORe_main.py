@@ -381,7 +381,7 @@ class Resonator:
         else:
             Aprev[:self.N_points] = A_guess*np.sqrt(2*self.g0/self.kappa)
         
-        Aprev[self.N_points:] = np.conj(A_guess)*np.sqrt(2*self.g0/self.kappa)
+        Aprev[self.N_points:] = np.conj(Aprev[:self.N_points])
         
         Ak = np.zeros(Aprev.size,dtype=complex)
         

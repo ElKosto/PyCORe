@@ -22,7 +22,7 @@ start_time = time.time()
 map2d_scan=np.load('map2d_scan.npy')
 dOm_scan=np.load('dOm_scan.npy')
 nn = dOm_scan.size
-idet = 1500
+idet = 1100
 Num_of_modes = map2d_scan[0,:].size
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 D3 = 0*75.5e3
@@ -54,14 +54,14 @@ single_ring = pcm.Resonator(PhysicalParameters)
 S = Pump/np.sqrt(single_ring.w0*hbar)
 
 #%%
-res,rel_diff = single_ring.NewtonRaphson(A,dOm,Pump,tol=1e-8,max_iter=30)
+res,rel_diff = single_ring.NewtonRaphson(A,dOm,Pump,tol=1e-8,max_iter=50)
 #%%
 plt.figure()
 plt.semilogy(rel_diff,'o',c='k')
 #%%%
 plt.figure()
 plt.plot(abs(res))
-plt.plot(abs(A),c='r')
+#plt.plot(abs(A),c='r')
 plt.ylim(0,abs(res).max()*1.1)
 
 #%%
