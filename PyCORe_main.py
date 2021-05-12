@@ -344,12 +344,13 @@ class Resonator:
         Jacob[0,N-1] = 1j*d2/dphi**2
         Jacob[index_2[:-1],index_2[1:]] = -1j*d2/dphi**2
         Jacob[N,2*N-1] = -1j*d2/dphi**2
+        
         Jacob+=Jacob.T
         Jacob[index_1,index_1] = -(1+ 1j*zeta_0) + 2*1j*abs(A[index_1])**2 - 2*1j*d2/dphi**2
         Jacob[index_2,index_2] = -(1- 1j*zeta_0) - 2*1j*abs(A[index_1])**2 + 2*1j*d2/dphi**2
         
-        Jacob[index_1,index_2] = 1j*A[index_1]**2
-        Jacob[index_2,index_1] = -1j*np.conj(A[index_1])**2
+        Jacob[index_1,index_2] = 1j*A[index_1]*A[index_1]
+        Jacob[index_2,index_1] = -1j*np.conj(A[index_1])*np.conj(A[index_1])
         return Jacob
     
     def LinMatrix(self,d2,dphi,zeta_0):
@@ -365,18 +366,22 @@ class Resonator:
         D[index_2,index_2]=-(1- 1j*zeta_0) + 2*1j*d2/dphi**2
         return D
     
-    def NewtonRaphson(self,A_guess,dOm, Pump, tol=1e-5,max_iter=1e2):
+    def NewtonRaphson(self,A_guess,dOm, Pump, HardSeed = True, tol=1e-5,max_iter=50):
         d2 = self.D2/self.kappa
         zeta_0 = dOm*2/self.kappa
         dphi = abs(self.phi[1]-self.phi[0])
         pump = Pump*np.sqrt(1./(hbar*self.w0))
         
         f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
-        f0_direct = np.fft.ifft(f0)*self.N_points
-        A_guess = A_guess+ f0_direct/(1+1j*zeta_0)
+        
         Aprev = np.zeros(2*self.N_points,dtype=complex)
-        Aprev[:self.N_points] = A_guess
-        Aprev[self.N_points:] = np.conj(A_guess)
+        if HardSeed == False:
+            A_guess = A_guess+ f0_direct/(1+1j*zeta_0)
+            Aprev[:self.N_points] = A_guess
+        else:
+            Aprev[:self.N_points] = A_guess*np.sqrt(2*self.g0/self.kappa)
+        
+        Aprev[self.N_points:] = np.conj(A_guess)*np.sqrt(2*self.g0/self.kappa)
         
         Ak = np.zeros(Aprev.size,dtype=complex)
         
@@ -385,38 +390,42 @@ class Resonator:
         
         f0_direct = np.zeros(Aprev.size,dtype=complex)
         f0_direct[index_1] = np.fft.ifft(f0)*self.N_points
+        
         f0_direct[index_2] = np.conj(f0_direct[index_1])
+
         buf= np.zeros(Aprev.size,dtype=complex)
         J = self.Jacobian(d2, dphi, zeta_0, Aprev[index_1])            
-        print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
+        print('f0^2 = ' + str(np.round(max(abs(f0_direct)**2), 2)))
         print('xi = ' + str(zeta_0) )
         
         diff = self.N_points
         counter =0
-        
+        diff_array=[]
         
         while diff>tol:
             J = self.Jacobian(d2, dphi, zeta_0, Aprev[index_1])
             buf[index_1] =  1j*abs(Aprev[index_1])**2*Aprev[index_1]         
-            buf[index_2] =  -1j*abs(Aprev[index_1])**2*np.conj(Aprev[index_1])         
+            #buf[index_2] = np.conj(buf[index_1])
+            buf[index_2] =  -1j*abs(Aprev[index_2])**2*Aprev[index_2]         
             buf += (self.LinMatrix(d2,dphi,zeta_0)).dot(Aprev) + f0_direct 
             Ak = Aprev - np.dot(inv(J),buf)
             
-            diff = abs((Ak-Aprev).dot(np.conj(Ak-Aprev))/(Ak.dot(np.conj(Ak))))
+            diff = np.sqrt(abs((Ak-Aprev).dot(np.conj(Ak-Aprev))/(Ak.dot(np.conj(Ak)))))
+            diff_array += [diff]
             Aprev = Ak
             Aprev[index_2] = np.conj(Aprev[index_1])
             counter +=1
-            plt.scatter(counter,diff,c='k')
+            #plt.scatter(counter,diff,c='k')
             if counter>max_iter:
                 print("Did not coverge in " + str(max_iter)+ " iterations, relative error is " + str(diff))
                 res = np.zeros(self.N_points,dtype=complex)
                 res = Ak[index_1]
-                return res, J
+                return res/np.sqrt(2*self.g0/self.kappa), diff_array
                 break
         print("Converged in " + str(counter) + " iterations, relative error is " + str(diff))
         res = np.zeros(self.N_points,dtype=complex)
         res = Ak[index_1]
-        return res,J
+        return res/np.sqrt(2*self.g0/self.kappa), diff_array
     def printProgressBar (self, iteration, total, prefix = '', suffix = '', time = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
         """
         Call in a loop to create terminal progress bar

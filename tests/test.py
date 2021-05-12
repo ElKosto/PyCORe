@@ -10,13 +10,13 @@ import time
 start_time = time.time()
 Num_of_modes = 512
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
-D3 = 75.5e3
+D3 = 0*75.5e3
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
 Dint = 2*np.pi*(mu**2*D2/2 + mu**3*D3/6)
 Dint[33] = Dint[33]#+500e6
 
 dNu_ini = -1e9
-dNu_end = 3e9
+dNu_end = 2e9
 nn = 2000
 ramp_stop = 0.99
 #dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
@@ -44,7 +44,7 @@ simulation_parameters = {'slow_time' : 1e-6,
 
 
 
-P0 = 0.3### W
+P0 = 0.1### W
 Pump = np.zeros(len(mu),dtype='complex')
 Pump[0] = np.sqrt(P0)
 
@@ -63,4 +63,5 @@ S = Pump/np.sqrt(single_ring.w0*hbar)
 pcm.Plot_Map(np.fft.ifft(map2d,axis=1),dOm*2/single_ring.kappa,S,single_ring.kappa_ex,output='exp')
 
 np.save('map2d_scan',map2d,allow_pickle=True)
+np.save('dOm_scan',dOm,allow_pickle=True)
 print("--- %s seconds ---" % (time.time() - start_time))
