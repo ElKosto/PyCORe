@@ -534,8 +534,12 @@ class Resonator:
         Jacob[index_1,index_1] = -(1+ 1j*zeta_0) + 2*1j*abs(A[index_1])**2 - 2*1j*d2/dphi**2
         Jacob[index_2,index_2] = -(1- 1j*zeta_0) - 2*1j*abs(A[index_1])**2 + 2*1j*d2/dphi**2
         
+        #Jacob[index_1,index_1] = 2*1j*abs(A[index_1])**2 
+        #Jacob[index_2,index_2] = - 2*1j*abs(A[index_1])**2 
+        
         Jacob[index_1,index_2] = 1j*A[index_1]*A[index_1]
         Jacob[index_2,index_1] = -1j*np.conj(A[index_1])*np.conj(A[index_1])
+        
         
         Jacob_sparse = dia_matrix(Jacob)
         return Jacob_sparse
@@ -585,7 +589,9 @@ class Resonator:
         f0_direct[index_2] = np.conj(f0_direct[index_1])
 
         buf= np.zeros(Aprev.size,dtype=complex)
-        J = self.Jacobian(d2, dphi, zeta_0, Aprev[index_1])            
+        M_lin=self.LinMatrix(d2,dphi,zeta_0)
+        J = self.Jacobian(d2, dphi, zeta_0,Aprev[index_1])            
+        
         print('f0^2 = ' + str(np.round(max(abs(f0_direct)**2), 2)))
         print('xi = ' + str(zeta_0) )
         
@@ -598,7 +604,7 @@ class Resonator:
             buf[index_1] =  1j*abs(Aprev[index_1])**2*Aprev[index_1]         
             #buf[index_2] = np.conj(buf[index_1])
             buf[index_2] =  -1j*abs(Aprev[index_2])**2*Aprev[index_2]         
-            buf += (self.LinMatrix(d2,dphi,zeta_0)).dot(Aprev) + f0_direct
+            buf += (M_lin).dot(Aprev) + f0_direct
             
             
             
@@ -1138,7 +1144,7 @@ class CROW(Resonator):#all idenical resonators
             else:
                 print ('wrong parameter')
             
-        def Jacobian(self,M_lin,A):
+        def Jacobian(self,j,d2,dphi,delta, kappa, zeta_0,A):
             N_m = self.N_points
             N_res = self.N_CROW
             ind_m = np.arange(self.N_points)
@@ -1150,19 +1156,37 @@ class CROW(Resonator):#all idenical resonators
             
             for jj in ind_res:
                             
-                #J[jj*N_m+ind_m,jj*N_m+ind_m] = 1j*abs(A[jj*N_m+ind_m])**2
-                #J[(jj+N_res)*N_m+ind_m,(jj+N_res)*N_m+ind_m] = -1j*abs(A[jj*N_m+ind_m])**2
+                J[jj*N_m+ind_m,jj*N_m+ind_m] =0.5*(-(kappa[jj]+ 1j*(zeta_0+delta[jj]))  - 2*1j*d2[jj]/dphi**2 +2*1j*abs(A[jj*N_m+ind_m])**2 )
+                J[(jj+N_res)*N_m+ind_m,(jj+N_res)*N_m+ind_m] = 0.5*(-(kappa[jj]- 1j*(zeta_0+delta[jj]))  + 2*1j*d2[jj]/dphi**2 -2*1j*abs(A[jj*N_m+ind_m])**2)
                 
-                J[jj*N_m+ind_m,(jj+N_res)*N_m+ind_m] = 1j*A[jj*N_m+ind_m]*A[jj*N_m+ind_m]
-                #J[(jj+N_res)*N_m+ind_m,(jj)*N_m+ind_m] = -1j*np.conj(A[jj*N_m+ind_m])*np.conj(A[jj*N_m+ind_m])
-                        
-            J+=J.T
+                J[jj*N_m+ind_m[:-1],jj*N_m+ind_m[1:]] = 1j*d2[jj]/dphi**2
+                J[jj*N_m+0,jj*N_m+N_m-1] =  1j*d2[jj]/dphi**2
+                
+                J[(jj+N_res)*N_m+ind_m[:-1],(jj+N_res)*N_m+ind_m[1:]] = -1j*d2[jj]/dphi**2
+                J[(jj+N_res)*N_m+0,(jj+N_res)*N_m+N_m-1] =  -1j*d2[jj]/dphi**2
+           
+            for jj in ind_res[:-1]:
+                 J[jj*N_m+ind_m[:],(jj+1)*N_m+ind_m[:]] = 1j*j[jj]
+                 J[(jj+N_res)*N_m+ind_m[:],((jj+N_res)+1)*N_m+ind_m[:]] = -1j*j[jj]
+                
+                
+            if d2.size==j.size:
+                jj=d2.size-1
+                J[jj*N_m+ind_m[:],(0)*N_m+ind_m[:]] = 1j*j[jj]
+                J[(jj+N_res)*N_m+ind_m[:],(0+N_res)*N_m+ind_m[:]] = -1j*j[jj]
+                #D[jj*N_m*2+N_m+ind_m[:],(0)*N_m*2+N_m+ind_m[:]] = -1j*j[jj]
+            J += J.T     
             for jj in ind_res:
+                 J[jj*N_m+ind_m,(jj+N_res)*N_m+ind_m] = 1j*A[jj*N_m+ind_m]*A[jj*N_m+ind_m]
+                 J[(jj+N_res)*N_m+ind_m,(jj)*N_m+ind_m] = -1j*np.conj(A[jj*N_m+ind_m])*np.conj(A[jj*N_m+ind_m])
+                        
+            #J+=np.conj(J.T)
+            #for jj in ind_res:
                             
-                J[jj*N_m+ind_m,jj*N_m+ind_m] = 2*1j*abs(A[jj*N_m+ind_m])**2
-                J[(jj+N_res)*N_m+ind_m,(jj+N_res)*N_m+ind_m] = -2*1j*abs(A[jj*N_m+ind_m])**2
+            #    J[jj*N_m+ind_m,jj*N_m+ind_m] = 2*1j*abs(A[jj*N_m+ind_m])**2
+            #    J[(jj+N_res)*N_m+ind_m,(jj+N_res)*N_m+ind_m] = -2*1j*abs(A[jj*N_m+ind_m])**2
             
-            J += M_lin
+            #J += M_lin
             Jacob_sparse = dia_matrix(J)
             return Jacob_sparse
     
@@ -1205,6 +1229,8 @@ class CROW(Resonator):#all idenical resonators
             return D
     
         def NewtonRaphson(self,A_guess,dOm, Pump, HardSeed = True, tol=1e-5,max_iter=50):
+            
+            result = np.zeros_like(A_guess,dtype=complex)
             N_m = self.N_points
             N_res = self.N_CROW
             ind_modes = np.arange(self.N_points)
@@ -1218,9 +1244,9 @@ class CROW(Resonator):#all idenical resonators
                 j[ii] = self.J[0,ii]*2/self.kappa_0
             for ii in range(self.N_CROW):
                 #A_guess[0,ind_modes,ii] = seed[ii*self.N_points+ind_modes]
-                kappa[ii] = self.kappa[0,ii]*2/self.kappa_0
+                kappa[ii] = self.kappa[0,ii]/self.kappa_0
                 delta[ii] = self.Delta[0,ii]*2/self.kappa_0
-                d2[ii] = self.D2[ii]*2/self.kappa_0
+                d2[ii] = self.D2[ii]/self.kappa_0
                 
             
             
@@ -1233,6 +1259,8 @@ class CROW(Resonator):#all idenical resonators
             
             f0_direct = np.fft.ifft(pump*np.sqrt(8*self.g0*np.max(self.kappa_ex)/self.kappa_0**3),axis=0)*self.N_points
             
+            index_1 = np.arange(0,N_m*N_res)
+            index_2 = np.arange(N_m*N_res,2*N_m*N_res)
             
             f0_direct =(f0_direct.T.reshape(f0_direct.size))
             M_lin = self.LinMatrix(j, d2, dphi, delta, kappa, zeta_0)
@@ -1240,16 +1268,16 @@ class CROW(Resonator):#all idenical resonators
             Aprev = np.zeros(2*N_m*N_res,dtype=complex)
             if HardSeed == False:
                 A_guess = A_guess.T.reshape(A_guess.size)+ solve(Mlin[:N_m*N_res,:N_m*N_res],-f0_direct)
-                Aprev[:N_m*N_res] = A_guess
+                Aprev[index_1] = A_guess
             else:
-                Aprev[:N_m*N_res] = A_guess.T.reshape(A_guess.size)*np.sqrt(2*self.g0/self.kappa_0)
+                Aprev[index_1] = A_guess.T.reshape(A_guess.size)*np.sqrt(2*self.g0/self.kappa_0)
             
-            Aprev[N_m*N_res:] = np.conj(Aprev[:N_m*N_res])
+            
+            Aprev[index_2] = np.conj(Aprev[index_1])
             
             Ak = np.zeros(Aprev.size,dtype=complex)
             
-            index_1 = np.arange(0,N_m*N_res)
-            index_2 = np.arange(N_m*N_res,2*N_m*N_res)
+            
             
             f0 = np.zeros(Aprev.size,dtype=complex)
             f0[index_1] = f0_direct
@@ -1257,7 +1285,7 @@ class CROW(Resonator):#all idenical resonators
             f0[index_2] = np.conj(f0[index_1])
     
             buf= np.zeros(Aprev.size,dtype=complex)
-            J=self.Jacobian(M_lin, Aprev[index_1])
+            J=self.Jacobian(j, d2, dphi, delta, kappa, zeta_0, Aprev[index_1])
             print('f0^2 = ' + str(np.round(max(abs(f0_direct)**2), 2)))
             print('xi = ' + str(zeta_0) )
             
@@ -1266,7 +1294,7 @@ class CROW(Resonator):#all idenical resonators
             diff_array=[]
             
             while diff>tol:
-                J=self.Jacobian(M_lin, Aprev[index_1])
+                J=self.Jacobian(j, d2, dphi, delta, kappa, zeta_0, Aprev[index_1])
                 buf[index_1] =  1j*abs(Aprev[index_1])**2*Aprev[index_1]         
                 #buf[index_2] = np.conj(buf[index_1])
                 buf[index_2] =  -1j*abs(Aprev[index_2])**2*Aprev[index_2]         
@@ -1277,6 +1305,8 @@ class CROW(Resonator):#all idenical resonators
                 
                 diff = np.sqrt(abs((Ak-Aprev).dot(np.conj(Ak-Aprev))/(Ak.dot(np.conj(Ak)))))
                 diff_array += [diff]
+
+                
                 Aprev = Ak
                 Aprev[index_2] = np.conj(Aprev[index_1])
                 counter +=1
@@ -1286,14 +1316,17 @@ class CROW(Resonator):#all idenical resonators
                     print("Did not coverge in " + str(max_iter)+ " iterations, relative error is " + str(diff))
                     res = np.zeros(self.N_points,dtype=complex)
                     res = Ak[index_1]
-                    res=np.reshape(res,(N_m,N_res))
-                    return res/np.sqrt(2*self.g0/self.kappa_0), diff_array
+                    
+                    for jj in ind_res:
+                        result[ind_modes,jj]= res[jj*N_m+ind_modes]
+                    return result/np.sqrt(2*self.g0/self.kappa_0), diff_array
                     break
             print("Converged in " + str(counter) + " iterations, relative error is " + str(diff))
             res = np.zeros(self.N_points,dtype=complex)
             res = Ak[index_1]
-            res=np.reshape(res,(N_m,N_res))
-            return res/np.sqrt(2*self.g0/self.kappa_0), diff_array    
+            for jj in ind_res:
+                result[ind_modes,jj]= res[jj*N_m+ind_modes]
+            return result/np.sqrt(2*self.g0/self.kappa_0), diff_array    
 class Lattice(Resonator):  
     pass
 
