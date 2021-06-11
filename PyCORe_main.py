@@ -667,6 +667,17 @@ class CROW(Resonator):#all idenical resonators
             self.g0 = hbar*self.w0**2*c*self.n2/self.n0**2/self.Veff
             self.gamma = self.n2*self.w0/c/self.Aeff
             self.J = np.array(resonator_parameters['Inter-resonator_coupling'])
+            
+            #try:
+            if 'Snake bus coupling' in resonator_parameters.keys():
+                self.Bus_J = np.array(resonator_parameters['Snake bus coupling'])
+                self.Bus_Phase = np.array(resonator_parameters['Snake bus phases'])
+                self.Snake_coupling= True
+            else:
+                self.Bus_J = np.array([[0],[0]])
+                self.Bus_Phase = np.array([0])
+                self.Snake_coupling=False       
+            
             self.Delta = np.array(resonator_parameters['Resonator detunings'])
             self.N_CROW = len(self.Dint[0,:])
             self.D2 = np.zeros(self.N_CROW)
@@ -699,19 +710,26 @@ class CROW(Resonator):#all idenical resonators
            
             
         def seed_level (self, pump, detuning):
+            
             f_norm = pump*np.sqrt(1./(hbar*self.w0))*np.sqrt(8*self.g0*self.kappa_ex/self.kappa_0**3)#we pump the first ring
             detuning_norm  = detuning*2/self.kappa_0
             
             #redo
             LinearM = np.eye(self.N_points*self.N_CROW,dtype = complex)
+            
+
             ind_modes = np.arange(self.N_points)
+            
             for ii in range(0,self.N_CROW-1):
                 LinearM[ind_modes+ii*self.N_points,ind_modes+(ii+1)*self.N_points] = 1j*self.J.T.reshape(self.J.size)[ii*self.N_points +ind_modes]*2/self.kappa_0
             LinearM += LinearM.T
+            
+            
             indM = np.arange(self.N_points*self.N_CROW)
+
             LinearM[indM,indM] = -(self.kappa.T.reshape(self.kappa.size)[indM]/self.kappa_0 +1j*self.Delta.T.reshape(self.Delta.size)[indM]/self.kappa_0+ 1j*detuning_norm)
             
-           
+            
             
             res_seed = np.zeros_like(f_norm.reshape(f_norm.size))
             res_seed = np.linalg.solve(LinearM,f_norm.T.reshape(f_norm.size))
@@ -932,11 +950,14 @@ class CROW(Resonator):#all idenical resonators
             
             pump = Pump*np.sqrt(1./(hbar*self.w0))
             
-           
+            
             if HardSeed == False:
+                
                 seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa_0)
+                
             else:
                 seed = Seed.T.reshape(Seed.size)*np.sqrt(2*self.g0/self.kappa_0)
+            
             ### renormalization
             T_rn = (self.kappa_0/2)*T
             f0 = np.fft.ifft(pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa_0**3),axis=0)*self.N_points
@@ -955,6 +976,8 @@ class CROW(Resonator):#all idenical resonators
             j = np.zeros(self.J[0,:].size)
             delta = np.zeros(self.Delta[0,:].size)
             kappa = np.zeros(self.N_CROW)
+            
+            
             for ii in range(self.J[0,:].size):
                 j[ii] = self.J[0,ii]
             for ii in range(self.N_CROW):
@@ -962,11 +985,21 @@ class CROW(Resonator):#all idenical resonators
                 kappa[ii] = self.kappa[0,ii]
                 delta[ii] = self.Delta[0,ii]
             
+            #if self.Snake_coupling==True:
+            bus_j = np.zeros(self.Bus_J[0,:].size)
+            bus_phase = np.zeros(self.Bus_Phase[:].size)
+            for ii in range(self.Bus_J[0,:].size):
+                bus_j[ii] = self.Bus_J[0,ii]
+                bus_phase[ii] = self.Bus_Phase[ii]
             
             f0 =(f0.T.reshape(f0.size))
-            #%% crtypes defyning
+            #%% crtypes definition
+            
             if BC=='OPEN':
-                CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_crow_core.so')
+                if self.Snake_coupling==False:
+                    CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_crow_core.so')
+                else:
+                    CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_snake_coupling_crow_core.so')    
             elif BC=='PERIODIC':
                 CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_periodic_crow_core.so')
             else:
@@ -997,6 +1030,11 @@ class CROW(Resonator):#all idenical resonators
             In_delta = np.array(delta,dtype=ctypes.c_double)
             In_kappa_0 = ctypes.c_double(self.kappa_0)
             In_J = np.array(j,dtype=ctypes.c_double)
+            
+            #if self.Snake_coupling==True:
+            In_bus_J = np.array(bus_j,dtype=ctypes.c_double)
+            In_bus_phase = np.array(bus_phase,dtype=ctypes.c_double)
+            
             In_Tmax = ctypes.c_double(t_st)
             In_Nt = ctypes.c_int(int(t_st/dt)+1)
             In_dt = ctypes.c_double(dt)
@@ -1015,14 +1053,22 @@ class CROW(Resonator):#all idenical resonators
             In_kappa_p = In_kappa.ctypes.data_as(double_p)
             In_delta_p = In_delta.ctypes.data_as(double_p)
             In_J_p = In_J.ctypes.data_as(double_p)
+            
+            #if self.Snake_coupling==True:
+            In_bus_j_p = In_bus_J.ctypes.data_as(double_p)
+            In_bus_phase_p = In_bus_phase.ctypes.data_as(double_p)
+            
             In_f_RE_p = In_f_RE.ctypes.data_as(double_p)
             In_f_IM_p = In_f_IM.ctypes.data_as(double_p)
             
             In_res_RE_p = In_res_RE.ctypes.data_as(double_p)
             In_res_IM_p = In_res_IM.ctypes.data_as(double_p)
             
-            CROW_core.PropagateSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_kappa_p, In_kappa_0, In_delta_p, In_J_p, In_phi_p, In_D2_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_Ncrow, In_noise_amp, In_res_RE_p, In_res_IM_p)
-                
+            
+            if self.Snake_coupling==False:
+                CROW_core.PropagateSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_kappa_p, In_kappa_0, In_delta_p, In_J_p, In_phi_p, In_D2_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_Ncrow, In_noise_amp, In_res_RE_p, In_res_IM_p)
+            else:
+                CROW_core.PropagateSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_kappa_p, In_kappa_0, In_delta_p, In_J_p, In_bus_j_p, In_bus_phase_p, In_phi_p, In_D2_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_Ncrow, In_noise_amp, In_res_RE_p, In_res_IM_p)
             
             ind_modes = np.arange(self.N_points)
             for ii in range(0,len(detuning)):
