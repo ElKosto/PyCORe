@@ -1003,7 +1003,10 @@ class CROW(Resonator):#all idenical resonators
                 else:
                     CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_snake_coupling_crow_core.so')    
             elif BC=='PERIODIC':
-                CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_periodic_crow_core.so')
+                if self.Snake_coupling==False:
+                    CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_periodic_crow_core.so')
+                else:
+                    CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_snake_coupling_periodic_crow_core.so')    
             else:
                 sys.exit('Solver has not been found')
             

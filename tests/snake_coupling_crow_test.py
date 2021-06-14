@@ -18,10 +18,10 @@ import time
 
 start_time = time.time()
 
-Num_of_modes = 2**9
-N_crow = 3
+Num_of_modes = 2**3
+N_crow = 10
 
-D2 = -4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
+D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 
 D3 = 0
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
@@ -33,10 +33,10 @@ Dint = (Dint_single*np.ones([mu.size,N_crow]).T).T#Making matrix of dispersion w
 
 
 
-J = 1e9*2*np.pi*np.ones([mu.size,(N_crow-1)])
+J = 4.5e9*2*np.pi*np.ones([mu.size,(N_crow)])
 
 dNu_ini = -3*J.max()/2/np.pi
-dNu_end = 3*J.max()/2/np.pi+10e6
+dNu_end = 3*J.max()/2/np.pi+1e9
 
 nn = 10000
 ramp_stop = 1
@@ -53,7 +53,7 @@ Delta = np.zeros([mu.size,(N_crow)])
 
 N_cells = (N_crow+1)//2
 bus_coupling=np.zeros([mu.size,N_cells])
-bus_phases = np.ones(N_cells-1)*np.pi
+bus_phases = np.ones(N_cells-1)*np.pi*0
 for ii in range(0,N_crow,2):
     bus_coupling[:,ii//2] = -kappa_ex[:,ii]
     
@@ -73,7 +73,7 @@ PhysicalParameters = {'Inter-resonator_coupling': J,
                       'kappa_ex' : kappa_ex,
                       'Dint' : Dint}
 
-simulation_parameters = {'slow_time' : 1e-5,
+simulation_parameters = {'slow_time' : 1e-4,
                          'detuning_array' : dOm,
                          'noise_level' : 1e-6,
                          'output' : 'map',
@@ -81,7 +81,7 @@ simulation_parameters = {'slow_time' : 1e-5,
                          'relative_tolerance' : 1e-8,
                          'max_internal_steps' : 2000}
 
-P0 = .1### W
+P0 = .000001### W
 
 Pump = np.zeros([len(mu),N_crow],dtype='complex')
 
@@ -96,13 +96,13 @@ crow = pcm.CROW(PhysicalParameters)
 #ev = crow.Linear_analysis()
 #%%
 
-map2d = crow.Propagate_SAMCLIB(simulation_parameters, Pump, BC='OPEN')
+map2d = crow.Propagate_SAMCLIB(simulation_parameters, Pump, BC='PERIODIC')
 #map2d = crow.Propagate_SAMCLIB_PSEUD_SPECT(simulation_parameters, Pump)
 #map2d = crow.Propagate_SAM(simulation_parameters, Pump)
 #%%
 plt.figure()
-plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d[:,:,0])**2,axis=1))
+plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d[:,:,-2])**2,axis=1))
 plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d[:,:,1])**2,axis=1))
-pcm.Plot_Map(np.fft.ifft(map2d[:,:,0],axis=1),dOm*2/crow.kappa_0)
+pcm.Plot_Map(np.fft.ifft(map2d[:,:,-2],axis=1),dOm*2/crow.kappa_0)
 
 print("--- %s seconds ---" % (time.time() - start_time))
