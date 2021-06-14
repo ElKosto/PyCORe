@@ -11,6 +11,9 @@
 #include "./../../NR/NR_C301/code/nr3.h"
 #include "./../../NR/NR_C301/code/stepper.h"
 #include "./../../NR/NR_C301/code/stepperdopr853.h"
+#include "./../../NR/NR_C301/code/stepperdopr5.h"
+#include "./../../NR/NR_C301/code/stepperbs.h"
+#include "./../../NR/NR_C301/code/rk4.h"
 #include "./../../NR/NR_C301/code/odeint.h"
 
 
@@ -23,7 +26,7 @@ extern "C" {
 
 struct rhs_crow{
     Int Nphi, Ncrow, Ncell;
-    Doub det,  dphi, kappa0;
+    Doub det,  dphi, kappa0, norm;
     double *kappa;
     double *delta;
     double *J;
@@ -39,7 +42,7 @@ struct rhs_crow{
     rhs_crow(Int Nphii, Int Ncrowi, Doub deti, const double* fi, const double* d2i, const double* phii, Doub dphii, const double* Ji, const double* Bus_Ji, const double* Bus_Phasei ,const double* kappai, Doub kappa0i, const double* deltai)
     {
         
-        std::cout<<"Initializing CROW\n";
+        std::cout<<"\nInitializing CROW\n";
         
         double phase=0.;
 
@@ -52,14 +55,14 @@ struct rhs_crow{
         d2 = new (std::nothrow) double[Ncrow];
         J = new (std::nothrow) double[Ncrow-1];
         
-        Bus_J = new (std::nothrow) double[Ncell];
-        Bus_Phase = new (std::nothrow) double[Ncell];
-        
-        Bus_coupling_Re = new (std::nothrow) double*[Ncrow];
-        Bus_coupling_Im = new (std::nothrow) double*[Ncrow];
+        Bus_J = new  double[Ncell];
+        Bus_Phase = new  double[Ncell-1];
+      
+        Bus_coupling_Re = new  double*[Ncrow];
+        Bus_coupling_Im = new  double*[Ncrow];
         for (int i_crow = 0; i_crow<Ncrow; i_crow++){
-            Bus_coupling_Re[i_crow] = new (std::nothrow) double[Ncrow];
-            Bus_coupling_Im[i_crow] = new (std::nothrow) double[Ncrow];
+            Bus_coupling_Re[i_crow] = new  double[Ncrow];
+            Bus_coupling_Im[i_crow] = new  double[Ncrow];
 
         }
         for (int i_crow = 0; i_crow<Ncrow; i_crow++){
@@ -91,18 +94,29 @@ struct rhs_crow{
 
         for (int i_cell = 0; i_cell<Ncell; i_cell++){
             Bus_J[i_cell] = Bus_Ji[i_cell]*2./kappa0;
+        }
+        for (int i_cell = 0; i_cell<Ncell-1; i_cell++){
             Bus_Phase[i_cell] = Bus_Phasei[i_cell];
         }
-        
+        std::cout<<"Almost everything is initialized\n";
         for (int i_crow = 2; i_crow<Ncrow; i_crow+=2){
-            for (int j_crow = 0; j_crow=i_crow-1; j_crow+=2){
-                phase =0;
-                for (int k_crow = j_crow; k_crow=i_crow-1; k_crow+=2){
+            for (int j_crow = 0; j_crow<i_crow-1; j_crow+=2){
+                phase =0.;
+                for (int k_crow = j_crow; k_crow<i_crow; k_crow+=2){
                     phase+= Bus_Phase[k_crow/2];
                 }
+                std::cout<<"("<<i_crow<<" " << j_crow <<") "<<phase<<"\n";
                 Bus_coupling_Re[i_crow][j_crow] = Bus_J[j_crow/2]*cos(phase);
                 Bus_coupling_Im[i_crow][j_crow] = Bus_J[j_crow/2]*sin(phase);
             }
+        }
+
+        std::cout<<"\n";
+        for (int i=0; i<Ncrow; i++){
+            for (int j=0; j<Ncrow; j++){
+                std::cout<<"("<<Bus_coupling_Re[i][j]<<"+1j*"<<Bus_coupling_Im[i][j] << ") ";
+            }
+            std::cout<<"\n";
         }
         std::cout<<"snake CROW is initialized\n";
     }
@@ -145,11 +159,21 @@ struct rhs_crow{
 
             for (int i_phi = 0; i_phi<Nphi; i_phi++){
 
-                dydx[i_crow*2*Nphi+i_phi] = -y[i_crow*2*Nphi+i_phi]*(kappa[i_crow]) + y[i_crow*2*Nphi+i_phi+Nphi]*(det+delta[i_crow])  - DispTerm[i_crow*2*Nphi+i_phi+Nphi]  - (y[i_crow*2*Nphi+i_phi]*y[i_crow*2*Nphi+i_phi]+y[i_crow*2*Nphi+i_phi+Nphi]*y[i_crow*2*Nphi+i_phi+Nphi])*y[i_crow*2*Nphi+i_phi+Nphi] + f[i_crow*2*Nphi+i_phi];//- J*cos(phi[i_phi])*y[i_phi+Nphi]
-                dydx[i_crow*2*Nphi+i_phi+Nphi] = -y[i_crow*2*Nphi+i_phi+Nphi]*(kappa[i_crow]) - y[i_crow*2*Nphi+i_phi]*(det+delta[i_crow])  + DispTerm[i_crow*2*Nphi+i_phi] +(y[i_crow*2*Nphi+i_phi]*y[i_crow*2*Nphi+i_phi]+y[i_crow*2*Nphi+i_phi+Nphi]*y[i_crow*2*Nphi+i_phi+Nphi])*y[i_crow*2*Nphi+i_phi] + f[i_crow*2*Nphi+i_phi+Nphi];//+ J*cos(phi[i_phi])*y[i_phi]
-
+                dydx[i_crow*2*Nphi+i_phi] = -y[i_crow*2*Nphi+i_phi]*(kappa[i_crow]) + y[i_crow*2*Nphi+i_phi+Nphi]*(det+delta[i_crow])  - DispTerm[i_crow*2*Nphi+i_phi+Nphi]  - (y[i_crow*2*Nphi+i_phi]*y[i_crow*2*Nphi+i_phi]+y[i_crow*2*Nphi+i_phi+Nphi]*y[i_crow*2*Nphi+i_phi+Nphi])*y[i_crow*2*Nphi+i_phi+Nphi] + f[i_crow*2*Nphi+i_phi];
+                dydx[i_crow*2*Nphi+i_phi+Nphi] = -y[i_crow*2*Nphi+i_phi+Nphi]*(kappa[i_crow]) - y[i_crow*2*Nphi+i_phi]*(det+delta[i_crow])  + DispTerm[i_crow*2*Nphi+i_phi] +(y[i_crow*2*Nphi+i_phi]*y[i_crow*2*Nphi+i_phi]+y[i_crow*2*Nphi+i_phi+Nphi]*y[i_crow*2*Nphi+i_phi+Nphi])*y[i_crow*2*Nphi+i_phi] + f[i_crow*2*Nphi+i_phi+Nphi];
             }
         }
+        //Coupling via the bus waveguide
+        for (int i_crow = 0; i_crow<Ncrow; i_crow+=2){
+            for (int j_crow = 0; j_crow<i_crow; j_crow+=2){
+                for (int i_phi = 0; i_phi<Nphi; i_phi++){
+                        dydx[i_crow*2*Nphi+i_phi]+= Bus_coupling_Re[i_crow][j_crow]*dydx[j_crow*2*Nphi+i_phi] - Bus_coupling_Im[i_crow][j_crow]*dydx[j_crow*2*Nphi+i_phi+Nphi] ;
+                        dydx[i_crow*2*Nphi+i_phi+Nphi]+= Bus_coupling_Im[i_crow][j_crow]*dydx[j_crow*2*Nphi+i_phi] + Bus_coupling_Re[i_crow][j_crow]*dydx[j_crow*2*Nphi+i_phi+Nphi] ;
+                }
+            }
+        }
+//
+//      //Evanescent coupling
         int i_crow = 0;
         for (int i_phi = 0; i_phi<Nphi; i_phi++){
             dydx[i_crow*2*Nphi+i_phi]+= -(J[i_crow])*(y[(i_crow+1)*2*Nphi+i_phi+Nphi]);
@@ -169,16 +193,15 @@ struct rhs_crow{
                     dydx[i_crow*2*Nphi+i_phi+Nphi]+= (J[i_crow])*(y[(i_crow+1)*2*Nphi+i_phi])+ (J[i_crow-1])*(y[(i_crow-1)*2*Nphi+i_phi]);
             }
         }
-        
-        //Coupling via the bus waveguide
-        for (int i_crow = 2; i_crow<Ncrow; i_crow+=2){
-            for (int j_crow = 0; j_crow<i_crow; i_crow+=2){
+
+        norm=0.;
+        for (int i_crow = 0; i_crow<Ncrow; i_crow++){
                 for (int i_phi = 0; i_phi<Nphi; i_phi++){
-                        dydx[i_crow*2*Nphi+i_phi]+= Bus_coupling_Re[i_crow][j_crow]*dydx[i_crow*2*Nphi+i_phi] ;
-                        dydx[i_crow*2*Nphi+i_phi+Nphi]+= -Bus_coupling_Im[i_crow][j_crow]*dydx[i_crow*2*Nphi+i_phi+Nphi] ;
+                    norm+=dydx[i_crow*2*Nphi+i_phi]*dydx[i_crow*2*Nphi+i_phi] + dydx[i_crow*2*Nphi+i_phi+Nphi]*dydx[i_crow*2*Nphi+i_phi+Nphi];
+
                 }
-            }
         }
+//        std::cout<<"Norm= "<< sqrt(norm) <<"\n";
         //std::cout<<y[2*Nphi*Ncrow-1] << " ";
     }
     

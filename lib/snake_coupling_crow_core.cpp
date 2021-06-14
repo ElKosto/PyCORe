@@ -69,9 +69,12 @@ void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* I
     
     std::cout<<"Step adaptative Dopri853 from NR3 is running\n";
     for (int i_det=0; i_det<Ndet; i_det++){
+//        std::cout<<i_det<<" out of "<< Ndet << "\n";
         crow.det = detuning[i_det]*2/kappa0; 
         noise=WhiteNoise(noise_amp,Nphi*Ncrow);
+        //Odeint<StepperBS<rhs_crow> > ode(res_buf,t0,t1,atol,rtol,dt,dtmin,out,crow);
         Odeint<StepperDopr853<rhs_crow> > ode(res_buf,t0,t1,atol,rtol,dt,dtmin,out,crow);
+        //Odeint<rk4<rhs_crow> > ode(res_buf,t0,t1,atol,rtol,dt,dtmin,out,crow);
         ode.integrate();
         for (int i_crow = 0; i_crow<Ncrow; i_crow++){
             for (int i_phi=0; i_phi<Nphi; i_phi++){

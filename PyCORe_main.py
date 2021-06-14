@@ -990,6 +990,8 @@ class CROW(Resonator):#all idenical resonators
             bus_phase = np.zeros(self.Bus_Phase[:].size)
             for ii in range(self.Bus_J[0,:].size):
                 bus_j[ii] = self.Bus_J[0,ii]
+                
+            for ii in range(self.Bus_Phase[:].size):
                 bus_phase[ii] = self.Bus_Phase[ii]
             
             f0 =(f0.T.reshape(f0.size))
