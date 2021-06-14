@@ -167,8 +167,8 @@ struct rhs_crow{
         for (int i_crow = 0; i_crow<Ncrow; i_crow+=2){
             for (int j_crow = 0; j_crow<i_crow; j_crow+=2){
                 for (int i_phi = 0; i_phi<Nphi; i_phi++){
-                        dydx[i_crow*2*Nphi+i_phi]+= Bus_coupling_Re[i_crow][j_crow]*dydx[j_crow*2*Nphi+i_phi] - Bus_coupling_Im[i_crow][j_crow]*dydx[j_crow*2*Nphi+i_phi+Nphi] ;
-                        dydx[i_crow*2*Nphi+i_phi+Nphi]+= Bus_coupling_Im[i_crow][j_crow]*dydx[j_crow*2*Nphi+i_phi] + Bus_coupling_Re[i_crow][j_crow]*dydx[j_crow*2*Nphi+i_phi+Nphi] ;
+                        dydx[i_crow*2*Nphi+i_phi]+= Bus_coupling_Re[i_crow][j_crow]*y[j_crow*2*Nphi+i_phi] - Bus_coupling_Im[i_crow][j_crow]*y[j_crow*2*Nphi+i_phi+Nphi] ;
+                        dydx[i_crow*2*Nphi+i_phi+Nphi]+= Bus_coupling_Im[i_crow][j_crow]*y[j_crow*2*Nphi+i_phi] + Bus_coupling_Re[i_crow][j_crow]*y[j_crow*2*Nphi+i_phi+Nphi] ;
                 }
             }
         }
