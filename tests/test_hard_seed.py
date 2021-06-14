@@ -25,7 +25,7 @@ dOm_scan = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop
 
 map2d_scan = np.load('map2d_scan.npy')
 idet = 600
-nn = 20000
+nn = 100000
 dOm = np.ones(nn)*dOm_scan[idet]
 
 PhysicalParameters = {'n0' : 1.9,

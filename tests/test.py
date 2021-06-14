@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import sys,os
-sys.path.append(os.path.abspath(__file__)[:-14])
+curr_dir = os.getcwd()
+PyCore_dir = os.path.dirname(curr_dir)
+sys.path.append(PyCore_dir)
 
 import PyCORe_main as pcm
 import time
@@ -14,8 +16,15 @@ mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
 Dint = 2*np.pi*(mu**2*D2/2 + mu**3*D3/6)
 #Dint[0] = Dint[0]+500e6
 
+<<<<<<< HEAD
 dNu_ini = -1e9
 dNu_end = 3e9
+=======
+#dNu_ini = -1e9
+#dNu_end = 5e9
+dNu_ini = -.5e9
+dNu_end = .5e9
+>>>>>>> PyCORe++
 nn = 2000
 ramp_stop = 0.99
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
@@ -31,7 +40,7 @@ PhysicalParameters = {'n0' : 1.9,
                       'kappa_ex' : 50e6*2*np.pi,
                       'Dint' : Dint}
 
-simulation_parameters = {'slow_time' : 1e-6,
+simulation_parameters = {'slow_time' : 5e-6,
                          'detuning_array' : dOm,
                          'electro-optical coupling' : -3*(25e6*2*np.pi)*0,
                          'noise_level' : 1e-8,
@@ -43,7 +52,7 @@ simulation_parameters = {'slow_time' : 1e-6,
 
 
 
-P0 = 0.1### W
+P0 = 0.5### W
 Pump = np.zeros(len(mu),dtype='complex')
 Pump[0] = np.sqrt(P0)
 #%%
