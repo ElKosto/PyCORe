@@ -15,7 +15,7 @@ Dint = 2*np.pi*(mu**2*D2/2 + mu**3*D3/6)
 #Dint[0] = Dint[0]+500e6
 
 dNu_ini = -1e9
-dNu_end = 5e9
+dNu_end = 3e9
 nn = 2000
 ramp_stop = 0.99
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
@@ -58,9 +58,24 @@ map2d = single_ring.Propagate_SAMCLIB(simulation_parameters, Pump,dt=0.5e-3)
 plt.figure()
 plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))
 #%%
+plt.rcParams.update({'font.size': 10})
+Nm = map2d[0,:].size
+fig = plt.figure(figsize=[3.6,3.6],frameon=False,dpi=200)
+ax = fig.add_subplot(1,1,1)
+maxval = np.mean(np.abs(map2d[:,:]/np.sqrt(Nm))**2,axis=1).max()
+ax.plot(dOm/2/np.pi/1e9,np.mean(np.abs(map2d[:,:]/np.sqrt(Nm))**2,axis=1)/maxval,label='Single resonator')
+ax.set_xlim(dOm.min()/2/np.pi/1e9,dOm.max()/2/np.pi/1e9-0.5)
+ax.set_xlabel('Laser detuning (GHz)')
+ax.set_ylabel('Generated light (arb. units)')
+ax.legend()
+ax.grid(True)
+plt.tight_layout()
+plt.savefig('trans_trace_pres.png')
+plt.show()
+#%%
 
 pcm.Plot_Map(np.fft.ifft(map2d,axis=1),dOm*2/single_ring.kappa)
 
-np.save('map2d_scan',map2d,allow_pickle=True)
-np.save('dOm_scan',dOm,allow_pickle=True)
+#np.save('map2d_scan',map2d,allow_pickle=True)
+#np.save('dOm_scan',dOm,allow_pickle=True)
 print("--- %s seconds ---" % (time.time() - start_time))
