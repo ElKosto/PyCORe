@@ -1078,7 +1078,7 @@ class CROW(Resonator):#all idenical resonators
             ind_modes = np.arange(self.N_points)
             for ii in range(0,len(detuning)):
                 for jj in range(self.N_CROW):
-                    sol[ii,ind_modes,jj] = np.fft.fft(In_res_RE[ii*self.N_points*self.N_CROW + jj*self.N_points+ind_modes] + 1j*In_res_IM[ii*self.N_points*self.N_CROW+ jj*self.N_points+ind_modes])/np.sqrt(self.N_points)
+                    sol[ii,ind_modes,jj] = np.fft.fft(In_res_RE[ii*self.N_points*self.N_CROW + jj*self.N_points+ind_modes] + 1j*In_res_IM[ii*self.N_points*self.N_CROW+ jj*self.N_points+ind_modes])#/np.sqrt(self.N_points)
                 
             #sol = np.reshape(In_res_RE,[len(detuning),self.N_points]) + 1j*np.reshape(In_res_IM,[len(detuning),self.N_points])
                         
@@ -1184,7 +1184,7 @@ class CROW(Resonator):#all idenical resonators
             ind_modes = np.arange(self.N_points)
             for ii in range(0,len(detuning)):
                 for jj in range(self.N_CROW):
-                    sol[ii,ind_modes,jj] = np.fft.fft(In_res_RE[ii*self.N_points*self.N_CROW + jj*self.N_points+ind_modes] + 1j*In_res_IM[ii*self.N_points*self.N_CROW+ jj*self.N_points+ind_modes])/np.sqrt(self.N_points)
+                    sol[ii,ind_modes,jj] = np.fft.fft(In_res_RE[ii*self.N_points*self.N_CROW + jj*self.N_points+ind_modes] + 1j*In_res_IM[ii*self.N_points*self.N_CROW+ jj*self.N_points+ind_modes])#/np.sqrt(self.N_points)
                 
             #sol = np.reshape(In_res_RE,[len(detuning),self.N_points]) + 1j*np.reshape(In_res_IM,[len(detuning),self.N_points])
                         

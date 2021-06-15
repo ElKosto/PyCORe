@@ -1,4 +1,4 @@
-#include "snake_coupling_crow_core.hpp"
+#include "snake_coupling_periodic_crow_core.hpp"
 
 void printProgress (double percentage)
 {

@@ -10,7 +10,7 @@ import time
 
 start_time = time.time()
 
-Num_of_modes = 2**9
+Num_of_modes = 2**3
 N_crow = 2
 
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
