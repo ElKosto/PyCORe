@@ -18,7 +18,7 @@ import time
 
 start_time = time.time()
 
-Num_of_modes = 2**3+1
+Num_of_modes = 2**10
 N_crow = 10
 
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
@@ -33,10 +33,13 @@ Dint = (Dint_single*np.ones([mu.size,N_crow]).T).T#Making matrix of dispersion w
 
 
 
-J = 4.5e9*2*np.pi*np.ones([mu.size,(N_crow)])
+J = 5e9*2*np.pi*np.ones([mu.size,(N_crow)])
 
-dNu_ini = -3*J.max()/2/np.pi
-dNu_end = 3*J.max()/2/np.pi
+dNu_ini = -2*J.max()/2/np.pi-100e6
+dNu_end = -9.5e9#3*J.max()/2/np.pi+2e9
+
+#dNu_ini = 0#3*J.max()/2/np.pi+2e9
+#dNu_end = 3*J.max()/2/np.pi+1e9
 
 nn = 10000
 ramp_stop = 1
@@ -53,7 +56,7 @@ Delta = np.zeros([mu.size,(N_crow)])
 
 N_cells = (N_crow+1)//2
 bus_coupling=np.zeros([mu.size,N_cells])
-bus_phases = np.ones(N_cells-1)*np.pi
+bus_phases = np.ones(N_cells-1)*np.pi*0
 for ii in range(0,N_crow,2):
     bus_coupling[:,ii//2] = -kappa_ex[:,ii]
     
@@ -73,7 +76,7 @@ PhysicalParameters = {'Inter-resonator_coupling': J,
                       'kappa_ex' : kappa_ex,
                       'Dint' : Dint}
 
-simulation_parameters = {'slow_time' : 1e-5,
+simulation_parameters = {'slow_time' : 1e-6,
                          'detuning_array' : dOm,
                          'noise_level' : 1e-6,
                          'output' : 'map',
@@ -81,7 +84,7 @@ simulation_parameters = {'slow_time' : 1e-5,
                          'relative_tolerance' : 1e-8,
                          'max_internal_steps' : 2000}
 
-P0 = .000001### W
+P0 = .1### W
 
 Pump = np.zeros([len(mu),N_crow],dtype='complex')
 
@@ -104,16 +107,17 @@ map2d = crow.Propagate_SAMCLIB(simulation_parameters, Pump, BC='PERIODIC')
 plt.figure()
 plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d[:,:,-2])**2,axis=1))
 plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d[:,:,1])**2,axis=1))
-pcm.Plot_Map(np.fft.ifft(map2d[:,:,-2],axis=1),dOm*2/crow.kappa_0)
+pcm.Plot_Map(np.fft.ifft(map2d[:,:,-2],axis=1),dOm/2/np.pi)
 
 print("--- %s seconds ---" % (time.time() - start_time))
 #%%
-S = np.sqrt(P0)/np.sqrt(crow.w0*hbar)*np.exp(1j*np.sum(bus_phases))*Num_of_modes**2
+S = np.sqrt(P0)/np.sqrt(crow.w0*hbar)*np.exp(1j*np.sum(bus_phases))#*Num_of_modes
 trans = np.zeros_like(dOm,dtype=complex)
 for ii in range(nn):
     trans[ii]=S
     for jj in range(0,N_crow,2):
-        trans[ii]-=np.sqrt(kappa_ex[0,jj])*(np.abs(map2d[ii,0,jj]/np.sqrt(Num_of_modes)**2))**2*np.exp(1j*np.sum(bus_phases[jj//2:]))
+        field = np.mean(map2d[ii,:,jj])#/np.sqrt(Num_of_modes)
+        trans[ii]-=np.sqrt(kappa_ex[0,jj])*field*np.exp(1j*np.sum(bus_phases[jj//2:]))
         
 #%%
 fig = plt.figure(figsize=[3.6*2,2.2*2],frameon=True)

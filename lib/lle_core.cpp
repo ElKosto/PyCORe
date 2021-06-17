@@ -70,6 +70,7 @@ void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* I
         f[i_phi] = Re_F[i_phi];
         f[i_phi+Nphi] = Im_F[i_phi];
     }
+    std::cout<<"In val_RE = " << In_val_RE[0]<<std::endl;
 
     Output out;
     rhs_lle lle(Nphi, Dint, detuning[0],f,Dint[1],phi,std::abs(phi[1]-phi[0]),J);

@@ -21,7 +21,50 @@ from matplotlib.collections import PatchCollection
 import matplotlib.cm as cm
 
 class Resonator:
-    def __init__(self, resonator_parameters):
+    
+    def __init__(self):
+        self.n0 = 0
+        self.n2 = 0
+        self.FSR = 0
+        self.w0 = 0
+        self.width = 0
+        self.height = 0
+        self.kappa_0 = 0
+        self.kappa_ex = 0
+        self.Dint = np.array([])
+        #Auxiliary physical parameters
+        self.Tr = 0
+        self.Aeff = 0
+        self.Leff = 0
+        self.Veff = 0
+        self.g0 = 0
+        self.gamma = 0
+        self.kappa = self.kappa_0 + self.kappa_ex
+        self.N_points = len(self.Dint)
+    
+        self.phi = np.array([])
+        
+        self.D2 = 0
+        self.D3 = 0
+    
+    def Init_From_File(self,data_dir):
+        simulation_parameters={}
+        map2d=np.array([],dtype=complex)
+        Pump=np.array([],dtype=complex)
+        dOm=np.array([])
+        for file in os.listdir(data_dir+'class_parameters/'):
+            if file.endswith('.npy'):
+                key = os.path.splitext(file)[0]
+                self.__dict__[key] = np.load(data_dir+'class_parameters/'+file)
+        for file in os.listdir(data_dir+'sim_parameters/'):
+            if file.endswith('.npy'):
+                key = os.path.splitext(file)[0]
+                simulation_parameters[key] = np.load(data_dir+'sim_parameters/'+file)
+        map2d=np.load(data_dir+'map2d.npy')
+        dOm=np.load(data_dir+'dOm.npy')
+        Pump=np.load(data_dir+'Pump.npy')
+        return simulation_parameters, map2d, dOm, Pump
+    def Init_From_Dict(self, resonator_parameters):
         #Physical parameters initialization
         self.n0 = resonator_parameters['n0']
         self.n2 = resonator_parameters['n2']
@@ -48,7 +91,26 @@ class Resonator:
         popt, pcov = curve_fit(func, mu, self.Dint)
         self.D2 = popt[2]
         self.D3 = popt[3]
+    
         
+    def Save_Data(self,map2d,Pump,Simulation_Params,dOm=[0],directory='./'):
+        params = self.__dict__
+        try: 
+            os.mkdir(directory+'class_parameters/')
+            os.mkdir(directory+'sim_parameters/')
+        except:
+            pass
+        for key in params.keys():
+            np.save(directory+'class_parameters/'+key+'.npy',params[key])
+        for key in Simulation_Params:
+            np.save(directory+'sim_parameters/'+key+'.npy',Simulation_Params[key])
+        np.save(directory+'map2d.npy',map2d)
+        np.save(directory+'dOm.npy',dOm)
+        np.save(directory+'Pump.npy',Pump)
+        
+        #print(params.keys())
+        
+    
     def noise(self, a):
 #        return a*np.exp(1j*np.random.uniform(-1,1,self.N_points)*np.pi)
         return a*(np.random.uniform(-1,1,self.N_points) + 1j*np.random.uniform(-1,1,self.N_points))
@@ -323,7 +385,9 @@ class Resonator:
         LLE_core.PropagateSAM.restype = ctypes.c_void_p
         #%% defining the ctypes variables
         
-        A = seed/self.N_points
+        A = np.fft.ifft(seed)#*self.N_points
+        
+        #plt.plot(abs(A))
         
         In_val_RE = np.array(np.real(A),dtype=ctypes.c_double)
         In_val_IM = np.array(np.imag(A),dtype=ctypes.c_double)
