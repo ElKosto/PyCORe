@@ -28,9 +28,10 @@ dOm_scan = np.zeros([])
 Pump=np.zeros([],dtype=complex)
 simulation_parameters={}
 single_ring = pcm.Resonator()
+#single_ring=pcm.CROW()
 simulation_parameters,map2d_scan,dOm_scan,Pump=single_ring.Init_From_File('./data/')
 
-idet = 900
+idet = 1000
 nn = 10000
 dOm = np.ones(nn)*dOm_scan[idet]
 simulation_parameters['slow_time']=1e-6

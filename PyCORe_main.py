@@ -55,6 +55,7 @@ class Resonator:
         for file in os.listdir(data_dir+'class_parameters/'):
             if file.endswith('.npy'):
                 key = os.path.splitext(file)[0]
+                print(file + " is open")
                 self.__dict__[key] = np.load(data_dir+'class_parameters/'+file)
         for file in os.listdir(data_dir+'sim_parameters/'):
             if file.endswith('.npy'):
@@ -712,7 +713,51 @@ class Resonator:
                 print()
  #%%              
 class CROW(Resonator):#all idenical resonators
-        def __init__(self, resonator_parameters):
+
+        def __init__(self):
+        #Physical parameters initialization
+            self.n0 = 0
+            self.n2 = 0
+            self.FSR = 0
+            self.w0 = 0
+            self.width = 0
+            self.height = 0
+            self.kappa_0 = 0
+            self.Dint = np.array([0])
+            
+            
+            self.Tr = 0
+            self.Aeff = 0
+            self.Leff = 0
+            self.Veff = 0
+            self.g0 = 0
+            self.gamma = 0
+            self.J = np.array([0])
+            
+            
+                
+            self.Bus_J = np.array([0])
+            self.Bus_Phase = np.array([0])
+            self.Snake_coupling=False       
+            
+            self.Delta = np.array([0])
+            self.N_CROW = 0
+            self.D2 = np.zeros(self.N_CROW)
+            self.D3 = np.zeros(self.N_CROW)
+            self.kappa_ex =np.array([0])
+            self.kappa = self.kappa_0 + self.kappa_ex
+            self.N_points = 0
+            self.mu = np.array([0])
+            self.phi = np.array([0])
+            
+            self.D2 = np.array([0])
+            self.D3 = np.array([0])
+            
+            
+            
+            #self.M_lin = np.array([0])
+
+        def Init_From_Dict(self, resonator_parameters):
         #Physical parameters initialization
             self.n0 = resonator_parameters['n0']
             self.n2 = resonator_parameters['n2']
@@ -767,7 +812,7 @@ class CROW(Resonator):#all idenical resonators
                 M_lin+= 1j*diags(self.J[:,self.N_CROW-1].T.reshape(self.J[:,self.N_CROW-1].size)*2/self.kappa_0 *np.exp(-1j*ind_phase_modes[:self.N_points]*np.pi),(self.N_CROW-1)*self.N_points)
                 M_lin+= 1j*diags(self.J[:,self.N_CROW-1].T.reshape(self.J[:,self.N_CROW-1].size)*2/self.kappa_0 *np.exp(1j*ind_phase_modes[:self.N_points]*np.pi),-(self.N_CROW-1)*self.N_points)
             
-            self.M_lin = M_lin
+            #self.M_lin = M_lin
             #self.M_lin = M_lin.todense()
 
             
@@ -903,7 +948,7 @@ class CROW(Resonator):#all idenical resonators
                     
                     #buf_vec = expm(csc_matrix(dt*(self.M_lin -1j*dOm_curr*2/self.kappa_0* eye(self.N_points*self.N_CROW) ))).dot(buf.T.reshape(buf.size))
                     #buf_vec = expm((dt*(self.M_lin -1j*dOm_curr*2/self.kappa_0* eye(self.N_points*self.N_CROW) )).todense()).dot(buf.T.reshape(buf.size))
-                    buf_vec = expm(dt*(self.M_lin -1j*dOm_curr*2/self.kappa_0* eye(self.N_points*self.N_CROW) )).dot(buf.T.reshape(buf.size))
+                    #buf_vec = expm(dt*(self.M_lin -1j*dOm_curr*2/self.kappa_0* eye(self.N_points*self.N_CROW) )).dot(buf.T.reshape(buf.size))
                   
                     for ii in range(self.N_CROW):
                         buf[ind_modes,ii] = np.fft.ifft(buf_vec[ii*self.N_points+ind_modes])
@@ -1021,6 +1066,7 @@ class CROW(Resonator):#all idenical resonators
                 
             else:
                 seed = Seed.T.reshape(Seed.size)*np.sqrt(2*self.g0/self.kappa_0)
+                seed/=self.N_points
             
             ### renormalization
             T_rn = (self.kappa_0/2)*T
