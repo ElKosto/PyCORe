@@ -76,7 +76,7 @@ PhysicalParameters = {'Inter-resonator_coupling': J,
                       'kappa_ex' : kappa_ex,
                       'Dint' : Dint}
 
-simulation_parameters = {'slow_time' : 1e-6,
+simulation_parameters = {'slow_time' : 1e-5,
                          'detuning_array' : dOm,
                          'noise_level' : 1e-6,
                          'output' : 'map',
@@ -95,7 +95,8 @@ for ii in range(2,N_crow,2):
     Pump[0,ii] = np.sqrt(P0)*np.exp(1j*phase)
 
 #%%
-crow = pcm.CROW(PhysicalParameters)
+crow = pcm.CROW()
+crow.Init_From_Dict(PhysicalParameters)
 #ev = crow.Linear_analysis()
 
 #%%
