@@ -9,7 +9,9 @@ Created on Fri Aug 28 09:41:40 2020
 import matplotlib.pyplot as plt
 import numpy as np
 import sys,os
-sys.path.append(os.path.abspath(__file__)[:-13])
+curr_dir = os.getcwd()
+PyCore_dir = os.path.dirname(curr_dir)
+sys.path.append(PyCore_dir)
 
 import PyCORe_main as pcm
 import time

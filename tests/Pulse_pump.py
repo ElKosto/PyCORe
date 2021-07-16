@@ -7,19 +7,20 @@ Created on Fri Dec  6 13:34:18 2019
 
 import matplotlib.pyplot as plt
 import numpy as np
-import sys
-sys.path.append('C:/Users/tikan/Documents/Python Scripts/PyCORe')
-#sys.path.append('C:/Users/tusnin/Documents/Physics/PhD/epfl/PyCORe')
+import sys, os
+curr_dir = os.getcwd()
+PyCore_dir = os.path.dirname(curr_dir)
+sys.path.append(PyCore_dir)
 import PyCORe_main as pcm
 
-Num_of_modes = 512*2
+Num_of_modes = 512*4
 #Tr = 1./18.2e9#2*np.pi*R*c/n0
 #L = 11.9e-3#c/n0*Tr#
 ###dispersion
 #D1 = 2*np.pi*1/Tr
 #beta2 = -13e-27
-D2 = -3e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
-D3 = 8
+D2 = 2e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
+D3 = 0
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
 Dint = 2*np.pi*(mu**2*D2/2 + mu**3*D3/6)
 Dint[133] = Dint[133]+0
@@ -28,8 +29,8 @@ Dint[133] = Dint[133]+0
 #gamma = 0.000032 # n2*2*np.pi*f_pump/c/Aeff
 
 dNu_ini = -5e8
-dNu_end = 45e8
-nn = 1000
+dNu_end = 15e8
+nn = 5000
 ramp_stop = 0.99
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
 
@@ -53,6 +54,8 @@ simulation_parameters = {'slow_time' : 1e-6,
                          'max_internal_steps' : 2000}
 
 
+
+
 P0 = 40### W
 tt = np.linspace(-0.5/28e9, 0.5/28e9, Num_of_modes)/1e-12
  
@@ -66,7 +69,8 @@ Pump = np.fft.fft(np.sqrt(P0)*np.exp(-(tt+0.5/28e9)**2/5.5**2/2))/Num_of_modes#n
 #plt.plot(np.abs(Pump))
 #plt.plot(np.angle(Pump))
 
-single_ring = pcm.Resonator(resonator_parameters)
+single_ring = pcm.Resonator()
+single_ring.Init_From_Dict(resonator_parameters)
 
 Seed =  Pump/1000000#single_ring.seed_soliton(Pump, dOm[0])#single_ring.seed_level(Pump, dOm[0])#
 #%%

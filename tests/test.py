@@ -2,8 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import sys,os
 from scipy.constants import hbar
-sys.path.append(os.path.abspath(__file__)[:-14])
-
+curr_dir = os.getcwd()
+PyCore_dir = os.path.dirname(curr_dir)
+sys.path.append(PyCore_dir)
 import PyCORe_main as pcm
 import time
 
@@ -34,7 +35,6 @@ PhysicalParameters = {'n0' : 1.9,
 
 simulation_parameters = {'slow_time' : 1e-6,
                          'detuning_array' : dOm,
-                         'electro-optical coupling' : -3*(25e6*2*np.pi)*0,
                          'noise_level' : 1e-8,
                          'output' : 'map',
                          'absolute_tolerance' : 1e-8,
@@ -48,7 +48,8 @@ P0 = 0.1### W
 Pump = np.zeros(len(mu),dtype='complex')
 Pump[0] = np.sqrt(P0)
 
-single_ring = pcm.Resonator(PhysicalParameters)
+single_ring = pcm.Resonator()
+single_ring.Init_From_Dict(PhysicalParameters)
 
 #%%
 map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=0.5e-3)
@@ -62,6 +63,5 @@ S = Pump/np.sqrt(single_ring.w0*hbar)
 
 pcm.Plot_Map(np.fft.ifft(map2d,axis=1),dOm*2/single_ring.kappa,S,single_ring.kappa_ex,output='exp')
 
-np.save('map2d_scan',map2d,allow_pickle=True)
-np.save('dOm_scan',dOm,allow_pickle=True)
+single_ring.Save_Data(map2d,Pump,simulation_parameters,dOm,'./data/')
 print("--- %s seconds ---" % (time.time() - start_time))

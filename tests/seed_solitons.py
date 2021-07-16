@@ -1,9 +1,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
-sys.path.append('C:/Users/tikan/Documents/Python Scripts/PyCORe')
-#sys.path.append('C:/Users/tusnin/Documents/Physics/PhD/epfl/PyCORe')
+import sys, os
+curr_dir = os.getcwd()
+PyCore_dir = os.path.dirname(curr_dir)
+sys.path.append(PyCore_dir)
 import PyCORe_main as pcm
+
 
 Num_of_modes = 256
 #Tr = 1./18.2e9#2*np.pi*R*c/n0
@@ -39,7 +42,7 @@ resonator_parameters = {'n0' : 1.9,
 
 simulation_parameters = {'slow_time' : 1e-6,
                          'detuning_array' : dOm,
-                         'noise_level' : 1e-3,
+                         'noise_level' : 1e-6,
                          'output' : 'map',
                          'absolute_tolerance' : 1e-9,
                          'relative_tolerance' : 1e-9,
@@ -54,14 +57,16 @@ Pump[0] = np.sqrt(P0)
 
 
 
-single_ring = pcm.Resonator(resonator_parameters)
+single_ring = pcm.Resonator()
+single_ring.Init_From_Dict(resonator_parameters)
 
 Seed =  single_ring.seed_soliton(Pump**2, dOm[0])#single_ring.seed_level(Pump, dOm[0])#
 
-map2d = single_ring.Propagate_SAM(simulation_parameters, Pump, Seed)
+#map2d = single_ring.Propagate_SAM(simulation_parameters, Pump, Seed)
+map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump, Seed,HardSeed=True)
 #%%
 plt.figure()
 plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))
 #%%
 
-pcm.Plot_Map(np.fft.fftshift(np.fft.fft(map2d,axis=1),axes=1))
+pcm.Plot_Map(np.fft.fftshift(np.fft.fft(map2d,axis=1),axes=1),dOm)
