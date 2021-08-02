@@ -408,7 +408,10 @@ class Resonator:
         
         #%% crtypes defyning
         LLE_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_lle_core.so')
-        LLE_core.PropagateSAM.restype = ctypes.c_void_p
+        if self.n2t==0:
+            LLE_core.PropagateSAM.restype = ctypes.c_void_p
+        else:
+            LLE_core.PropagateThermalSAM.restype = ctypes.c_void_p
         #%% defining the ctypes variables
         
         A = np.fft.ifft(seed)#*self.N_points
@@ -762,6 +765,8 @@ class CROW(Resonator):#all idenical resonators
             self.kappa_0 = 0
             self.Dint = np.array([0])
             
+            self.n2t=0
+            self.t_th=0
             
             self.Tr = 0
             self.Aeff = 0
@@ -822,7 +827,10 @@ class CROW(Resonator):#all idenical resonators
             else:
                 self.Bus_J = np.array([[0],[0]])
                 self.Bus_Phase = np.array([0])
-                self.Snake_coupling=False       
+                self.Snake_coupling=False
+            if 'T thermal' in resonator_parameters.keys():
+                self.n2t = resonator_parameters['n2 thermal']
+                self.t_th=resonator_parameters['T thermal']
             
             self.Delta = np.array(resonator_parameters['Resonator detunings'])
             self.N_CROW = len(self.Dint[0,:])
@@ -1157,8 +1165,11 @@ class CROW(Resonator):#all idenical resonators
             else:
                 sys.exit('Solver has not been found')
             
-            CROW_core.PropagateSAM.restype = ctypes.c_void_p
-            
+            if self.n2t==0:
+                CROW_core.PropagateSAM.restype = ctypes.c_void_p
+            else:
+                CROW_core.PropagateThermalSAM.restype = ctypes.c_void_p
+                
             A = np.zeros([self.N_CROW*self.N_points],dtype=complex)
             for ii in range(self.N_CROW):    
                 A[ii*self.N_points+ind_modes] = np.fft.ifft(seed[ii*self.N_points+ind_modes])*self.N_points
@@ -1177,6 +1188,11 @@ class CROW(Resonator):#all idenical resonators
             In_det = np.array(detuning,dtype=ctypes.c_double)
             In_Ndet = ctypes.c_int(len(detuning))
             In_D2 = np.array(self.D2,dtype=ctypes.c_double)
+            
+            if self.n2t!=0:
+                In_t_th = ctypes.c_double(self.t_th)
+                In_n2 = ctypes.c_double(self.n2)
+                In_n2t = ctypes.c_double(self.n2t)
             
             In_kappa = np.array(kappa,dtype=ctypes.c_double)
             In_delta = np.array(delta,dtype=ctypes.c_double)
@@ -1218,7 +1234,10 @@ class CROW(Resonator):#all idenical resonators
             
             
             if self.Snake_coupling==False:
-                CROW_core.PropagateSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_kappa_p, In_kappa_0, In_delta_p, In_J_p, In_phi_p, In_D2_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_Ncrow, In_noise_amp, In_res_RE_p, In_res_IM_p)
+                if self.n2t==0:
+                    CROW_core.PropagateSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_kappa_p, In_kappa_0, In_delta_p, In_J_p, In_phi_p, In_D2_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_Ncrow, In_noise_amp, In_res_RE_p, In_res_IM_p)
+                else:
+                    CROW_core.PropagateThermalSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_kappa_p, In_kappa_0, In_t_th, In_n2, In_n2t, In_delta_p, In_J_p, In_phi_p, In_D2_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_Ncrow, In_noise_amp, In_res_RE_p, In_res_IM_p)
             else:
                 CROW_core.PropagateSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_kappa_p, In_kappa_0, In_delta_p, In_J_p, In_bus_j_p, In_bus_phase_p, In_phi_p, In_D2_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_Ncrow, In_noise_amp, In_res_RE_p, In_res_IM_p)
             

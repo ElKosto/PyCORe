@@ -27,14 +27,14 @@ map2d_scan = np.zeros([],dtype=complex)#np.load('map2d_scan.npy')
 dOm_scan = np.zeros([])
 Pump=np.zeros([],dtype=complex)
 simulation_parameters={}
-single_ring = pcm.Resonator()
-#single_ring=pcm.CROW()
+#single_ring = pcm.Resonator()
+single_ring=pcm.CROW()
 simulation_parameters,map2d_scan,dOm_scan,Pump=single_ring.Init_From_File('./data/')
 
-idet = 1000
+idet = 8215
 nn = 10000
 dOm = np.ones(nn)*dOm_scan[idet]
-simulation_parameters['slow_time']=1e-6
+simulation_parameters['slow_time']=1e-5
 simulation_parameters['detuning_array']=dOm
 
 
@@ -44,7 +44,7 @@ Seed = map2d_scan[idet,:]#/single_ring.N_points
 #%%
 #map2d = single_ring.Propagate_SAM(simulation_parameters, Pump)
 #map2d = single_ring.Propagate_SplitStepCLIB(simulation_parameters, Pump,Seed=Seed,dt=1e-3, HardSeed=True)
-map2d = single_ring.Propagate_SAMCLIB(simulation_parameters, Pump,Seed=Seed,HardSeed=True)
+map2d = single_ring.Propagate_SAMCLIB(simulation_parameters, Pump,Seed=Seed,HardSeed=True,BC='OPEN')
 #map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=1e-3)
 #%%
 #plt.figure()

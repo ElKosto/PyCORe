@@ -66,7 +66,7 @@ simulation_parameters = {'slow_time' : 5e-5,
 
 
 
-P0 = 0.3### W
+P0 = 0.8### W
 Pump = np.zeros(len(mu),dtype='complex')
 Pump[0] = np.sqrt(P0)
 #%%

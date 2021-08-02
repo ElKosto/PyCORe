@@ -42,11 +42,11 @@ std::complex<double>* WhiteNoise(const double amp, const int N)
 void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double* kappa, const double kappa0, const double *delta, const double* J, const double *phi,  const double* d2, const int Ndet, const int Nt, const double dt,  const double atol, const double rtol, const int Nphi, const int Ncrow, double noise_amp, double* res_RE, double* res_IM)
 {
     
-    std::cout<<"Core on C++ is running";
     std::complex<double>* noise = new (std::nothrow) std::complex<double>[Nphi*Ncrow];
     const double t0=0., t1=(Nt-1)*dt, dtmin=0.;
     double *f = new(std::nothrow) double[2*Nphi*Ncrow];
     VecDoub res_buf(2*Nphi*Ncrow);
+
 
 
     noise=WhiteNoise(noise_amp,Nphi*Ncrow);
@@ -67,7 +67,7 @@ void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* I
     rhs_crow crow(Nphi, Ncrow, detuning[0], f, d2,phi,std::abs(phi[1]-phi[0]),J, kappa, kappa0, delta);
 
     
-    std::cout<<"Step adaptative Dopri853 from NR3 is running\n";
+    std::cout<<"Step adaptative Dopri853  from NR3 with thermal effects is running\n";
     for (int i_det=0; i_det<Ndet; i_det++){
         crow.det = detuning[i_det]*2/kappa0; 
         noise=WhiteNoise(noise_amp,Nphi*Ncrow);
@@ -87,6 +87,59 @@ void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* I
     }
     delete [] noise;
     delete [] f;
-    std::cout<<"Step adaptative Dopri853 from NR3 is finished\n";
+    std::cout<<"Step adaptative Dopri853 from NR3 with thermal effects is finished\n";
 }
 
+void* PropagateThermalSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double* kappa, const double kappa0, const double t_th, const double n2, const double n2t, const double *delta, const double* J, const double *phi,  const double* d2, const int Ndet, const int Nt, const double dt,  const double atol, const double rtol, const int Nphi, const int Ncrow, double noise_amp, double* res_RE, double* res_IM)
+{
+    
+    std::complex<double>* noise = new (std::nothrow) std::complex<double>[Nphi*Ncrow];
+    const double t0=0., t1=(Nt-1)*dt, dtmin=0.;
+    double *f = new(std::nothrow) double[2*Nphi*Ncrow];
+    VecDoub res_buf(2*Nphi*Ncrow+Ncrow);
+    double power = 0.;
+
+
+    noise=WhiteNoise(noise_amp,Nphi*Ncrow);
+    for (int i_phi = 0; i_phi<Nphi*Ncrow; i_phi++){
+        res_RE[i_phi] = In_val_RE[i_phi];
+        res_IM[i_phi] = In_val_IM[i_phi];
+    }
+    for (int i_crow = 0; i_crow<Ncrow; i_crow++){
+        power = 0.;
+        for (int i_phi=0; i_phi<Nphi; i_phi++ ){
+            res_buf[i_crow*2*Nphi+i_phi] = res_RE[i_crow*Nphi+i_phi] + noise[i_crow*Nphi+i_phi].real();
+            res_buf[i_crow*2*Nphi+i_phi+Nphi] = res_IM[i_crow*Nphi+i_phi] + noise[i_crow*Nphi+i_phi].imag();
+            power = res_RE[i_crow*Nphi+i_phi]*res_RE[i_crow*Nphi+i_phi] + res_IM[i_crow*Nphi+i_phi]*res_IM[i_crow*Nphi+i_phi];
+            f[i_crow*2*Nphi+i_phi] = Re_F[i_crow*Nphi+i_phi];
+            f[i_crow*2*Nphi+i_phi+Nphi] = Im_F[i_crow*Nphi+i_phi];
+        }
+        res_buf[2*Ncrow*Nphi+i_crow] = power;
+    }
+
+    Output out;
+    rhs_crow_thermal crow(Nphi, Ncrow, detuning[0], f, d2,phi,std::abs(phi[1]-phi[0]),J, kappa, kappa0, delta, t_th, n2, n2t);
+
+    
+    std::cout<<"Step adaptative Dopri853 from NR3 is running\n";
+    for (int i_det=0; i_det<Ndet; i_det++){
+        crow.det = detuning[i_det]*2/kappa0; 
+        noise=WhiteNoise(noise_amp,Nphi*Ncrow);
+        Odeint<StepperDopr853<rhs_crow_thermal> > ode(res_buf,t0,t1,atol,rtol,dt,dtmin,out,crow);
+        ode.integrate();
+        for (int i_crow = 0; i_crow<Ncrow; i_crow++){
+            for (int i_phi=0; i_phi<Nphi; i_phi++){
+                res_RE[i_det*Nphi* Ncrow+ i_crow*Nphi + i_phi] = res_buf[i_crow*2*Nphi+i_phi];
+                res_IM[i_det*Nphi*Ncrow + i_crow*Nphi + i_phi] = res_buf[i_crow*2*Nphi+i_phi+Nphi];
+                res_buf[i_crow*2*Nphi+i_phi] += noise[i_crow*Nphi+i_phi].real();
+                res_buf[i_crow*2*Nphi+i_phi+Nphi] += noise[i_crow*Nphi+i_phi].imag();
+
+            }
+        }
+        printProgress((i_det+1.)/Ndet);
+
+    }
+    delete [] noise;
+    delete [] f;
+    std::cout<<"Step adaptative Dopri853 from NR3 is finished\n";
+}
