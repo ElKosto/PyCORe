@@ -1,4 +1,4 @@
-#include "lle_core.hpp"
+#include "lle_core_faraday.hpp"
 
 void printProgress (double percentage)
 {
@@ -95,52 +95,7 @@ void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* I
 //    delete [] res_buf;
     std::cout<<"Step adaptative Dopri853 from NR3 is finished\n";
 }
-void* PropagateThermalSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double J, const double t_th, const double kappa, const double n2, const double n2t, const double *phi, const double* Dint, const int Ndet, const int Nt, const double dt,  const double atol, const double rtol, const int Nphi, double noise_amp, double* res_RE, double* res_IM)
-{
-    
-    std::cout<<"Step adaptative Dopri853 from NR3 with thermal effects is running\n";
-    std::complex<double>* noise = new (std::nothrow) std::complex<double>[Nphi];
-    const double t0=0., t1=(Nt-1)*dt, dtmin=0.;
-    double *f = new(std::nothrow) double[2*Nphi];
-    VecDoub res_buf(2*Nphi+1);
-    double power=0.;
-
-    noise=WhiteNoise(noise_amp,Nphi);
-    for (int i_phi = 0; i_phi<Nphi; i_phi++){
-        res_RE[i_phi] = In_val_RE[i_phi];
-        res_IM[i_phi] = In_val_IM[i_phi];
-        power+= res_RE[i_phi]*res_RE[i_phi] + res_IM[i_phi]*res_IM[i_phi];
-        res_buf[i_phi] = res_RE[i_phi] + noise[i_phi].real();
-        res_buf[i_phi+Nphi] = res_IM[i_phi] + noise[i_phi].imag();
-        f[i_phi] = Re_F[i_phi];
-        f[i_phi+Nphi] = Im_F[i_phi];
-    }
-    res_buf[2*Nphi] = power;
-
-    Output out;
-    rhs_lle_thermal lle(Nphi, Dint, detuning[0],f,Dint[1],phi,std::abs(phi[1]-phi[0]),J, t_th, kappa, n2, n2t);
-    
-    for (int i_det=0; i_det<Ndet; i_det++){
-        lle.det = detuning[i_det];
-        noise=WhiteNoise(noise_amp,Nphi);
-        Odeint<StepperDopr853<rhs_lle_thermal> > ode(res_buf,t0,t1,atol,rtol,dt,dtmin,out,lle);
-        ode.integrate();
-        for (int i_phi=0; i_phi<Nphi; i_phi++){
-            res_RE[i_det*Nphi+i_phi] = res_buf[i_phi];
-            res_IM[i_det*Nphi+i_phi] = res_buf[i_phi+Nphi];
-            res_buf[i_phi] += noise[i_phi].real();
-            res_buf[i_phi+Nphi] += noise[i_phi].imag();
-
-        }
-        printProgress((i_det+1.)/Ndet);
-
-    }
-    delete [] noise;
-    delete [] f;
-//    delete [] res_buf;
-    std::cout<<"Step adaptative Dopri853 from NR3 is finished\n";
-}
-void* PropagateSS(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double J, const double *phi, const double* Dint, const int Ndet, const int Nt, const double dt, const int Nphi, double noise_amp, double* res_RE, double* res_IM)
+void* PropagateSS(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double J, const double *phi, const double* Dint, const double *d_2_osc, const double FSR, const double kappa, const int Ndet, const int Nt, const double dt, const int Nphi, double noise_amp, double* res_RE, double* res_IM)
 {
     
     std::cout<<"Split Step is running\n";
@@ -176,6 +131,8 @@ void* PropagateSS(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im
     }
     fftw_execute(plan_direct_2_spectrum);
 
+    double t_i=0.;
+    std::cout<<"FSR= "<<FSR<<"\n";
     for (int i_det=0; i_det<Ndet; i_det++){
         noise=WhiteNoise(noise_amp,Nphi);
         for (int i_t=0; i_t<Nt; i_t++){
@@ -183,8 +140,8 @@ void* PropagateSS(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im
                 buf.real( buf_direct[i_phi][0] );
                 buf.imag( buf_direct[i_phi][1]);
                 buf+=(noise[i_phi]);
-                //buf*= std::exp(dt *(i*buf*std::conj(buf)  +i*J*(std::cos(phi[i_phi])+0.*std::sin(2*phi[i_phi]))  ) );
-                buf*= std::exp(dt *(i*buf*std::conj(buf)    ) );
+                buf*= std::exp(dt *(i*buf*std::conj(buf)  +i*J*(std::cos(phi[i_phi]))  ) );
+                //buf*= std::exp(dt *(i*buf*std::conj(buf)    ) );
                 buf_direct[i_phi][0] = buf.real();
                 buf_direct[i_phi][1] = buf.imag();
             }
@@ -195,10 +152,11 @@ void* PropagateSS(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im
                 f.real(Re_F[i_phi]*Nphi);
                 f.imag(Im_F[i_phi]*Nphi);
                 //buf *= std::exp(dt * (-1. - i*detuning[i_det] - i*Dint[i_phi] + f/buf )  ); 
-                buf = std::exp(dt * (-1. - i*detuning[i_det] - i*Dint[i_phi] )  )*buf + f/(-1. - i*detuning[i_det] - i*Dint[i_phi])*(std::exp(dt * (-1. - i*detuning[i_det] - i*Dint[i_phi] ) ) - 1.); 
+                buf = std::exp(dt * (-1. - i*detuning[i_det] - i*Dint[i_phi] ) -i*d_2_osc[i_phi]*(std::sin(2*M_PI*FSR*2/kappa*(t_i+dt))-std::sin(2*M_PI*FSR*2/kappa*t_i))/(2*M_PI*FSR*2/kappa)  )*buf + f/(-1. - i*detuning[i_det] - i*Dint[i_phi])*(std::exp(dt * (-1. - i*detuning[i_det] - i*Dint[i_phi] ) ) - 1.); 
                 buf_spectrum[i_phi][0] = buf.real()/Nphi;
                 buf_spectrum[i_phi][1] = buf.imag()/Nphi;
             }
+            t_i+=dt;
             fftw_execute(plan_spectrum_2_direct);
             //Second step terminated
         }

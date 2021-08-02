@@ -46,6 +46,11 @@ class Resonator:
         
         self.D2 = 0
         self.D3 = 0
+        
+        self.D2_mod = 0
+        
+        self.n2t = 0
+        self.t_th=0
     
     def Init_From_File(self,data_dir):
         simulation_parameters={}
@@ -76,6 +81,7 @@ class Resonator:
         self.kappa_0 = resonator_parameters['kappa_0']
         self.kappa_ex = resonator_parameters['kappa_ex']
         self.Dint = np.fft.ifftshift(resonator_parameters['Dint'])
+        
         #Auxiliary physical parameters
         self.Tr = 1/self.FSR #round trip time
         self.Aeff = self.width*self.height 
@@ -85,14 +91,22 @@ class Resonator:
         self.gamma = self.n2*self.w0/c/self.Aeff
         self.kappa = self.kappa_0 + self.kappa_ex
         self.N_points = len(self.Dint)
-        mu = np.fft.fftshift(np.arange(-self.N_points/2, self.N_points/2))
+        self.mu = np.fft.fftshift(np.arange(-self.N_points/2, self.N_points/2))
         self.phi = np.linspace(0,2*np.pi,self.N_points)
         def func(x, a, b, c, d):
             return a + x*b + c*x**2/2 + d*x**3/6
-        popt, pcov = curve_fit(func, mu, self.Dint)
+        popt, pcov = curve_fit(func, self.mu, self.Dint)
         self.D2 = popt[2]
         self.D3 = popt[3]
-    
+        
+        if 'Modulated D2' in resonator_parameters.keys():
+            self.D2_mod = resonator_parameters['Modulated D2']
+        else:
+            self.D2_mod = 0
+        
+        if 'T thermal' in resonator_parameters.keys():
+            self.t_th = resonator_parameters['T thermal']
+            self.n2t = resonator_parameters['n2 thermal']
         
     def Save_Data(self,map2d,Pump,Simulation_Params,dOm=[0],directory='./'):
         params = self.__dict__
@@ -297,7 +311,16 @@ class Resonator:
         sol[0,:] = (seed)
         
         #%% crtypes defyning
-        LLE_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_lle_core.so')
+        if self.D2_mod == 0:
+            LLE_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_lle_core.so')
+        else:
+            double_p=ctypes.POINTER(ctypes.c_double)
+            LLE_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_lle_core_faraday.so')
+            In_D2_mod = np.array(2/self.kappa*self.D2_mod*self.mu**2,dtype=ctypes.c_double)
+            In_D2_mod_p = In_D2_mod.ctypes.data_as(double_p)
+            
+            In_FSR = ctypes.c_double(self.FSR)
+            In_kappa = ctypes.c_double(self.kappa)
         LLE_core.PropagateSS.restype = ctypes.c_void_p
         #%% defining the ctypes variables
         
@@ -334,8 +357,10 @@ class Resonator:
         In_res_RE_p = In_res_RE.ctypes.data_as(double_p)
         In_res_IM_p = In_res_IM.ctypes.data_as(double_p)
         #%%running simulations
-        LLE_core.PropagateSS(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_J, In_phi_p, In_Dint_p, In_Ndet, In_Nt, In_dt, In_Nphi, In_noise_amp, In_res_RE_p, In_res_IM_p)
-        
+        if self.D2_mod ==0:
+            LLE_core.PropagateSS(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_J, In_phi_p, In_Dint_p, In_Ndet, In_Nt, In_dt, In_Nphi, In_noise_amp, In_res_RE_p, In_res_IM_p)
+        else:
+            LLE_core.PropagateSS(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_J, In_phi_p, In_Dint_p, In_D2_mod_p, In_FSR, In_kappa, In_Ndet, In_Nt, In_dt, In_Nphi, In_noise_amp, In_res_RE_p, In_res_IM_p)
         ind_modes = np.arange(self.N_points)
         for ii in range(0,len(detuning)):
             sol[ii,ind_modes] = In_res_RE[ii*self.N_points+ind_modes] + 1j*In_res_IM[ii*self.N_points+ind_modes]
@@ -407,6 +432,16 @@ class Resonator:
         In_dt = ctypes.c_double(dt)
         In_noise_amp = ctypes.c_double(eps)
         
+        
+            
+        if self.n2t!=0:
+            In_kappa = ctypes.c_double(self.kappa_0+self.kappa_ex)
+            In_t_th = ctypes.c_double(self.t_th)
+            In_n2 = ctypes.c_double(self.n2)
+            In_n2t = ctypes.c_double(self.n2t)
+            
+            
+            
         In_res_RE = np.zeros(len(detuning)*self.N_points,dtype=ctypes.c_double)
         In_res_IM = np.zeros(len(detuning)*self.N_points,dtype=ctypes.c_double)
         
@@ -422,8 +457,10 @@ class Resonator:
         In_res_RE_p = In_res_RE.ctypes.data_as(double_p)
         In_res_IM_p = In_res_IM.ctypes.data_as(double_p)
         #%%running simulations
-        LLE_core.PropagateSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_J, In_phi_p, In_Dint_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_noise_amp, In_res_RE_p, In_res_IM_p)
-        
+        if self.n2t==0:
+            LLE_core.PropagateSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_J, In_phi_p, In_Dint_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_noise_amp, In_res_RE_p, In_res_IM_p)
+        else:
+            LLE_core.PropagateThermalSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_J, In_t_th, In_kappa, In_n2, In_n2t, In_phi_p, In_Dint_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_noise_amp, In_res_RE_p, In_res_IM_p)
         ind_modes = np.arange(self.N_points)
         for ii in range(0,len(detuning)):
             sol[ii,ind_modes] = np.fft.fft(In_res_RE[ii*self.N_points+ind_modes] + 1j*In_res_IM[ii*self.N_points+ind_modes])
