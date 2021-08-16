@@ -31,10 +31,10 @@ simulation_parameters={}
 single_ring=pcm.CROW()
 simulation_parameters,map2d_scan,dOm_scan,Pump=single_ring.Init_From_File('./data/')
 
-idet = 8215
+idet = 8250
 nn = 10000
 dOm = np.ones(nn)*dOm_scan[idet]
-simulation_parameters['slow_time']=1e-5
+simulation_parameters['slow_time']=1e-6
 simulation_parameters['detuning_array']=dOm
 
 

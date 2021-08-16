@@ -68,7 +68,7 @@ Delta = np.zeros([mu.size,(N_crow)])
 kappa0 = 50e6*2*np.pi
 t_th = 2*np.pi*2/(kappa0+kappa0)
 n2 = 2.4e-19### m^2/W
-n2t = 5*n2
+n2t = 5*n2*0
 
 PhysicalParameters = {'Inter-resonator_coupling': J,
                       'Resonator detunings' : Delta,

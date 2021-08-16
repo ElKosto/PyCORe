@@ -51,6 +51,8 @@ class Resonator:
         
         self.n2t = 0
         self.t_th=0
+        
+        self.J_EO = 0
     
     def Init_From_File(self,data_dir):
         simulation_parameters={}
@@ -108,6 +110,11 @@ class Resonator:
             self.t_th = resonator_parameters['T thermal']
             self.n2t = resonator_parameters['n2 thermal']
         
+        if 'electro-optical coupling' in resonator_parameters.keys():
+            self.J_EO =  resonator_parameters['electro-optical coupling']
+        else:
+            self.J_EO = 0
+        
     def Save_Data(self,map2d,Pump,Simulation_Params,dOm=[0],directory='./'):
         params = self.__dict__
         try: 
@@ -141,7 +148,7 @@ class Resonator:
         nmax = simulation_parameters['max_internal_steps']
         detuning = simulation_parameters['detuning_array']
         eps = simulation_parameters['noise_level']
-        J =  simulation_parameters['electro-optical coupling']
+        
         
         if Normalized_Units == False:
             pump = Pump*np.sqrt(1./(hbar*self.w0))
@@ -152,6 +159,7 @@ class Resonator:
             ### renormalization
             T_rn = (self.kappa/2)*T
             f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
+            J = self.J_EO
             J*=2/self.kappa
             print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
             print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
@@ -205,7 +213,7 @@ class Resonator:
         out_param = simulation_parameters['output']
         detuning = simulation_parameters['detuning_array']
         eps = simulation_parameters['noise_level']
-        J =  simulation_parameters['electro-optical coupling']
+        J =  self.J_EO
         
         #dt = simulation_parameters['time_step']#in photon lifetimes
         
@@ -285,7 +293,7 @@ class Resonator:
         out_param = simulation_parameters['output']
         detuning = simulation_parameters['detuning_array']
         eps = simulation_parameters['noise_level']
-        J =  simulation_parameters['electro-optical coupling']
+        J =  self.J_EO
         #dt = simulation_parameters['time_step']#in photon lifetimes
         
         pump = Pump*np.sqrt(1./(hbar*self.w0))
@@ -379,7 +387,7 @@ class Resonator:
         out_param = simulation_parameters['output']
         detuning = simulation_parameters['detuning_array']
         eps = simulation_parameters['noise_level']
-        J =  simulation_parameters['electro-optical coupling']
+        J =  self.J_EO
         abtol = simulation_parameters['absolute_tolerance']
         reltol = simulation_parameters['relative_tolerance']
         #dt = simulation_parameters['time_step']#in photon lifetimes
