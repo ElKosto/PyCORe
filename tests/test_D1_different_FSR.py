@@ -35,10 +35,10 @@ Dint = (Dint_single*np.ones([mu.size,N_crow]).T).T
 J = 4.5e9*2*np.pi*np.ones([mu.size,(N_crow-1)])
 Delta_D1 = np.ones(N_crow)
 Delta_D1[0] = 0
-Delta_D1[1] = 0.1*D1
+Delta_D1[1] = 0.11*D1
 
 dNu_ini = -1e9
-dNu_end = 3e9
+dNu_end = 3.3e9
 
 nn = 20000
 ramp_stop = 1.0
@@ -51,7 +51,7 @@ kappa_ex[:,0] = kappa_ex_ampl*np.ones([Num_of_modes])
 kappa_ex[:,1] = 0*kappa_ex_ampl*np.ones([Num_of_modes])
 
 Delta = np.zeros([mu.size,(N_crow)])
-Delta[:,1] = -2*np.pi*250e9
+Delta[:,1] = -2*np.pi*200e9
 
 PhysicalParameters = {'Inter-resonator_coupling': J,
                       'Resonator detunings' : Delta,

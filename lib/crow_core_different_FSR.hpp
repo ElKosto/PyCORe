@@ -84,7 +84,7 @@ struct rhs_crow{
             DispTerm[i_crow*2*Nphi+ Nphi-1] = (d2[i_crow])*(y[i_crow*2*Nphi+0] - 2*y[i_crow*2*Nphi+Nphi-1]+ y[i_crow*2*Nphi+Nphi-2])/dphi/dphi + (delta_D1[i_crow])*(y[i_crow*2*Nphi+Nphi+0] - y[i_crow*2*Nphi+2*Nphi-2])/2/dphi;
 
             DispTerm[i_crow*2*Nphi+Nphi] = (d2[i_crow])*(y[i_crow*2*Nphi+Nphi+1] - 2*y[i_crow*2*Nphi+Nphi]+ y[i_crow*2*Nphi+2*Nphi-1])/dphi/dphi - (delta_D1[i_crow])*(y[i_crow*2*Nphi+1] - y[i_crow*2*Nphi+Nphi-1])/2/dphi;
-            DispTerm[i_crow*2*Nphi+2*Nphi-1] = (d2[i_crow])*(y[i_crow*2*Nphi+Nphi] - 2*y[i_crow*2*Nphi+2*Nphi-1]+ y[i_crow*2*Nphi+2*Nphi-2])/dphi/dphi - (delta_D1[i_crow])*(y[i_crow*2*Nphi+0] - y[i_crow*2*Nphi+Nphi-2]);
+            DispTerm[i_crow*2*Nphi+2*Nphi-1] = (d2[i_crow])*(y[i_crow*2*Nphi+Nphi] - 2*y[i_crow*2*Nphi+2*Nphi-1]+ y[i_crow*2*Nphi+2*Nphi-2])/dphi/dphi - (delta_D1[i_crow])*(y[i_crow*2*Nphi+0] - y[i_crow*2*Nphi+Nphi-2])/2/dphi;
 
 
             for (int i_phi = 1; i_phi<Nphi-1; i_phi++){
