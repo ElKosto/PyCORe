@@ -44,6 +44,7 @@ nn = 10000
 ramp_stop = 1.0
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
 
+
 #delta = 0.1e9*2*np.pi
 kappa_ex_ampl = 50e6*2*np.pi
 kappa_ex = np.zeros([Num_of_modes,N_crow])
