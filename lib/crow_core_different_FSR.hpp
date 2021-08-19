@@ -80,16 +80,16 @@ struct rhs_crow{
     void operator() (const Doub x, VecDoub &y, VecDoub &dydx) {
         
         for (int i_crow = 0; i_crow<Ncrow; i_crow++){
-            DispTerm[i_crow*2*Nphi+ 0] = (d2[i_crow])*(y[i_crow*2*Nphi+1] - 2*y[i_crow*2*Nphi+0]+ y[i_crow*2*Nphi+Nphi-1])/dphi/dphi + (delta_D1[i_crow])*(y[i_crow*2*Nphi+Nphi+1] - y[i_crow*2*Nphi+2*Nphi-1])/2/dphi;
-            DispTerm[i_crow*2*Nphi+ Nphi-1] = (d2[i_crow])*(y[i_crow*2*Nphi+0] - 2*y[i_crow*2*Nphi+Nphi-1]+ y[i_crow*2*Nphi+Nphi-2])/dphi/dphi + (delta_D1[i_crow])*(y[i_crow*2*Nphi+Nphi+0] - y[i_crow*2*Nphi+2*Nphi-2])/2/dphi;
+            DispTerm[i_crow*2*Nphi+ 0] = (d2[i_crow])*(y[i_crow*2*Nphi+1] - 2*y[i_crow*2*Nphi+0]+ y[i_crow*2*Nphi+Nphi-1])/dphi/dphi - (delta_D1[i_crow])*(y[i_crow*2*Nphi+Nphi+1] - y[i_crow*2*Nphi+2*Nphi-1])/2/dphi;
+            DispTerm[i_crow*2*Nphi+ Nphi-1] = (d2[i_crow])*(y[i_crow*2*Nphi+0] - 2*y[i_crow*2*Nphi+Nphi-1]+ y[i_crow*2*Nphi+Nphi-2])/dphi/dphi - (delta_D1[i_crow])*(y[i_crow*2*Nphi+Nphi+0] - y[i_crow*2*Nphi+2*Nphi-2])/2/dphi;
 
-            DispTerm[i_crow*2*Nphi+Nphi] = (d2[i_crow])*(y[i_crow*2*Nphi+Nphi+1] - 2*y[i_crow*2*Nphi+Nphi]+ y[i_crow*2*Nphi+2*Nphi-1])/dphi/dphi - (delta_D1[i_crow])*(y[i_crow*2*Nphi+1] - y[i_crow*2*Nphi+Nphi-1])/2/dphi;
-            DispTerm[i_crow*2*Nphi+2*Nphi-1] = (d2[i_crow])*(y[i_crow*2*Nphi+Nphi] - 2*y[i_crow*2*Nphi+2*Nphi-1]+ y[i_crow*2*Nphi+2*Nphi-2])/dphi/dphi - (delta_D1[i_crow])*(y[i_crow*2*Nphi+0] - y[i_crow*2*Nphi+Nphi-2])/2/dphi;
+            DispTerm[i_crow*2*Nphi+Nphi] = (d2[i_crow])*(y[i_crow*2*Nphi+Nphi+1] - 2*y[i_crow*2*Nphi+Nphi]+ y[i_crow*2*Nphi+2*Nphi-1])/dphi/dphi + (delta_D1[i_crow])*(y[i_crow*2*Nphi+1] - y[i_crow*2*Nphi+Nphi-1])/2/dphi;
+            DispTerm[i_crow*2*Nphi+2*Nphi-1] = (d2[i_crow])*(y[i_crow*2*Nphi+Nphi] - 2*y[i_crow*2*Nphi+2*Nphi-1]+ y[i_crow*2*Nphi+2*Nphi-2])/dphi/dphi + (delta_D1[i_crow])*(y[i_crow*2*Nphi+0] - y[i_crow*2*Nphi+Nphi-2])/2/dphi;
 
 
             for (int i_phi = 1; i_phi<Nphi-1; i_phi++){
-                DispTerm[i_crow*2*Nphi+i_phi] = (d2[i_crow])*(y[i_crow*2*Nphi+i_phi+1] - 2*y[i_crow*2*Nphi+i_phi]+ y[i_crow*2*Nphi+i_phi-1])/dphi/dphi +  (delta_D1[i_crow])*(y[i_crow*2*Nphi+Nphi+i_phi+1] - y[i_crow*2*Nphi+Nphi+i_phi-1])/2/dphi;
-                DispTerm[i_crow*2*Nphi+i_phi+Nphi] = (d2[i_crow])*(y[i_crow*2*Nphi+i_phi+Nphi+1] - 2*y[i_crow*2*Nphi+i_phi+Nphi]+ y[i_crow*2*Nphi+i_phi+Nphi-1])/dphi/dphi- (delta_D1[i_crow])*(y[i_crow*2*Nphi+i_phi+1] - y[i_crow*2*Nphi+i_phi-1])/2/dphi;;
+                DispTerm[i_crow*2*Nphi+i_phi] = (d2[i_crow])*(y[i_crow*2*Nphi+i_phi+1] - 2*y[i_crow*2*Nphi+i_phi]+ y[i_crow*2*Nphi+i_phi-1])/dphi/dphi -  (delta_D1[i_crow])*(y[i_crow*2*Nphi+Nphi+i_phi+1] - y[i_crow*2*Nphi+Nphi+i_phi-1])/2/dphi;
+                DispTerm[i_crow*2*Nphi+i_phi+Nphi] = (d2[i_crow])*(y[i_crow*2*Nphi+i_phi+Nphi+1] - 2*y[i_crow*2*Nphi+i_phi+Nphi]+ y[i_crow*2*Nphi+i_phi+Nphi-1])/dphi/dphi+ (delta_D1[i_crow])*(y[i_crow*2*Nphi+i_phi+1] - y[i_crow*2*Nphi+i_phi-1])/2/dphi;;
             }
         
         

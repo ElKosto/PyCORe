@@ -59,6 +59,7 @@ class Resonator:
         map2d=np.array([],dtype=complex)
         Pump=np.array([],dtype=complex)
         dOm=np.array([])
+       
         for file in os.listdir(data_dir+'class_parameters/'):
             if file.endswith('.npy'):
                 key = os.path.splitext(file)[0]
