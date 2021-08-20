@@ -60,6 +60,7 @@ class Resonator:
         dOm=np.load(data_dir+'dOm.npy')
         Pump=np.load(data_dir+'Pump.npy')
         return simulation_parameters, map2d, dOm, Pump
+
     def Init_From_Dict(self, resonator_parameters):
         #Physical parameters initialization
         self.n0 = resonator_parameters['n0']
@@ -191,7 +192,11 @@ class Resonator:
             J =  simulation_parameters['electro-optical coupling']
         else:
             J = 0
-                
+        if 'faraday_instability' in simulation_parameters.keys():
+            Far = simulation_parameters['faraday_instability']
+        else:
+            Far = 0
+        
         
         #dt = simulation_parameters['time_step']#in photon lifetimes
         
@@ -229,11 +234,15 @@ class Resonator:
         t_st = float(T_rn)/len(detuning)
         #dt=1e-4 #t_ph
         
+        if Far != 0 and dt/(self.kappa/2)>1./self.FSR:
+            print('Warning: integration step must be smaller than the roundtrip time to deal with Faraday instability.')
+        
         sol = np.ndarray(shape=(len(detuning), self.N_points), dtype='complex') # define an array to store the data
         sol[0,:] = seed
         #f0 = np.fft.ifft(f0)*self.N_points
         #f0*=self.N_points
         self.printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50)
+        t_glob = 0
         for it in range(1,len(detuning)):
             noise_const = self.noise(eps)
             self.printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete,', time='elapsed time = ' + '{:04.1f}'.format(time.time() - start_time) + ' s', length = 50)
@@ -244,16 +253,25 @@ class Resonator:
             buf = np.fft.ifft(buf)*len(buf)
             while t<t_st:
                 
-                # First step
-                
-                #buf = np.fft.fft(np.exp(dt*(1j*np.abs(buf)**2+1j*J*(np.cos(self.phi) + 0.*np.sin(2*self.phi)) + f0/buf))*buf)
-                buf = np.fft.fft(np.exp(dt*(1j*np.abs(buf)**2+1j*J*(np.cos(self.phi) + 0.*np.sin(2*self.phi))))*buf)
+                                # First step
+                if J == 0:
+                    buf = np.fft.fft(np.exp(dt*(1j*np.abs(buf)**2))*buf)
+                else:
+                    #buf = np.fft.fft(np.exp(dt*(1j*np.abs(buf)**2+1j*J*(np.cos(self.phi) + 0.*np.sin(2*self.phi)) + f0/buf))*buf)
+                    buf = np.fft.fft(np.exp(dt*(1j*np.abs(buf)**2+1j*J*(np.cos(self.phi) + 0.*np.sin(2*self.phi))))*buf)
                 #second step
                 
                 #buf = np.fft.ifft(np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) *buf)
-                buf = np.fft.ifft(np.exp(-dt *(1+1j*(self.Dint + dOm_curr)*2/self.kappa )) *buf + f0*self.N_points/(-1-1j*(self.Dint + dOm_curr)*2/self.kappa)*(np.exp(dt*(-1-1j*(self.Dint + dOm_curr)*2/self.kappa)) -1.))
+                if Far == 0: 
+                    lin_op = -(1+1j*(self.Dint + dOm_curr)*2/self.kappa)
+                else:
+                    lin_op = -(1+1j*(self.Dint*(1+Far*np.cos(2*np.pi*t_glob*self.FSR/(self.kappa/2))) + dOm_curr)*2/self.kappa)
+                buf = np.fft.ifft(np.exp(dt*lin_op)*buf + f0*self.N_points/(lin_op)*(np.exp(dt*lin_op) - 1.))
+                
+                
                 
                 t+=dt
+                t_glob+=dt
             sol[it,:] = np.fft.fft(buf)/len(buf)
             #sol[it,:] = buf
             
