@@ -12,7 +12,7 @@ from matplotlib.animation import FuncAnimation
 import matplotlib.image as mpimg
 from scipy.optimize import curve_fit
 import time
-import os
+import sys, os
 from scipy.sparse import block_diag,identity,diags, eye, csc_matrix, dia_matrix
 import ctypes
 from scipy.linalg import eig, inv, solve, lu_factor, lu_solve
@@ -841,9 +841,7 @@ class CROW(Resonator):#all idenical resonators
             if 'T thermal' in resonator_parameters.keys():
                 self.n2t = resonator_parameters['n2 thermal']
                 self.t_th=resonator_parameters['T thermal']
-            if 'Delta D1' in resonator_parameters.keys():
-                self.Delta_D1 = resonator_parameters['Delta D1']
-                
+            
             self.Delta = np.array(resonator_parameters['Resonator detunings'])
             self.N_CROW = len(self.Dint[0,:])
             self.D2 = np.zeros(self.N_CROW)
@@ -853,6 +851,10 @@ class CROW(Resonator):#all idenical resonators
             self.N_points = len(self.Dint[:,0])
             self.mu = np.fft.fftshift(np.arange(-self.N_points/2, self.N_points/2))
             self.phi = np.linspace(0,2*np.pi,self.N_points)
+            if 'Delta D1' in resonator_parameters.keys():
+                self.Delta_D1 = resonator_parameters['Delta D1']
+            else:
+                self.Delta_D1 = np.zeros(self.N_CROW)
             def func(x, a, b, c, d):
                     return a + x*b + c*x**2/2 + d*x**3/6
             for ii in range(0,self.N_CROW):
@@ -1164,11 +1166,19 @@ class CROW(Resonator):#all idenical resonators
             f0 =(f0.T.reshape(f0.size))
             #%% crtypes definition
             
+            if self.J[0,:].size == self.N_CROW:
+                BC='PERIODIC'
+            elif self.J[0,:] == self.N_CROW-1:
+                BC='OPEN'
+            else:
+                sys.exit('Unkown type of CROW')
+                    
+            
             if BC=='OPEN':
                 if self.Snake_coupling==False:
-                    if self.Delta_D1.size < self.N_CROW:
+                    if abs(self.Delta_D1.max())==0:
                         CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_crow_core.so')
-                    if self.Delta_D1.size==self.N_CROW:
+                    if abs(self.Delta_D1.max())>0:
                         CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_crow_core_different_FSR.so')
                 else :
                     CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_snake_coupling_crow_core.so')    
@@ -1256,8 +1266,9 @@ class CROW(Resonator):#all idenical resonators
             
                 
             if self.Snake_coupling==False:
+                
                 if self.n2t==0:
-                    if self.Delta_D1.size<self.N_CROW:
+                    if abs(self.Delta_D1.max())==0:
                         CROW_core.PropagateSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_kappa_p, In_kappa_0, In_delta_p, In_J_p, In_phi_p, In_D2_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_Ncrow, In_noise_amp, In_res_RE_p, In_res_IM_p)
                     else:
                         CROW_core.PropagateSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_kappa_p, In_kappa_0, In_delta_p, In_delta_D1_p, In_J_p, In_phi_p, In_D2_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_Ncrow, In_noise_amp, In_res_RE_p, In_res_IM_p)

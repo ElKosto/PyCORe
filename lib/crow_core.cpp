@@ -67,7 +67,7 @@ void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* I
     rhs_crow crow(Nphi, Ncrow, detuning[0], f, d2,phi,std::abs(phi[1]-phi[0]),J, kappa, kappa0, delta);
 
     
-    std::cout<<"Step adaptative Dopri853  from NR3 with thermal effects is running\n";
+    std::cout<<"Step adaptative Dopri853  from NR3 without thermal effects is running\n";
     for (int i_det=0; i_det<Ndet; i_det++){
         crow.det = detuning[i_det]*2/kappa0; 
         noise=WhiteNoise(noise_amp,Nphi*Ncrow);
@@ -110,11 +110,11 @@ void* PropagateThermalSAM(double* In_val_RE, double* In_val_IM, double* Re_F, do
         for (int i_phi=0; i_phi<Nphi; i_phi++ ){
             res_buf[i_crow*2*Nphi+i_phi] = res_RE[i_crow*Nphi+i_phi] + noise[i_crow*Nphi+i_phi].real();
             res_buf[i_crow*2*Nphi+i_phi+Nphi] = res_IM[i_crow*Nphi+i_phi] + noise[i_crow*Nphi+i_phi].imag();
-            power = res_RE[i_crow*Nphi+i_phi]*res_RE[i_crow*Nphi+i_phi] + res_IM[i_crow*Nphi+i_phi]*res_IM[i_crow*Nphi+i_phi];
+            power += std::abs(phi[1]-phi[0])/2*(res_RE[i_crow*Nphi+i_phi]*res_RE[i_crow*Nphi+i_phi] + res_IM[i_crow*Nphi+i_phi]*res_IM[i_crow*Nphi+i_phi]);
             f[i_crow*2*Nphi+i_phi] = Re_F[i_crow*Nphi+i_phi];
             f[i_crow*2*Nphi+i_phi+Nphi] = Im_F[i_crow*Nphi+i_phi];
         }
-        res_buf[2*Ncrow*Nphi+i_crow] = power;
+        res_buf[2*Ncrow*Nphi+i_crow] = power*n2t/n2/2/M_PI;
     }
 
     Output out;
