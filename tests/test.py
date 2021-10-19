@@ -9,7 +9,7 @@ import PyCORe_main as pcm
 import time
 
 start_time = time.time()
-Num_of_modes = 2**9
+Num_of_modes = 2**10
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 D3 = 0*75.5e3
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
@@ -52,7 +52,7 @@ simulation_parameters = {'slow_time' : 1e-6,
 
 
 
-P0 = 0.1### W
+P0 = 0.5### W
 Pump = np.zeros(len(mu),dtype='complex')
 Pump[0] = np.sqrt(P0)
 #%%

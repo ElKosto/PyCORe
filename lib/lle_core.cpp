@@ -10,7 +10,7 @@ void printProgress (double percentage)
 }
 std::complex<double>* WhiteNoise(const double amp, const int Nphi)
 {
-    
+    unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
     std::complex<double>* noise_spectrum = new (std::nothrow) std::complex<double>[Nphi];//contains white noise in spectal domain
     std::complex<double>* res = new (std::nothrow) std::complex<double>[Nphi];//contains white noise in spectal domain
     fftw_complex noise_direct[Nphi];
@@ -20,7 +20,7 @@ std::complex<double>* WhiteNoise(const double amp, const int Nphi)
     double phase;
     double noise_amp;
     const std::complex<double> i(0, 1);
-    std::default_random_engine generator;
+    std::default_random_engine generator(seed1);
     std::uniform_real_distribution<double> distribution(0.0,1.0);
     for (int j=0; j<Nphi; j++){
        phase = distribution(generator) *2*M_PI-M_PI;

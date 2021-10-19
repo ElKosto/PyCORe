@@ -681,9 +681,21 @@ class Resonator:
         dphi = abs(self.phi[1]-self.phi[0])
         pump = Pump*np.sqrt(1./(hbar*self.w0))
         
+        Aprev = np.zeros(2*self.N_points,dtype=complex)
+        
+        
         f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
         
-        Aprev = np.zeros(2*self.N_points,dtype=complex)
+        
+        index_1 = np.arange(0,self.N_points)
+        index_2 = np.arange(self.N_points,2*self.N_points)
+        
+        f0_direct = np.zeros(Aprev.size,dtype=complex)
+        f0_direct[index_1] = np.fft.ifft(f0)*self.N_points
+        
+        f0_direct[index_2] = np.conj(f0_direct[index_1])
+        
+       
         if HardSeed == False:
             A_guess = A_guess+ f0_direct/(1+1j*zeta_0)
             Aprev[:self.N_points] = A_guess
@@ -694,13 +706,7 @@ class Resonator:
         
         Ak = np.zeros(Aprev.size,dtype=complex)
         
-        index_1 = np.arange(0,self.N_points)
-        index_2 = np.arange(self.N_points,2*self.N_points)
         
-        f0_direct = np.zeros(Aprev.size,dtype=complex)
-        f0_direct[index_1] = np.fft.ifft(f0)*self.N_points
-        
-        f0_direct[index_2] = np.conj(f0_direct[index_1])
 
         buf= np.zeros(Aprev.size,dtype=complex)
         M_lin=self.LinMatrix(d2,dphi,zeta_0)
