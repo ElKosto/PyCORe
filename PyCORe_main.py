@@ -4,6 +4,7 @@ from scipy.integrate import complex_ode,solve_ivp, ode
 from scipy.sparse.linalg import expm
 from scipy.sparse.linalg import inv as inv_sparse
 from scipy.sparse.linalg import spsolve as solve_sparse
+from scipy.linalg import dft
 import matplotlib.ticker as ticker
 import matplotlib.colors as mcolors
 from scipy.constants import pi, c, hbar
@@ -14,6 +15,7 @@ from scipy.optimize import curve_fit
 import time
 import sys, os
 from scipy.sparse import block_diag,identity,diags, eye, csc_matrix, dia_matrix
+from scipy.sparse.linalg import eigs as scp_eigs
 import ctypes
 from scipy.linalg import eig, inv, solve, lu_factor, lu_solve
 from matplotlib.patches import Wedge
@@ -53,6 +55,7 @@ class Resonator:
         self.t_th=0
         
         self.J_EO = 0
+        self.D=np.zeros([0],dtype=complex)
     
     def Init_From_File(self,data_dir):
         simulation_parameters={}
@@ -72,6 +75,7 @@ class Resonator:
         map2d=np.load(data_dir+'map2d.npy')
         dOm=np.load(data_dir+'dOm.npy')
         Pump=np.load(data_dir+'Pump.npy')
+        self.D = self.DispersionMatrix(order=0)
         return simulation_parameters, map2d, dOm, Pump
     def Init_From_Dict(self, resonator_parameters):
         #Physical parameters initialization
@@ -96,6 +100,7 @@ class Resonator:
         self.N_points = len(self.Dint)
         self.mu = np.fft.fftshift(np.arange(-self.N_points/2, self.N_points/2))
         self.phi = np.linspace(0,2*np.pi,self.N_points)
+        self.D = self.DispersionMatrix(order=0)
         def func(x, a, b, c, d):
             return a + x*b + c*x**2/2 + d*x**3/6
         popt, pcov = curve_fit(func, self.mu, self.Dint)
@@ -634,48 +639,119 @@ class Resonator:
             plt.pause(1e-10)
     
         
-    def Jacobian(self,d2,dphi,zeta_0,A):
+    def Jacobian(self,zeta_0,A):
         N = self.N_points
+        d2 = self.D2/self.kappa
+        dphi = abs(self.phi[1]-self.phi[0])
         index_1 = np.arange(0,N)
         index_2 = np.arange(N,2*N)
         Jacob = np.zeros([2*N,2*N],dtype=complex)
-        Jacob[index_1[:-1],index_1[1:]] = 1j*d2/dphi**2
-        Jacob[0,N-1] = 1j*d2/dphi**2
-        Jacob[index_2[:-1],index_2[1:]] = -1j*d2/dphi**2
-        Jacob[N,2*N-1] = -1j*d2/dphi**2
         
-        Jacob+=Jacob.T
-        Jacob[index_1,index_1] = -(1+ 1j*zeta_0) + 2*1j*abs(A[index_1])**2 - 2*1j*d2/dphi**2
-        Jacob[index_2,index_2] = -(1- 1j*zeta_0) - 2*1j*abs(A[index_1])**2 + 2*1j*d2/dphi**2
+        Jacob = self.LinMatrix(zeta_0,dense=False)
+        Jacob[index_1,index_1] += + 2*1j*abs(A[index_1])**2 
+        Jacob[index_2,index_2] +=  - 2*1j*abs(A[index_1])**2 
         
-        #Jacob[index_1,index_1] = 2*1j*abs(A[index_1])**2 
-        #Jacob[index_2,index_2] = - 2*1j*abs(A[index_1])**2 
-        
-        Jacob[index_1,index_2] = 1j*A[index_1]*A[index_1]
-        Jacob[index_2,index_1] = -1j*np.conj(A[index_1])*np.conj(A[index_1])
+        Jacob[index_1,index_2] += 1j*A[index_1]*A[index_1]
+        Jacob[index_2,index_1] += -1j*np.conj(A[index_1])*np.conj(A[index_1])
         
         
         Jacob_sparse = dia_matrix(Jacob)
         return Jacob_sparse
         
+    def DispersionMatrix(self,order=0):
+        D = np.zeros([self.N_points,self.N_points],dtype=complex)
+        index = np.arange(0,self.N_points)
+        d2 = self.D2/self.kappa
+        dphi = abs(self.phi[1]-self.phi[0])
+        
+        if order==0:
+            D_fourier = np.zeros([self.N_points,self.N_points],dtype=complex)
+            D_fourier[index,index] = -1j*self.Dint*2/self.kappa
+            
+            Fourier_matrix = dft(self.N_points)
+            D = np.dot(np.dot(Fourier_matrix,D_fourier),np.conj(Fourier_matrix.T)/self.N_points)
+        
+        if order == 2:
+            D[index[:-1],index[1:]] = 1j*d2/dphi**2
+            D[0,self.N_points-1] =  1j*d2/dphi**2
+            D += D.T
+            D[index,index]= -2*1j*d2/dphi**2
+        if order == 4:
+            D[index[:-2],index[2:]] = -1/12*1j*d2/dphi**2
+            
+            
+            D[index[:-1],index[1:]] = 4/3*1j*d2/dphi**2
+            
+            
+            D += D.T
+            
+            D[0,self.N_points-2] =  -1/12*1j*d2/dphi**2 
+            D[self.N_points-1,1] =  -1/12*1j*d2/dphi**2
+            
+            D[0,self.N_points-1] =  4/3*1j*d2/dphi**2
+            D[self.N_points-1,0] =  4/3*1j*d2/dphi**2
+            
+            D[1,self.N_points-1] =  -1/12*1j*d2/dphi**2 
+            D[self.N_points-2,0] =  -1/12*1j*d2/dphi**2
+            
+            D[index,index]= -5/2*1j*d2/dphi**2
+            
+        if order == 6:
+            D[index[:-3],index[3:]] = 1./90*1j*d2/dphi**2
+            
+            
+            D[index[:-2],index[2:]] = -3./20*1j*d2/dphi**2
+            
+            
+            D[index[:-1],index[1:]] = 3./2*1j*d2/dphi**2
+            
+            
+            D += D.T
+            
+            D[0,self.N_points-3] =  1./90*1j*d2/dphi**2
+            D[self.N_points-1,2] =  1./90*1j*d2/dphi**2
+            
+            D[0,self.N_points-2] = -3./20*1j*d2/dphi**2
+            D[self.N_points-1,1] =  -3./20*1j*d2/dphi**2
+            
+            D[0,self.N_points-1] =   3./2*1j*d2/dphi**2
+            D[self.N_points-1,0] =   3./2*1j*d2/dphi**2
+            
+            D[1,self.N_points-2] =  1/90*1j*d2/dphi**2 
+            D[self.N_points-2,1] =  1/90*1j*d2/dphi**2
+            
+            D[1,self.N_points-1] = -3./20*1j*d2/dphi**2
+            D[self.N_points-2,0] =  -3./20*1j*d2/dphi**2
+            
+            D[2,self.N_points-1] =  1/90*1j*d2/dphi**2 
+            D[self.N_points-3,0] =  1/90*1j*d2/dphi**2
+            
+            D[index,index]= -49./18*1j*d2/dphi**2
+            
+        return D
     
-    def LinMatrix(self,d2,dphi,zeta_0):
+    def LinMatrix(self,zeta_0,dense=True):
         D = np.zeros([2*self.N_points,2*self.N_points],dtype=complex)
+        d2 = self.D2/self.kappa
+        dphi = abs(self.phi[1]-self.phi[0])
         index_1 = np.arange(0,self.N_points)
         index_2 = np.arange(self.N_points,2*self.N_points)
-        D[index_1[:-1],index_1[1:]] = 1j*d2/dphi**2
-        D[0,self.N_points-1] =  1j*d2/dphi**2
-        D[self.N_points+index_1[:-1],self.N_points+index_1[1:]] = -1j*d2/dphi**2
-        D[self.N_points,2*self.N_points-1] =  -1j*d2/dphi**2
-        D += D.T
-        D[index_1,index_1]=-(1+ 1j*zeta_0)  - 2*1j*d2/dphi**2
-        D[index_2,index_2]=-(1- 1j*zeta_0) + 2*1j*d2/dphi**2
+      
+        D[:self.N_points,:self.N_points] = self.D
+        D[self.N_points:,self.N_points:] = np.conj(D[:self.N_points,:self.N_points])
+        D[index_1,index_1]+=-(1+ 1j*zeta_0)
+        D[index_2,index_2]+=-(1- 1j*zeta_0)
         
-        D_sparse = dia_matrix(D)
-        return D_sparse
+        if dense==True:
+            D_sparse = dia_matrix(D)
+            return D_sparse
+        else:
+            return D
         
     
-    def NewtonRaphson(self,A_guess,dOm, Pump, HardSeed = True, tol=1e-5,max_iter=50):
+    def NewtonRaphson(self,A_input,dOm, Pump,HardSeed = True, tol=1e-5,max_iter=50):
+        A_guess = np.fft.ifft(A_input)
+        
         d2 = self.D2/self.kappa
         zeta_0 = dOm*2/self.kappa
         dphi = abs(self.phi[1]-self.phi[0])
@@ -709,8 +785,8 @@ class Resonator:
         
 
         buf= np.zeros(Aprev.size,dtype=complex)
-        M_lin=self.LinMatrix(d2,dphi,zeta_0)
-        J = self.Jacobian(d2, dphi, zeta_0,Aprev[index_1])            
+        M_lin=self.LinMatrix(zeta_0)
+        J = self.Jacobian(zeta_0,Aprev[index_1])            
         
         print('f0^2 = ' + str(np.round(max(abs(f0_direct)**2), 2)))
         print('xi = ' + str(zeta_0) )
@@ -720,10 +796,10 @@ class Resonator:
         diff_array=[]
         
         while diff>tol:
-            J = self.Jacobian(d2, dphi, zeta_0, Aprev[index_1])
+            J = self.Jacobian(zeta_0, Aprev[index_1])
             buf[index_1] =  1j*abs(Aprev[index_1])**2*Aprev[index_1]         
-            #buf[index_2] = np.conj(buf[index_1])
-            buf[index_2] =  -1j*abs(Aprev[index_2])**2*Aprev[index_2]         
+            buf[index_2] = np.conj(buf[index_1])
+            #buf[index_2] =  -1j*abs(Aprev[index_2])**2*Aprev[index_2]         
             buf += (M_lin).dot(Aprev) + f0_direct
             
             
@@ -740,12 +816,45 @@ class Resonator:
                 print("Did not coverge in " + str(max_iter)+ " iterations, relative error is " + str(diff))
                 res = np.zeros(self.N_points,dtype=complex)
                 res = Ak[index_1]
-                return res/np.sqrt(2*self.g0/self.kappa), diff_array
+                return np.fft.fft(res)/np.sqrt(2*self.g0/self.kappa), diff_array
                 break
         print("Converged in " + str(counter) + " iterations, relative error is " + str(diff))
         res = np.zeros(self.N_points,dtype=complex)
         res = Ak[index_1]
-        return res/np.sqrt(2*self.g0/self.kappa), diff_array
+        return np.fft.fft(res)/np.sqrt(2*self.g0/self.kappa), diff_array
+    
+
+        
+    def LinearStability(self,solution,dOm,plot_eigvals=True):
+        A=np.fft.ifft(solution)
+        
+        d2 = self.D2/self.kappa
+        zeta_0 = dOm*2/self.kappa
+        dphi = abs(self.phi[1]-self.phi[0])
+        field = np.zeros_like(A)
+        field = A*np.sqrt(2*self.g0/self.kappa)
+        
+        
+        index_1 = np.arange(0,self.N_points)
+        index_2 = np.arange(self.N_points,2*self.N_points)
+        
+       
+        Full_Matrix=self.Jacobian(zeta_0,field).todense()
+        
+        
+        eig_vals,eig_vec = np.linalg.eig(Full_Matrix)
+        
+        eigen_vectors = np.zeros([self.N_points,2*self.N_points],dtype=complex)
+        if plot_eigvals==True:
+            plt.scatter(np.real(eig_vals),np.imag(eig_vals))
+            plt.xlabel('Real part')
+            plt.ylabel('Imaginary part')
+            
+        for jj in range(2*self.N_points):
+            eigen_vectors[:,jj]=(eig_vec[:self.N_points,jj]).T
+            eigen_vectors[:,jj]=np.fft.fft(eigen_vectors[:,jj])
+        
+        return eig_vals*self.kappa/2, eigen_vectors/np.sqrt(2*self.g0/self.kappa)
     def printProgressBar (self, iteration, total, prefix = '', suffix = '', time = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
         """
         Call in a loop to create terminal progress bar
@@ -1174,7 +1283,7 @@ class CROW(Resonator):#all idenical resonators
             
             if self.J[0,:].size == self.N_CROW:
                 BC='PERIODIC'
-            elif self.J[0,:] == self.N_CROW-1:
+            elif self.J[0,:].size == self.N_CROW-1:
                 BC='OPEN'
             else:
                 sys.exit('Unkown type of CROW')

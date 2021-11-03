@@ -9,7 +9,7 @@ import PyCORe_main as pcm
 import time
 
 start_time = time.time()
-Num_of_modes = 2**10
+Num_of_modes = 2**9
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 D3 = 0*75.5e3
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
@@ -52,7 +52,7 @@ simulation_parameters = {'slow_time' : 1e-6,
 
 
 
-P0 = 0.5### W
+P0 = 0.2### W
 Pump = np.zeros(len(mu),dtype='complex')
 Pump[0] = np.sqrt(P0)
 #%%
@@ -66,8 +66,8 @@ map2d = single_ring.Propagate_SAMCLIB(simulation_parameters, Pump,dt=0.5e-3)
 #%%
 #map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=1e-3)
 #%%
-plt.figure()
-plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))
+#plt.figure()
+#plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))
 #%%
 plt.rcParams.update({'font.size': 10})
 Nm = map2d[0,:].size
@@ -85,7 +85,7 @@ plt.savefig('trans_trace_pres.png')
 plt.show()
 #%%
 
-#pcm.Plot_Map(np.fft.ifft(map2d,axis=1),dOm*2/single_ring.kappa)
+pcm.Plot_Map(np.fft.ifft(map2d,axis=1),np.arange(nn))
 
 #np.save('map2d_scan',map2d,allow_pickle=True)
 #np.save('dOm_scan',dOm,allow_pickle=True)

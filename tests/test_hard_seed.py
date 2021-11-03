@@ -12,7 +12,7 @@ import time
 start_time = time.time()
 Num_of_modes = 512
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
-D3 = 75.5e3
+D3 = 0*75.5e3
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
 Dint = 2*np.pi*(mu**2*D2/2 + mu**3*D3/6)
 Dint[33] = Dint[33]#+500e6
@@ -27,11 +27,11 @@ map2d_scan = np.zeros([],dtype=complex)#np.load('map2d_scan.npy')
 dOm_scan = np.zeros([])
 Pump=np.zeros([],dtype=complex)
 simulation_parameters={}
-#single_ring = pcm.Resonator()
-single_ring=pcm.CROW()
+single_ring = pcm.Resonator()
+#single_ring=pcm.CROW()
 simulation_parameters,map2d_scan,dOm_scan,Pump=single_ring.Init_From_File('./data/')
 
-idet = 8250
+idet = 970
 nn = 10000
 dOm = np.ones(nn)*dOm_scan[idet]
 simulation_parameters['slow_time']=1e-6
@@ -44,7 +44,8 @@ Seed = map2d_scan[idet,:]#/single_ring.N_points
 #%%
 #map2d = single_ring.Propagate_SAM(simulation_parameters, Pump)
 #map2d = single_ring.Propagate_SplitStepCLIB(simulation_parameters, Pump,Seed=Seed,dt=1e-3, HardSeed=True)
-map2d = single_ring.Propagate_SAMCLIB(simulation_parameters, Pump,Seed=Seed,HardSeed=True,BC='OPEN')
+#map2d = single_ring.Propagate_SAMCLIB(simulation_parameters, Pump,Seed=Seed,HardSeed=True,BC='OPEN')
+map2d = single_ring.Propagate_SAMCLIB(simulation_parameters, Pump,Seed=Seed,HardSeed=True)
 #map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=1e-3)
 #%%
 #plt.figure()
