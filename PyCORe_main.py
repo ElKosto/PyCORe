@@ -5,6 +5,7 @@ from scipy.sparse.linalg import expm
 from scipy.sparse.linalg import inv as inv_sparse
 from scipy.sparse.linalg import spsolve as solve_sparse
 from scipy.linalg import dft
+from scipy.linalg import solve as solve_dense
 import matplotlib.ticker as ticker
 import matplotlib.colors as mcolors
 from scipy.constants import pi, c, hbar
@@ -75,7 +76,7 @@ class Resonator:
         map2d=np.load(data_dir+'map2d.npy')
         dOm=np.load(data_dir+'dOm.npy')
         Pump=np.load(data_dir+'Pump.npy')
-        self.D = self.DispersionMatrix(order=0)
+        
         return simulation_parameters, map2d, dOm, Pump
     def Init_From_Dict(self, resonator_parameters):
         #Physical parameters initialization
@@ -750,6 +751,7 @@ class Resonator:
         
     
     def NewtonRaphson(self,A_input,dOm, Pump,HardSeed = True, tol=1e-5,max_iter=50):
+        self.D = self.DispersionMatrix(order=0)
         A_guess = np.fft.ifft(A_input)
         
         d2 = self.D2/self.kappa
@@ -826,6 +828,7 @@ class Resonator:
 
         
     def LinearStability(self,solution,dOm,plot_eigvals=True):
+        self.D = self.DispersionMatrix(order=0)
         A=np.fft.ifft(solution)
         
         d2 = self.D2/self.kappa
@@ -919,7 +922,9 @@ class CROW(Resonator):#all idenical resonators
             
             self.D2 = np.array([0])
             self.D3 = np.array([0])
-            
+            self.D = np.array([0])
+            self.M_lin = np.array([0])
+
             
             
             #self.M_lin = np.array([0])
@@ -965,6 +970,7 @@ class CROW(Resonator):#all idenical resonators
             self.kappa = self.kappa_0 + self.kappa_ex
             self.N_points = len(self.Dint[:,0])
             self.mu = np.fft.fftshift(np.arange(-self.N_points/2, self.N_points/2))
+            
             self.phi = np.linspace(0,2*np.pi,self.N_points)
             if 'Delta D1' in resonator_parameters.keys():
                 self.Delta_D1 = resonator_parameters['Delta D1']
@@ -1557,7 +1563,90 @@ class CROW(Resonator):#all idenical resonators
             #J += M_lin
             Jacob_sparse = dia_matrix(J)
             return Jacob_sparse
-    
+        def JacobianMatrix(self,zeta_0,A,order=0):
+            if self.M_lin[:].size==1:
+                self.M_lin = self.LinearMatrix(zeta_0,order)
+                
+            N_m = self.N_points
+            N_res = self.N_CROW
+            ind_m = np.arange(self.N_points)
+            ind_res = np.arange(self.N_CROW)
+            
+            J = np.zeros([2*N_m*N_res,2*N_m*N_res],dtype=complex)
+            for jj in ind_res:
+                J[jj*N_m+ind_m,jj*N_m+ind_m] += +2*1j*abs(A[jj*N_m+ind_m])**2 
+                J[(jj+N_res)*N_m+ind_m,(jj+N_res)*N_m+ind_m] += -2*1j*abs(A[jj*N_m+ind_m])**2
+                J[jj*N_m+ind_m,(jj+N_res)*N_m+ind_m] = 1j*A[jj*N_m+ind_m]*A[jj*N_m+ind_m]
+                J[(jj+N_res)*N_m+ind_m,(jj)*N_m+ind_m] = -1j*np.conj(A[jj*N_m+ind_m])*np.conj(A[jj*N_m+ind_m])
+            J+= self.M_lin
+            
+            
+            if order == 0:
+                Jacob_sparse = (J)
+            else:
+                Jacob_sparse = dia_matrix(J)    
+                
+            return Jacob_sparse
+        def DispersionMatrix(self,order=0):
+            
+            
+            D = np.zeros([self.N_points*self.N_CROW,self.N_points*self.N_CROW],dtype=complex)
+           
+            ind_m = np.arange(self.N_points)
+            ind_res = np.arange(self.N_CROW)
+            d2 = self.D2/self.kappa_0
+            dphi = abs(self.phi[1]-self.phi[0])
+            if order == 0:
+                Fourier_matrix = dft(self.N_points)
+                D_fourier = np.zeros([self.N_points,self.N_points],dtype=complex)
+               
+                for jj in ind_res:      
+                   D_fourier[ind_m,ind_m] =-(self.kappa[:,jj]/2+1j*self.Delta[:,jj])*2/self.kappa_0 -1j*self.Dint[:,jj]*2/self.kappa_0
+                   D[jj*self.N_points+ind_m[0]:jj*self.N_points+ind_m[-1]+1,jj*self.N_points+ind_m[0]:jj*self.N_points+ind_m[-1]+1] = np.dot(np.dot(Fourier_matrix,D_fourier),np.conj(Fourier_matrix.T)/self.N_points)
+            if order == 2:
+                N_m = self.N_points
+                N_res = self.N_CROW
+                for jj in ind_res:
+                    D[jj*N_m+ind_m[:-1],jj*N_m+ind_m[1:]] = 1j*d2[jj]/dphi**2
+                    D[jj*N_m+0,jj*N_m+N_m-1] =  1j*d2[jj]/dphi**2
+                    
+                    #D[(jj+N_res)*N_m+ind_m[:-1],(jj+N_res)*N_m+ind_m[1:]] = -1j*d2[jj]/dphi**2
+                    #D[(jj+N_res)*N_m+0,(jj+N_res)*N_m+N_m-1] =  -1j*d2[jj]/dphi**2
+                    
+                    
+                    D[jj*N_m+ind_m,jj*N_m+ind_m] = 0.5*(-(self.kappa[:,jj]/2+1j*self.Delta[:,jj])*2/self.kappa_0  - 2*1j*d2[jj]/dphi**2)
+                D+=D.T
+           
+            return D
+        
+        def LinearMatrix(self,zeta_0,order=0):
+            
+            N_m = self.N_points
+            N_res = self.N_CROW
+            ind_m = np.arange(self.N_points)
+            ind_res = np.arange(self.N_CROW)
+            if self.D[:].size==1:
+                self.D = self.DispersionMatrix(order)
+            M_lin = np.zeros([2*self.N_points*self.N_CROW,2*self.N_points*self.N_CROW],dtype=complex) 
+            
+            for jj in ind_res[:-1]:
+                M_lin[jj*N_m+ind_m[:],(jj+1)*N_m+ind_m[:]] += 1j*self.J[0,jj]*2/self.kappa_0
+                M_lin[(jj+N_res)*N_m+ind_m[:],((jj+N_res)+1)*N_m+ind_m[:]] += -1j*self.J[0,jj]*2/self.kappa_0
+            if self.Dint[0,:].size==self.J[0,:].size:
+                jj=self.Dint[0,:].size-1
+                M_lin[jj*N_m+ind_m[:],(0)*N_m+ind_m[:]] += 1j*self.J[0,jj]*2/self.kappa_0
+                M_lin[(jj+N_res)*N_m+ind_m[:],(0+N_res)*N_m+ind_m[:]] += -1j*self.J[0,jj]*2/self.kappa_0
+                
+            M_lin += M_lin.T
+            
+            
+            M_lin[:self.N_points*self.N_CROW,:self.N_points*self.N_CROW] += self.D
+            M_lin[self.N_points*self.N_CROW:,self.N_points*self.N_CROW:] += np.conj(self.D)
+            
+            for jj in ind_res:
+                M_lin[jj*N_m+ind_m,jj*N_m+ind_m] += -1j*(zeta_0) 
+                M_lin[(jj+N_res)*N_m+ind_m,(jj+N_res)*N_m+ind_m] += 1j*(zeta_0) 
+            return M_lin
         def LinMatrix(self,j,d2,dphi,delta, kappa, zeta_0):
             
             N_m = self.N_points
@@ -1595,9 +1684,92 @@ class CROW(Resonator):#all idenical resonators
             #D[:N_m*N_res]=np.conj(D[N_m*N_res:])
             
             return D
-    
-        def NewtonRaphson(self,A_guess,dOm, Pump, HardSeed = True, tol=1e-5,max_iter=50):
+        def NewtonRaphsonDirectSpace(self,Seed_sol,dOm, Pump, HardSeed = True, tol=1e-5,max_iter=50,order=0):
+            A_guess = np.fft.ifft(Seed_sol,axis=0)
+            result = np.zeros_like(A_guess,dtype=complex)
+            zeta_0 = dOm*2/self.kappa_0
+            N_m = self.N_points
+            N_res = self.N_CROW
+            ind_modes = np.arange(self.N_points)
+            ind_res = np.arange(self.N_CROW)
+            pump = Pump*np.sqrt(1./(hbar*self.w0))
+            f0_direct = np.fft.ifft(pump*np.sqrt(8*self.g0*np.max(self.kappa_ex)/self.kappa_0**3),axis=0)*self.N_points
+            index_1 = np.arange(0,N_m*N_res)
+            index_2 = np.arange(N_m*N_res,2*N_m*N_res)
             
+            f0_direct =(f0_direct.T.reshape(f0_direct.size))
+            self.D = self.DispersionMatrix(order=order)
+            self.M_lin = self.LinearMatrix(zeta_0)
+            
+            
+            Aprev = np.zeros(2*N_m*N_res,dtype=complex)
+            if HardSeed == False:
+                A_guess = A_guess.T.reshape(A_guess.size)+ solve(Mlin[:N_m*N_res,:N_m*N_res],-f0_direct)
+                Aprev[index_1] = A_guess
+            else:
+                Aprev[index_1] = A_guess.T.reshape(A_guess.size)*np.sqrt(2*self.g0/self.kappa_0)
+            
+            
+            Aprev[index_2] = np.conj(Aprev[index_1])
+            
+            Ak = np.zeros(Aprev.size,dtype=complex)
+            
+            
+            
+            f0 = np.zeros(Aprev.size,dtype=complex)
+            f0[index_1] = f0_direct
+            
+            f0[index_2] = np.conj(f0[index_1])
+    
+            buf= np.zeros(Aprev.size,dtype=complex)
+            J=self.JacobianMatrix(zeta_0, Aprev[index_1],order)
+            print('f0^2 = ' + str(np.round(max(abs(f0_direct)**2), 2)))
+            print('xi = ' + str(zeta_0) )
+            
+            diff = self.N_points
+            counter =0
+            diff_array=[]
+            
+            while diff>tol:
+                J=self.JacobianMatrix(zeta_0, Aprev[index_1],order)
+                buf[index_1] =  1j*abs(Aprev[index_1])**2*Aprev[index_1]         
+                #buf[index_2] = np.conj(buf[index_1])
+                buf[index_2] =  -1j*abs(Aprev[index_2])**2*Aprev[index_2]         
+                buf += (self.M_lin).dot(Aprev) + f0
+                
+                if order==0:
+                    Ak = Aprev - solve_dense(J,buf)
+                else:
+                    Ak = Aprev - solve_sparse(J,buf)
+                
+                
+                diff = np.sqrt(abs((Ak-Aprev).dot(np.conj(Ak-Aprev))/(Ak.dot(np.conj(Ak)))))
+                diff_array += [diff]
+
+                
+                Aprev = Ak
+                Aprev[index_2] = np.conj(Aprev[index_1])
+                counter +=1
+                print(diff)
+                #plt.scatter(counter,diff,c='k')
+                if counter>max_iter:
+                    print("Did not coverge in " + str(max_iter)+ " iterations, relative error is " + str(diff))
+                    res = np.zeros(self.N_points,dtype=complex)
+                    res = Ak[index_1]
+                    
+                    for jj in ind_res:
+                        result[ind_modes,jj]= np.fft.fft(res[jj*N_m+ind_modes])
+                    return result/np.sqrt(2*self.g0/self.kappa_0), diff_array
+                    break
+            print("Converged in " + str(counter) + " iterations, relative error is " + str(diff))
+            res = np.zeros(self.N_points,dtype=complex)
+            res = Ak[index_1]
+            for jj in ind_res:
+                result[ind_modes,jj]= np.fft.fft(res[jj*N_m+ind_modes])
+            return result/np.sqrt(2*self.g0/self.kappa_0), diff_array    
+            
+        def NewtonRaphson(self,Seed_sol,dOm, Pump, HardSeed = True, tol=1e-5,max_iter=50):
+            A_guess = np.fft.ifft(Seed_sol,axis=0)
             result = np.zeros_like(A_guess,dtype=complex)
             N_m = self.N_points
             N_res = self.N_CROW
@@ -1631,7 +1803,9 @@ class CROW(Resonator):#all idenical resonators
             index_2 = np.arange(N_m*N_res,2*N_m*N_res)
             
             f0_direct =(f0_direct.T.reshape(f0_direct.size))
+            
             M_lin = self.LinMatrix(j, d2, dphi, delta, kappa, zeta_0)
+            
             
             Aprev = np.zeros(2*N_m*N_res,dtype=complex)
             if HardSeed == False:
@@ -1663,6 +1837,7 @@ class CROW(Resonator):#all idenical resonators
             
             while diff>tol:
                 J=self.Jacobian(j, d2, dphi, delta, kappa, zeta_0, Aprev[index_1])
+                
                 buf[index_1] =  1j*abs(Aprev[index_1])**2*Aprev[index_1]         
                 #buf[index_2] = np.conj(buf[index_1])
                 buf[index_2] =  -1j*abs(Aprev[index_2])**2*Aprev[index_2]         
@@ -1686,15 +1861,70 @@ class CROW(Resonator):#all idenical resonators
                     res = Ak[index_1]
                     
                     for jj in ind_res:
-                        result[ind_modes,jj]= res[jj*N_m+ind_modes]
+                        result[ind_modes,jj]= np.fft.fft(res[jj*N_m+ind_modes])
                     return result/np.sqrt(2*self.g0/self.kappa_0), diff_array
                     break
             print("Converged in " + str(counter) + " iterations, relative error is " + str(diff))
             res = np.zeros(self.N_points,dtype=complex)
             res = Ak[index_1]
             for jj in ind_res:
-                result[ind_modes,jj]= res[jj*N_m+ind_modes]
+                result[ind_modes,jj]= np.fft.fft(res[jj*N_m+ind_modes])
             return result/np.sqrt(2*self.g0/self.kappa_0), diff_array    
+        
+        def LinearStability(self,Seed_sol,dOm,plot_eigvals=True,order=0):
+            
+            A=np.fft.ifft(Seed_sol, axis=0)
+            A = A.T.reshape(A.size)*np.sqrt(2*self.g0/self.kappa_0)
+            
+                      
+            N_m = self.N_points
+            N_res = self.N_CROW
+            
+            index_1 = np.arange(0,N_m*N_res)
+            index_2 = np.arange(N_m*N_res,2*N_m*N_res)
+            ind_modes = np.arange(self.N_points)
+            ind_res = np.arange(self.N_CROW)
+            
+            A_vec = np.zeros(2*N_m*N_res,dtype=complex)
+            A_vec[index_1]=A
+            A_vec[index_2]=np.conj(A)
+            
+            
+            
+             
+            
+            
+            
+            zeta_0 = dOm*2/self.kappa_0
+            dphi = abs(self.phi[1]-self.phi[0])
+            
+            
+            
+            
+            index_1 = np.arange(0,self.N_points)
+            index_2 = np.arange(self.N_points,2*self.N_points)
+            
+            self.D = self.DispersionMatrix(order=order)
+            self.M_lin = self.LinearMatrix(zeta_0)
+           
+            Full_Matrix=self.JacobianMatrix(zeta_0,A_vec)
+            
+            
+            eig_vals,eig_vec = np.linalg.eig(Full_Matrix)
+            
+            eigen_vectors = np.zeros([self.N_points,self.N_CROW,2*self.N_points*self.N_CROW],dtype=complex)
+            if plot_eigvals==True:
+                plt.scatter(np.real(eig_vals),np.imag(eig_vals))
+                plt.xlabel('Real part')
+                plt.ylabel('Imaginary part')
+                
+            for jj in range(2*self.N_points*self.N_CROW):
+                for ii in ind_res:
+                    eigen_vectors[:,ii,jj]=(eig_vec[ii*N_m+ind_modes,jj]).T
+                    eigen_vectors[:,ii,jj]=np.fft.fft(eigen_vectors[:,ii,jj])
+                
+        
+            return eig_vals*self.kappa_0/2, eigen_vectors/np.sqrt(2*self.g0/self.kappa_0)
 class Lattice(Resonator):  
     pass
 

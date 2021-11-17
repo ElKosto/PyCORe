@@ -18,8 +18,8 @@ import time
 
 start_time = time.time()
 
-Num_of_modes = 2**10
-N_crow = 10
+Num_of_modes = 2**9
+N_crow = 3
 
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 
@@ -33,10 +33,11 @@ Dint = (Dint_single*np.ones([mu.size,N_crow]).T).T#Making matrix of dispersion w
 
 
 
-J = 5e9*2*np.pi*np.ones([mu.size,(N_crow)])
+J = 0*5e9*2*np.pi*np.ones([mu.size,(N_crow)])
 
-dNu_ini = -2*J.max()/2/np.pi-100e6
-dNu_end = -9.5e9#3*J.max()/2/np.pi+2e9
+#dNu_ini = -2*J.max()/2/np.pi-100e6
+dNu_ini = -1e3
+dNu_end = 1e9#3*J.max()/2/np.pi+2e9
 
 #dNu_ini = 0#3*J.max()/2/np.pi+2e9
 #dNu_end = 3*J.max()/2/np.pi+1e9
@@ -46,7 +47,7 @@ ramp_stop = 1
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
 
 #delta = 0.1e9*2*np.pi
-kappa_ex_ampl = 50e6*2*np.pi
+kappa_ex_ampl = 200e6*2*np.pi
 kappa_ex = np.zeros([Num_of_modes,N_crow])
 
 for ii in range(0,N_crow,2):
@@ -56,9 +57,10 @@ Delta = np.zeros([mu.size,(N_crow)])
 
 N_cells = (N_crow+1)//2
 bus_coupling=np.zeros([mu.size,N_cells])
-bus_phases = np.ones(N_cells-1)*np.pi*0
+bus_phases = np.ones(N_cells-1)*np.pi/2
 for ii in range(0,N_crow,2):
     bus_coupling[:,ii//2] = -kappa_ex[:,ii]
+
     
 #Delta[:,0] = 2*np.pi*1e9*np.ones([Num_of_modes])
 
@@ -76,23 +78,23 @@ PhysicalParameters = {'Inter-resonator_coupling': J,
                       'kappa_ex' : kappa_ex,
                       'Dint' : Dint}
 
-simulation_parameters = {'slow_time' : 1e-5,
+simulation_parameters = {'slow_time' : 1e-6,
                          'detuning_array' : dOm,
-                         'noise_level' : 1e-6,
+                         'noise_level' : 1e-8,
                          'output' : 'map',
                          'absolute_tolerance' : 1e-8,
                          'relative_tolerance' : 1e-8,
                          'max_internal_steps' : 2000}
 
-P0 = .1### W
+P0 = .5### W
 
 Pump = np.zeros([len(mu),N_crow],dtype='complex')
 
 phase = 0
 Pump[0,0] = np.sqrt(P0)
-for ii in range(2,N_crow,2):
-    phase+=bus_phases[ii//2-1]
-    Pump[0,ii] = np.sqrt(P0)*np.exp(1j*phase)
+#for ii in range(2,N_crow,2):
+#    phase+=bus_phases[ii//2-1]
+#    Pump[0,ii] = np.sqrt(P0)*np.exp(1j*phase)
 
 #%%
 crow = pcm.CROW()

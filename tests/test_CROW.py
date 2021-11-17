@@ -34,8 +34,8 @@ J = 4.5e9*2*np.pi*np.ones([mu.size,(N_crow-1)])
 #    if pp%2: J[pp] = 4.5e9*2*np.pi
 #    else: J[pp] = 0.9e9*2*np.pi
 
-dNu_ini = -3*J.max()/2/np.pi-10e6
-dNu_end = 3*J.max()/2/np.pi+10e9
+dNu_ini = -1*J.max()/2/np.pi-10e6
+dNu_end = 0*3*J.max()/2/np.pi#+10e9
 #dNu_ini = -1e9
 #dNu_end = 1e9
 #dNu_ini = -10e9
@@ -78,7 +78,7 @@ simulation_parameters = {'slow_time' : 1e-6,
                          'relative_tolerance' : 1e-8,
                          'max_internal_steps' : 2000}
 
-P0 = .8### W
+P0 = .4### W
 #P0 = 0.006### W
 Pump = np.zeros([len(mu),N_crow],dtype='complex')
 #for ii in range(N_crow):

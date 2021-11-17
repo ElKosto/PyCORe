@@ -47,10 +47,12 @@ Pump = np.zeros(len(mu),dtype='complex')
 Pump[0] = np.sqrt(P0)
 
 
-A = np.fft.ifft(map2d_scan[idet,:])#/np.sqrt(Num_of_modes)
+#A = np.fft.ifft(map2d_scan[idet,:])#/np.sqrt(Num_of_modes)
+A = map2d_scan[idet,:]#/np.sqrt(Num_of_modes)
 dOm = dOm_scan[idet]
 
-single_ring = pcm.Resonator(PhysicalParameters)
+single_ring = pcm.Resonator()
+single_ring.Init_From_Dict(PhysicalParameters)
 S = Pump/np.sqrt(single_ring.w0*hbar)
 
 #%%
