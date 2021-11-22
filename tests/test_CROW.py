@@ -28,7 +28,7 @@ Dint = (Dint_single*np.ones([mu.size,N_crow]).T).T#Making matrix of dispersion w
 
 
 #J = 0.5*50e6*2*np.pi*np.ones([mu.size,(N_crow-1)])
-J = 4.5e9*2*np.pi*np.ones([mu.size,(N_crow-1)])
+J = 2.0e9*2*np.pi*np.ones([mu.size,(N_crow-1)])
 #J = np.zeros(N_crow-1)
 #for pp in range(N_crow-1):
 #    if pp%2: J[pp] = 4.5e9*2*np.pi
@@ -78,7 +78,7 @@ simulation_parameters = {'slow_time' : 1e-6,
                          'relative_tolerance' : 1e-8,
                          'max_internal_steps' : 2000}
 
-P0 = .4### W
+P0 = 1.0### W
 #P0 = 0.006### W
 Pump = np.zeros([len(mu),N_crow],dtype='complex')
 #for ii in range(N_crow):

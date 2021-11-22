@@ -15,7 +15,7 @@ import matplotlib.image as mpimg
 from scipy.optimize import curve_fit
 import time
 import sys, os
-from scipy.sparse import block_diag,identity,diags, eye, csc_matrix, dia_matrix
+from scipy.sparse import block_diag,identity,diags, eye, csc_matrix, dia_matrix, isspmatrix
 from scipy.sparse.linalg import eigs as scp_eigs
 import ctypes
 from scipy.linalg import eig, inv, solve, lu_factor, lu_solve
@@ -1582,7 +1582,7 @@ class CROW(Resonator):#all idenical resonators
             
             
             if order == 0:
-                Jacob_sparse = (J)
+                Jacob_sparse =(J) 
             else:
                 Jacob_sparse = dia_matrix(J)    
                 
@@ -1729,7 +1729,7 @@ class CROW(Resonator):#all idenical resonators
             diff = self.N_points
             counter =0
             diff_array=[]
-            
+            isSparse = isspmatrix(J)
             while diff>tol:
                 J=self.JacobianMatrix(zeta_0, Aprev[index_1],order)
                 buf[index_1] =  1j*abs(Aprev[index_1])**2*Aprev[index_1]         
@@ -1737,7 +1737,7 @@ class CROW(Resonator):#all idenical resonators
                 buf[index_2] =  -1j*abs(Aprev[index_2])**2*Aprev[index_2]         
                 buf += (self.M_lin).dot(Aprev) + f0
                 
-                if order==0:
+                if isSparse==False:
                     Ak = Aprev - solve_dense(J,buf)
                 else:
                     Ak = Aprev - solve_sparse(J,buf)
@@ -1871,7 +1871,7 @@ class CROW(Resonator):#all idenical resonators
                 result[ind_modes,jj]= np.fft.fft(res[jj*N_m+ind_modes])
             return result/np.sqrt(2*self.g0/self.kappa_0), diff_array    
         
-        def LinearStability(self,Seed_sol,dOm,plot_eigvals=True,order=0):
+        def LinearStability(self,Seed_sol,dOm,plot_eigvals=True,get_eigvecs=True,order=0, IsSparse=False, NumOfEigVals=10,which='LM'):
             
             A=np.fft.ifft(Seed_sol, axis=0)
             A = A.T.reshape(A.size)*np.sqrt(2*self.g0/self.kappa_0)
@@ -1906,25 +1906,34 @@ class CROW(Resonator):#all idenical resonators
             
             self.D = self.DispersionMatrix(order=order)
             self.M_lin = self.LinearMatrix(zeta_0)
-           
-            Full_Matrix=self.JacobianMatrix(zeta_0,A_vec)
+            
+            if IsSparse==True:
+                Full_Matrix=(self.JacobianMatrix(zeta_0,A_vec))
+                
+                eig_vals,eig_vec = scp_eigs(Full_Matrix,k=NumOfEigVals,which=which)
+            else:    
+                Full_Matrix=(self.JacobianMatrix(zeta_0,A_vec))
+                if get_eigvecs==True:
+                    eig_vals,eig_vec = np.linalg.eig(Full_Matrix)
+                if get_eigvecs==False:
+                    eig_vals = np.linalg.eigvals(Full_Matrix)
             
             
-            eig_vals,eig_vec = np.linalg.eig(Full_Matrix)
-            
-            eigen_vectors = np.zeros([self.N_points,self.N_CROW,2*self.N_points*self.N_CROW],dtype=complex)
             if plot_eigvals==True:
                 plt.scatter(np.real(eig_vals),np.imag(eig_vals))
                 plt.xlabel('Real part')
                 plt.ylabel('Imaginary part')
+            if get_eigvecs==True:
+                eigen_vectors = np.zeros([self.N_points,self.N_CROW,2*self.N_points*self.N_CROW],dtype=complex)        
+                for jj in range(2*self.N_points*self.N_CROW):
+                    for ii in ind_res:
+                        eigen_vectors[:,ii,jj]=(eig_vec[ii*N_m+ind_modes,jj]).T
+                        eigen_vectors[:,ii,jj]=np.fft.fft(eigen_vectors[:,ii,jj])
                 
-            for jj in range(2*self.N_points*self.N_CROW):
-                for ii in ind_res:
-                    eigen_vectors[:,ii,jj]=(eig_vec[ii*N_m+ind_modes,jj]).T
-                    eigen_vectors[:,ii,jj]=np.fft.fft(eigen_vectors[:,ii,jj])
-                
-        
-            return eig_vals*self.kappa_0/2, eigen_vectors/np.sqrt(2*self.g0/self.kappa_0)
+            if get_eigvecs==True:    
+                return eig_vals*self.kappa_0/2, eigen_vectors/np.sqrt(2*self.g0/self.kappa_0)
+            if get_eigvecs==False:    
+                return eig_vals*self.kappa_0/2
 class Lattice(Resonator):  
     pass
 
