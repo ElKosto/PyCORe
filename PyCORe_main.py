@@ -308,7 +308,7 @@ class Resonator:
         if HardSeed == False:
             seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa)
         else:
-            seed = Seed*np.sqrt(2*self.g0/self.kappa)
+            seed = Seed*np.sqrt(2*self.g0/self.kappa)/self.N_points
         ### renormalization
         T_rn = (self.kappa/2)*T
         f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
@@ -378,7 +378,7 @@ class Resonator:
             LLE_core.PropagateSS(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_J, In_phi_p, In_Dint_p, In_D2_mod_p, In_FSR, In_kappa, In_Ndet, In_Nt, In_dt, In_Nphi, In_noise_amp, In_res_RE_p, In_res_IM_p)
         ind_modes = np.arange(self.N_points)
         for ii in range(0,len(detuning)):
-            sol[ii,ind_modes] = In_res_RE[ii*self.N_points+ind_modes] + 1j*In_res_IM[ii*self.N_points+ind_modes]
+            sol[ii,ind_modes] = (In_res_RE[ii*self.N_points+ind_modes] + 1j*In_res_IM[ii*self.N_points+ind_modes])*self.N_points
         #sol = np.reshape(In_res_RE,[len(detuning),self.N_points]) + 1j*np.reshape(In_res_IM,[len(detuning),self.N_points])
                     
         if out_param == 'map':
@@ -658,8 +658,22 @@ class Resonator:
         
         Jacob_sparse = dia_matrix(Jacob)
         return Jacob_sparse
+    
+    def D1A(self,A):
+        D = np.zeros([self.N_points,self.N_points],dtype=complex)
+        index = np.arange(0,self.N_points)
+        D_fourier = np.zeros([self.N_points,self.N_points],dtype=complex)
+        A_spectrum = np.fft.fft(A)
+        D_fourier[index,index] = -1j*self.mu
+        #A_spectrum = np.dot(D_fourier,A_spectrum)
+        Fourier_matrix = dft(self.N_points)
+        D = np.dot(np.dot(Fourier_matrix,D_fourier),np.conj(Fourier_matrix.T)/self.N_points)
+        res = np.dot(D,A)
+        #res = np.fft.ifft(A_spectrum)
         
-    def DispersionMatrix(self,order=0):
+        return res
+    
+    def DispersionMatrix(self,D1=0,order=0):
         D = np.zeros([self.N_points,self.N_points],dtype=complex)
         index = np.arange(0,self.N_points)
         d2 = self.D2/self.kappa
@@ -667,7 +681,7 @@ class Resonator:
         
         if order==0:
             D_fourier = np.zeros([self.N_points,self.N_points],dtype=complex)
-            D_fourier[index,index] = -1j*self.Dint*2/self.kappa
+            D_fourier[index,index] = -1j*(self.Dint+D1*self.mu)*2/self.kappa
             
             Fourier_matrix = dft(self.N_points)
             D = np.dot(np.dot(Fourier_matrix,D_fourier),np.conj(Fourier_matrix.T)/self.N_points)
@@ -750,8 +764,8 @@ class Resonator:
             return D
         
     
-    def NewtonRaphson(self,A_input,dOm, Pump,HardSeed = True, tol=1e-5,max_iter=50):
-        self.D = self.DispersionMatrix(order=0)
+    def NewtonRaphson(self,A_input,dOm, Pump,D1=0,HardSeed = True, tol=1e-5,max_iter=50):
+        self.D = self.DispersionMatrix(D1=0,order=0)
         A_guess = np.fft.ifft(A_input)
         
         d2 = self.D2/self.kappa
@@ -787,9 +801,25 @@ class Resonator:
         
 
         buf= np.zeros(Aprev.size,dtype=complex)
-        M_lin=self.LinMatrix(zeta_0)
-        J = self.Jacobian(zeta_0,Aprev[index_1])            
+        buf_prev= np.zeros(Aprev.size,dtype=complex)
         
+        J = self.Jacobian(zeta_0,Aprev[index_1])       
+        buf_prev[index_1] =  1j*abs(Aprev[index_1])**2*Aprev[index_1]         
+        buf_prev[index_2] = np.conj(buf[index_1])
+        buf_prev+= (self.LinMatrix(zeta_0)).dot(Aprev) + f0_direct
+        D1_res=D1
+        delta_D1 =D1
+        #dAdphi = self.D1A(Aprev[index_1])
+        #delta_D1 = self.kappa/2*(np.dot(np.real(buf_prev[index_1]),np.real(dAdphi))/np.dot(np.real(dAdphi),np.real(dAdphi)) )
+        #D1_res+=delta_D1
+        #self.D = self.DispersionMatrix(D1=D1,order=0)
+        #buf[index_1] =  1j*abs(Aprev[index_1])**2*Aprev[index_1]         
+        #buf[index_2] = np.conj(buf[index_1])
+        #buf+= (self.LinMatrix(zeta_0)).dot(Aprev) + f0_direct
+        #dAdphi = self.D1A(Aprev[index_1])
+        #D1_res = np.real(self.kappa/2*np.dot((buf_prev[index_1]-buf[index_1]),np.conj(dAdphi))/np.dot(np.conj(dAdphi),dAdphi))
+        #print(D1,D1_res)
+        #print(np.linalg.norm((buf_prev[index_1]-buf[index_1])))
         print('f0^2 = ' + str(np.round(max(abs(f0_direct)**2), 2)))
         print('xi = ' + str(zeta_0) )
         
@@ -798,19 +828,31 @@ class Resonator:
         diff_array=[]
         
         while diff>tol:
+            
+            
+            self.D = self.DispersionMatrix(D1=self.kappa/2*D1_res,order=0)
             J = self.Jacobian(zeta_0, Aprev[index_1])
             buf[index_1] =  1j*abs(Aprev[index_1])**2*Aprev[index_1]         
             buf[index_2] = np.conj(buf[index_1])
             #buf[index_2] =  -1j*abs(Aprev[index_2])**2*Aprev[index_2]         
-            buf += (M_lin).dot(Aprev) + f0_direct
+            buf += (self.LinMatrix(zeta_0)).dot(Aprev) + f0_direct
+            
             
             
             
             Ak = Aprev - solve_sparse(J,buf)
+            dAdphi = self.D1A(Ak[index_1])
+            #delta_D1 = (self.kappa/2*np.dot(np.real(buf_prev[index_1]-buf[index_1]),np.real(dAdphi))/np.dot(np.real(dAdphi),np.real(dAdphi)) )
+            #delta_D1 = 0*self.kappa/2*(np.dot(np.real(-buf[index_1]+buf_prev[index_1]),np.real(dAdphi))/np.dot(np.real(dAdphi),np.real(dAdphi)) )
+            #D1_res = D1_res-self.kappa/2*1/(np.dot(np.real(buf[index_1]),np.real(dAdphi))/np.dot(np.real(dAdphi),np.real(dAdphi)) )
+            D1_res-=np.dot(np.real(buf[index_1]),np.real(dAdphi))/np.dot(np.real(dAdphi),np.real(dAdphi))
+            print(D1_res, delta_D1/D1_res )
             
+            #print(np.max((buf_prev[index_1]-buf[index_1])/dAdphi),np.min((buf_prev[index_1]-buf[index_1])/dAdphi))
             diff = np.sqrt(abs((Ak-Aprev).dot(np.conj(Ak-Aprev))/(Ak.dot(np.conj(Ak)))))
             diff_array += [diff]
-            Aprev = Ak
+            Aprev[:] = Ak[:]
+            buf_prev[:]=buf[:]
             Aprev[index_2] = np.conj(Aprev[index_1])
             counter +=1
             #plt.scatter(counter,diff,c='k')

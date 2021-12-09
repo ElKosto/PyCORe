@@ -11,7 +11,7 @@ import time
 start_time = time.time()
 Num_of_modes = 2**9
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
-D3 = 0*75.5e3
+D3 = 5e3
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
 Dint = 2*np.pi*(mu**2*D2/2 + mu**3*D3/6)
 #Dint[0] = Dint[0]+500e6
@@ -61,8 +61,8 @@ single_ring.Init_From_Dict(PhysicalParameters)
 
 
 #map2d = single_ring.Propagate_SAM(simulation_parameters, Pump)
-#map2d = single_ring.Propagate_SplitStepCLIB(simulation_parameters, Pump,dt=0.5e-3)
-map2d = single_ring.Propagate_SAMCLIB(simulation_parameters, Pump,dt=0.5e-3)
+map2d = single_ring.Propagate_SplitStepCLIB(simulation_parameters, Pump,dt=0.5e-3)
+#map2d = single_ring.Propagate_SAMCLIB(simulation_parameters, Pump,dt=0.5e-3)
 #%%
 #map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=1e-3)
 #%%
@@ -91,5 +91,5 @@ pcm.Plot_Map(np.fft.ifft(map2d,axis=1),np.arange(nn))
 #np.save('dOm_scan',dOm,allow_pickle=True)
 
 #%%
-single_ring.Save_Data(map2d,Pump,simulation_parameters,dOm,'./data/')
+#single_ring.Save_Data(map2d,Pump,simulation_parameters,dOm,'./data/')
 print("--- %s seconds ---" % (time.time() - start_time))
