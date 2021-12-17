@@ -57,6 +57,7 @@ class Resonator:
         
         self.J_EO = 0
         self.D=np.zeros([0],dtype=complex)
+        self.FirstDmat=np.zeros([0],dtype=complex)
     
     def Init_From_File(self,data_dir):
         simulation_parameters={}
@@ -640,35 +641,56 @@ class Resonator:
             plt.pause(1e-10)
     
         
-    def Jacobian(self,zeta_0,A):
+    def Jacobian(self,zeta_0,A,D1):
+        
         N = self.N_points
         d2 = self.D2/self.kappa
         dphi = abs(self.phi[1]-self.phi[0])
         index_1 = np.arange(0,N)
         index_2 = np.arange(N,2*N)
-        Jacob = np.zeros([2*N,2*N],dtype=complex)
+        Jacob = np.zeros([2*N+1,2*N+1],dtype=complex)
         
-        Jacob = self.LinMatrix(zeta_0,dense=False)
+        Jacob[:-1,:-1] += self.LinMatrix(zeta_0,dense=False)
         Jacob[index_1,index_1] += + 2*1j*abs(A[index_1])**2 
         Jacob[index_2,index_2] +=  - 2*1j*abs(A[index_1])**2 
         
         Jacob[index_1,index_2] += 1j*A[index_1]*A[index_1]
         Jacob[index_2,index_1] += -1j*np.conj(A[index_1])*np.conj(A[index_1])
         
+        Jacob[index_1,-1] = -(self.D1A(A[index_1]))
+        Jacob[index_2,-1] = np.conj(Jacob[index_1,-1])
         
-        Jacob_sparse = dia_matrix(Jacob)
-        return Jacob_sparse
+        Jacob[-1,index_1] = (self.FirstDmat[np.argmax(np.real(A[index_1])),:])
+        Jacob[-1,index_2] = (self.FirstDmat[np.argmax(np.real(A[index_1])),:])
+        
+        
+        #Jacob_sparse = dia_matrix(Jacob)
+        #return Jacob_sparse
+        return Jacob
     
+    def FirstDerivativeMatrix(self):
+        D = np.zeros([self.N_points,self.N_points],dtype=complex)
+        index = np.arange(0,self.N_points)
+        D_fourier = np.zeros([self.N_points,self.N_points],dtype=complex)
+        D_fourier[index,index] = 1j*self.mu
+            
+        Fourier_matrix = dft(self.N_points)
+        D = np.dot(np.dot(Fourier_matrix,D_fourier),np.conj(Fourier_matrix.T)/self.N_points)
+        
+        return D
+        
+        
     def D1A(self,A):
         D = np.zeros([self.N_points,self.N_points],dtype=complex)
         index = np.arange(0,self.N_points)
         D_fourier = np.zeros([self.N_points,self.N_points],dtype=complex)
         A_spectrum = np.fft.fft(A)
-        D_fourier[index,index] = -1j*self.mu
+        D_fourier[index,index] = 1j*self.mu
         #A_spectrum = np.dot(D_fourier,A_spectrum)
         Fourier_matrix = dft(self.N_points)
         D = np.dot(np.dot(Fourier_matrix,D_fourier),np.conj(Fourier_matrix.T)/self.N_points)
         res = np.dot(D,A)
+        #res = np.dot(-1j*self.mu,A_spectrum)#/self.N_points
         #res = np.fft.ifft(A_spectrum)
         
         return res
@@ -746,6 +768,7 @@ class Resonator:
         return D
     
     def LinMatrix(self,zeta_0,dense=True):
+        self.FirstDmat=self.FirstDerivativeMatrix()
         D = np.zeros([2*self.N_points,2*self.N_points],dtype=complex)
         d2 = self.D2/self.kappa
         dphi = abs(self.phi[1]-self.phi[0])
@@ -766,6 +789,7 @@ class Resonator:
     
     def NewtonRaphson(self,A_input,dOm, Pump,D1=0,HardSeed = True, tol=1e-5,max_iter=50):
         self.D = self.DispersionMatrix(D1=0,order=0)
+        FirstDerivativeMatrix=self.FirstDerivativeMatrix()
         A_guess = np.fft.ifft(A_input)
         
         d2 = self.D2/self.kappa
@@ -773,7 +797,7 @@ class Resonator:
         dphi = abs(self.phi[1]-self.phi[0])
         pump = Pump*np.sqrt(1./(hbar*self.w0))
         
-        Aprev = np.zeros(2*self.N_points,dtype=complex)
+        Aprev = np.zeros(2*self.N_points+1,dtype=complex)
         
         
         f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
@@ -782,7 +806,7 @@ class Resonator:
         index_1 = np.arange(0,self.N_points)
         index_2 = np.arange(self.N_points,2*self.N_points)
         
-        f0_direct = np.zeros(Aprev.size,dtype=complex)
+        f0_direct = np.zeros(Aprev.size-1,dtype=complex)
         f0_direct[index_1] = np.fft.ifft(f0)*self.N_points
         
         f0_direct[index_2] = np.conj(f0_direct[index_1])
@@ -794,7 +818,8 @@ class Resonator:
         else:
             Aprev[:self.N_points] = A_guess*np.sqrt(2*self.g0/self.kappa)
         
-        Aprev[self.N_points:] = np.conj(Aprev[:self.N_points])
+        Aprev[index_2] = np.conj(Aprev[:self.N_points])
+        Aprev[-1] = D1
         
         Ak = np.zeros(Aprev.size,dtype=complex)
         
@@ -803,12 +828,14 @@ class Resonator:
         buf= np.zeros(Aprev.size,dtype=complex)
         buf_prev= np.zeros(Aprev.size,dtype=complex)
         
-        J = self.Jacobian(zeta_0,Aprev[index_1])       
-        buf_prev[index_1] =  1j*abs(Aprev[index_1])**2*Aprev[index_1]         
-        buf_prev[index_2] = np.conj(buf[index_1])
-        buf_prev+= (self.LinMatrix(zeta_0)).dot(Aprev) + f0_direct
+        M_lin0 = self.LinMatrix(zeta_0)
+        #J = self.Jacobian(zeta_0,Aprev[index_1],D1=D1)       
+        #buf_prev[index_1] =  1j*abs(Aprev[index_1])**2*Aprev[index_1]         
+        #buf_prev[index_2] = np.conj(buf[index_1])
+        #buf_prev+= (self.LinMatrix(zeta_0)).dot(Aprev) + f0_direct
+        #buf_prev[-1]=self.D1A(np.real(A_prev[index_1]))[np.argmax(np.real(A_prev))]
         D1_res=D1
-        delta_D1 =D1
+        #delta_D1 =D1
         #dAdphi = self.D1A(Aprev[index_1])
         #delta_D1 = self.kappa/2*(np.dot(np.real(buf_prev[index_1]),np.real(dAdphi))/np.dot(np.real(dAdphi),np.real(dAdphi)) )
         #D1_res+=delta_D1
@@ -831,25 +858,26 @@ class Resonator:
             
             
             self.D = self.DispersionMatrix(D1=self.kappa/2*D1_res,order=0)
-            J = self.Jacobian(zeta_0, Aprev[index_1])
+            J = self.Jacobian(zeta_0, Aprev[index_1],D1=D1_res)
             buf[index_1] =  1j*abs(Aprev[index_1])**2*Aprev[index_1]         
             buf[index_2] = np.conj(buf[index_1])
-            #buf[index_2] =  -1j*abs(Aprev[index_2])**2*Aprev[index_2]         
-            buf += (self.LinMatrix(zeta_0)).dot(Aprev) + f0_direct
+            #buf[index_2] =  -1j*abs(Aprev[index_2])**2*Aprev[index_2]      
+            #buf0= buf+  M_lin0.dot(Aprev)+ f0_direct
+            buf[:-1] += (self.LinMatrix(zeta_0)).dot(Aprev[:-1]) + f0_direct
+            buf[-1]=np.real(self.D1A(np.real(Aprev[index_1]))[np.argmax(np.real(Aprev[index_1]))])
             
+            #print(buf[-1])
+            #print(J[:,-1])
+            #print(Aprev)
+            #Ak = Aprev - solve_sparse(J,buf)
+            Ak = Aprev - np.linalg.solve(J,buf)
             
-            
-            
-            Ak = Aprev - solve_sparse(J,buf)
-            dAdphi = self.D1A(Ak[index_1])
-            #delta_D1 = (self.kappa/2*np.dot(np.real(buf_prev[index_1]-buf[index_1]),np.real(dAdphi))/np.dot(np.real(dAdphi),np.real(dAdphi)) )
-            #delta_D1 = 0*self.kappa/2*(np.dot(np.real(-buf[index_1]+buf_prev[index_1]),np.real(dAdphi))/np.dot(np.real(dAdphi),np.real(dAdphi)) )
-            #D1_res = D1_res-self.kappa/2*1/(np.dot(np.real(buf[index_1]),np.real(dAdphi))/np.dot(np.real(dAdphi),np.real(dAdphi)) )
-            D1_res-=np.dot(np.real(buf[index_1]),np.real(dAdphi))/np.dot(np.real(dAdphi),np.real(dAdphi))
-            print(D1_res, delta_D1/D1_res )
+            D1_res= np.real(Ak[-1])#+=delta_D1
+            #print(D1_res,Ak[-1], abs((Ak[-1]-Aprev[-1])/D1_res))
             
             #print(np.max((buf_prev[index_1]-buf[index_1])/dAdphi),np.min((buf_prev[index_1]-buf[index_1])/dAdphi))
             diff = np.sqrt(abs((Ak-Aprev).dot(np.conj(Ak-Aprev))/(Ak.dot(np.conj(Ak)))))
+            print(diff, abs((Ak[-1]-Aprev[-1])/D1_res))
             diff_array += [diff]
             Aprev[:] = Ak[:]
             buf_prev[:]=buf[:]

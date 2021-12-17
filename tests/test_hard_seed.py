@@ -3,8 +3,29 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import sys,os
+from scipy.constants import c,hbar
+
 sys.path.append(os.path.abspath(__file__)[:-23])
 
+def SeedSol(device,D2,det, P): 
+
+    result = np.zeros([device.N_points],dtype = complex)
+    DKS = np.zeros(device.N_points,dtype=complex)
+    CW = np.zeros(device.N_points,dtype=complex)
+    phi = device.phi
+    
+    
+    
+    f = np.sqrt(P/hbar/device.w0)*np.sqrt(8*device.g0*device.kappa_ex/device.kappa**3)
+    zeta_0 = det*2/device.kappa
+    DKS_phase = np.arccos(np.sqrt(8*zeta_0)/f/np.pi)
+  
+    
+    CW = f/(1+1j*zeta_0)*0
+    DKS = 2*np.sqrt(zeta_0)*1/np.cosh(2*np.sqrt(zeta_0)*(phi-np.pi)*np.sqrt(device.kappa/2/D2))*np.exp(1j*DKS_phase)
+    
+    result[:] = np.fft.fft(CW+DKS)
+    return result*np.sqrt(device.kappa/2/device.g0)
 #%%
 import PyCORe_main as pcm
 import time
@@ -20,20 +41,20 @@ single_ring = pcm.Resonator()
 simulation_parameters,map2d_scan,dOm_scan,Pump=single_ring.Init_From_File('./data/')
 
 idet = 1100
-nn = 10000
+nn = 5000
 dOm = np.ones(nn)*dOm_scan[idet]
 simulation_parameters['slow_time']=1e-6
 simulation_parameters['detuning_array']=dOm
 
-Seed = map2d[-1,:]
-#Seed = map2d_scan[idet,:]#/single_ring.N_points
+#Seed = map2d[-1,:]
+Seed_old = map2d_scan[idet,:]#/single_ring.N_points
 
-
+Seed = SeedSol(single_ring,single_ring.D2,dOm[idet],abs(Pump[0])**2)
 #%%
 #map2d = single_ring.Propagate_SAM(simulation_parameters, Pump)
-map2d = single_ring.Propagate_SplitStepCLIB(simulation_parameters, Pump,Seed=Seed,dt=0.5e-3, HardSeed=True)
+#map2d = single_ring.Propagate_SplitStepCLIB(simulation_parameters, Pump,Seed=Seed,dt=0.5e-3, HardSeed=True)
 #map2d = single_ring.Propagate_SAMCLIB(simulation_parameters, Pump,Seed=Seed,HardSeed=True,BC='OPEN')
-#map2d = single_ring.Propagate_SAMCLIB(simulation_parameters, Pump,Seed=Seed,HardSeed=True)
+map2d = single_ring.Propagate_SAMCLIB(simulation_parameters, Pump,Seed=Seed,HardSeed=True)
 #map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=1e-3)
 #%%
 #plt.figure()

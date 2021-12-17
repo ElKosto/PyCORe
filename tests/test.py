@@ -8,10 +8,11 @@ sys.path.append(PyCore_dir)
 import PyCORe_main as pcm
 import time
 
+
 start_time = time.time()
 Num_of_modes = 2**9
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
-D3 = 5e3
+D3 = -25e3
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
 Dint = 2*np.pi*(mu**2*D2/2 + mu**3*D3/6)
 #Dint[0] = Dint[0]+500e6
@@ -52,7 +53,7 @@ simulation_parameters = {'slow_time' : 1e-6,
 
 
 
-P0 = 0.1### W
+P0 = 0.15### W
 Pump = np.zeros(len(mu),dtype='complex')
 Pump[0] = np.sqrt(P0)
 #%%
