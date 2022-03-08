@@ -1012,6 +1012,98 @@ class Resonator:
         print('D1_res ', D1_res)
         return np.fft.fft(res)/np.sqrt(2*self.g0/self.kappa), v,diff_array
     
+    def NewtonRaphsonFixedD1(self,A_input,dOm, Pump,HardSeed = True, tol=1e-5,max_iter=50):
+        self.D = self.DispersionMatrix(D1=0,order=0)
+        
+        A_guess = np.fft.ifft(A_input)
+        
+        d2 = self.D2/self.kappa
+        zeta_0 = dOm*2/self.kappa
+        dphi = abs(self.phi[1]-self.phi[0])
+        pump = Pump*np.sqrt(1./(hbar*self.w0))
+        
+        Aprev = np.zeros(2*self.N_points,dtype=complex)
+        
+        
+        f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
+        
+        
+        index_1 = np.arange(0,self.N_points)
+        index_2 = np.arange(self.N_points,2*self.N_points)
+        
+        f0_direct = np.zeros(Aprev.size,dtype=complex)
+        f0_direct[index_1] = np.fft.ifft(f0)*self.N_points
+        
+        f0_direct[index_2] = np.conj(f0_direct[index_1])
+        
+       
+        if HardSeed == False:
+            A_guess = A_guess+ f0_direct/(1+1j*zeta_0)
+            Aprev[:self.N_points] = A_guess
+        else:
+            Aprev[:self.N_points] = A_guess*np.sqrt(2*self.g0/self.kappa)
+        
+        Aprev[index_2] = np.conj(Aprev[:self.N_points])
+        
+        
+        Ak = np.zeros(Aprev.size,dtype=complex)
+        
+        
+
+        buf= np.zeros(Aprev.size,dtype=complex)
+        buf_prev= np.zeros(Aprev.size,dtype=complex)
+        
+        M_lin0 = self.LinMatrix(zeta_0)
+        
+       
+       
+        print('f0^2 = ' + str(np.round(max(abs(f0_direct)**2), 2)))
+        print('xi = ' + str(zeta_0) )
+        
+        diff = self.N_points
+        counter =0
+        diff_array=[]
+        
+        while diff>tol:
+            
+            
+            #self.D = self.DispersionMatrix(D1=self.kappa/2*D1_res,order=0)
+            J = self.JacobianForLinAnalysis(zeta_0, Aprev[index_1])
+            buf[index_1] =  1j*abs(Aprev[index_1])**2*Aprev[index_1]         
+            buf[index_2] = np.conj(buf[index_1])
+            #buf[index_2] =  -1j*abs(Aprev[index_2])**2*Aprev[index_2]      
+            #buf0= buf+  M_lin0.dot(Aprev)+ f0_direct
+            buf[:] += (self.LinMatrix(zeta_0)).dot(Aprev[:]) + f0_direct
+            
+            
+            
+            Ak = Aprev - np.linalg.solve(J,buf)
+            
+            
+            
+            
+            diff = np.sqrt(abs((Ak-Aprev).dot(np.conj(Ak-Aprev))/(Ak.dot(np.conj(Ak)))))
+            #print(diff, abs((Ak[-1]-Aprev[-1])/D1_res))
+            diff_array += [diff]
+            Aprev[:] = Ak[:]
+            buf_prev[:]=buf[:]
+            Aprev[index_2] = np.conj(Aprev[index_1])
+            counter +=1
+            
+            #plt.scatter(counter,diff,c='k')
+            if counter>max_iter:
+                print("Did not coverge in " + str(max_iter)+ " iterations, relative error is " + str(diff))
+                res = np.zeros(self.N_points,dtype=complex)
+                res = Ak[index_1]
+            
+                return np.fft.fft(res)/np.sqrt(2*self.g0/self.kappa), diff_array
+                break
+        print("Converged in " + str(counter) + " iterations, relative error is " + str(diff))
+        res = np.zeros(self.N_points,dtype=complex)
+        res = Ak[index_1]
+        
+        
+        return np.fft.fft(res)/np.sqrt(2*self.g0/self.kappa),diff_array
 
         
     def LinearStability(self,solution,dOm,v=0,plot_eigvals=True):
