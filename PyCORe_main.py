@@ -1012,6 +1012,98 @@ class Resonator:
         print('D1_res ', D1_res)
         return np.fft.fft(res)/np.sqrt(2*self.g0/self.kappa), v,diff_array
     
+    def NewtonRaphsonFixedD1(self,A_input,dOm, Pump,HardSeed = True, tol=1e-5,max_iter=50):
+        self.D = self.DispersionMatrix(D1=0,order=0)
+        
+        A_guess = np.fft.ifft(A_input)
+        
+        d2 = self.D2/self.kappa
+        zeta_0 = dOm*2/self.kappa
+        dphi = abs(self.phi[1]-self.phi[0])
+        pump = Pump*np.sqrt(1./(hbar*self.w0))
+        
+        Aprev = np.zeros(2*self.N_points,dtype=complex)
+        
+        
+        f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
+        
+        
+        index_1 = np.arange(0,self.N_points)
+        index_2 = np.arange(self.N_points,2*self.N_points)
+        
+        f0_direct = np.zeros(Aprev.size,dtype=complex)
+        f0_direct[index_1] = np.fft.ifft(f0)*self.N_points
+        
+        f0_direct[index_2] = np.conj(f0_direct[index_1])
+        
+       
+        if HardSeed == False:
+            A_guess = A_guess+ f0_direct/(1+1j*zeta_0)
+            Aprev[:self.N_points] = A_guess
+        else:
+            Aprev[:self.N_points] = A_guess*np.sqrt(2*self.g0/self.kappa)
+        
+        Aprev[index_2] = np.conj(Aprev[:self.N_points])
+        
+        
+        Ak = np.zeros(Aprev.size,dtype=complex)
+        
+        
+
+        buf= np.zeros(Aprev.size,dtype=complex)
+        buf_prev= np.zeros(Aprev.size,dtype=complex)
+        
+        M_lin0 = self.LinMatrix(zeta_0)
+        
+       
+       
+        print('f0^2 = ' + str(np.round(max(abs(f0_direct)**2), 2)))
+        print('xi = ' + str(zeta_0) )
+        
+        diff = self.N_points
+        counter =0
+        diff_array=[]
+        
+        while diff>tol:
+            
+            
+            #self.D = self.DispersionMatrix(D1=self.kappa/2*D1_res,order=0)
+            J = self.JacobianForLinAnalysis(zeta_0, Aprev[index_1])
+            buf[index_1] =  1j*abs(Aprev[index_1])**2*Aprev[index_1]         
+            buf[index_2] = np.conj(buf[index_1])
+            #buf[index_2] =  -1j*abs(Aprev[index_2])**2*Aprev[index_2]      
+            #buf0= buf+  M_lin0.dot(Aprev)+ f0_direct
+            buf[:] += (self.LinMatrix(zeta_0)).dot(Aprev[:]) + f0_direct
+            
+            
+            
+            Ak = Aprev - np.linalg.solve(J,buf)
+            
+            
+            
+            
+            diff = np.sqrt(abs((Ak-Aprev).dot(np.conj(Ak-Aprev))/(Ak.dot(np.conj(Ak)))))
+            #print(diff, abs((Ak[-1]-Aprev[-1])/D1_res))
+            diff_array += [diff]
+            Aprev[:] = Ak[:]
+            buf_prev[:]=buf[:]
+            Aprev[index_2] = np.conj(Aprev[index_1])
+            counter +=1
+            
+            #plt.scatter(counter,diff,c='k')
+            if counter>max_iter:
+                print("Did not coverge in " + str(max_iter)+ " iterations, relative error is " + str(diff))
+                res = np.zeros(self.N_points,dtype=complex)
+                res = Ak[index_1]
+            
+                return np.fft.fft(res)/np.sqrt(2*self.g0/self.kappa), diff_array
+                break
+        print("Converged in " + str(counter) + " iterations, relative error is " + str(diff))
+        res = np.zeros(self.N_points,dtype=complex)
+        res = Ak[index_1]
+        
+        
+        return np.fft.fft(res)/np.sqrt(2*self.g0/self.kappa),diff_array
 
         
     def LinearStability(self,solution,dOm,v=0,plot_eigvals=True):
@@ -1602,7 +1694,7 @@ class CROW(Resonator):#all idenical resonators
             else:
                 print ('wrong parameter')
          
-        def Propagate_SAMCLIB_PSEUD_SPECT(self, simulation_parameters, Pump, Seed=[0], dt=5e-4):
+        def Propagate_PSEUDO_SPECTRAL_SAMCLIB(self, simulation_parameters, Pump, BC, Seed=[0], dt=5e-4,HardSeed=False):
             
             
             T = simulation_parameters['slow_time']
@@ -1616,15 +1708,19 @@ class CROW(Resonator):#all idenical resonators
             pump = Pump*np.sqrt(1./(hbar*self.w0))
             
             
-            if Seed[0] == 0:
+            if HardSeed == False:
+                
                 seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa_0)
+                
             else:
                 seed = Seed.T.reshape(Seed.size)*np.sqrt(2*self.g0/self.kappa_0)
+                seed/=self.N_points
+            
             ### renormalization
             T_rn = (self.kappa_0/2)*T
-            f0 = np.fft.ifft(pump*np.sqrt(8*self.g0*np.max(self.kappa_ex)/self.kappa_0**3),axis=0)*self.N_points
+            f0 = np.fft.ifft(pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa_0**3),axis=0)*self.N_points
             
-            print('f0^2 = ' + str(np.round(np.max(abs(f0)**2), 2)))
+            print('f0^2 = ' + str(np.round((abs(f0[0,:])**2), 2)))
             print('xi [' + str(detuning[0]*2/self.kappa_0) + ',' +str(detuning[-1]*2/self.kappa_0)+ '] (normalized on ' r'$kappa_0/2)$')
             noise_const = self.noise(eps) # set the noise level
             nn = len(detuning)
@@ -1632,23 +1728,60 @@ class CROW(Resonator):#all idenical resonators
             t_st = float(T_rn)/len(detuning)
                 
             sol = np.ndarray(shape=(len(detuning), self.N_points, self.N_CROW), dtype='complex') # define an array to store the data
+            
             ind_modes = np.arange(self.N_points)
             ind_res = np.arange(self.N_CROW)
-            j = np.zeros(self.N_CROW-1)
+            j = np.zeros(self.J[0,:].size)
+            delta = np.zeros(self.Delta[0,:].size)
             kappa = np.zeros(self.N_CROW)
-            for ii in range(self.N_CROW-1):
+            
+            
+            for ii in range(self.J[0,:].size):
                 j[ii] = self.J[0,ii]
             for ii in range(self.N_CROW):
                 sol[0,ind_modes,ii] = seed[ii*self.N_points+ind_modes]
                 kappa[ii] = self.kappa[0,ii]
+                delta[ii] = self.Delta[0,ii]
+            
+            #if self.Snake_coupling==True:
+            bus_j = np.zeros(self.Bus_J[0,:].size)
+            bus_phase = np.zeros(self.Bus_Phase[:].size)
+            for ii in range(self.Bus_J[0,:].size):
+                bus_j[ii] = self.Bus_J[0,ii]
+                
+            for ii in range(self.Bus_Phase[:].size):
+                bus_phase[ii] = self.Bus_Phase[ii]
             
             f0 =(f0.T.reshape(f0.size))
-            Dint = self.Dint.T.reshape(self.Dint.size)
-            #%% crtypes defyning
-            CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_crow_core_pseud_spect.so')
+            #%% crtypes definition
             
-            CROW_core.PropagateSAM_PSEUDO_SPECTRAL.restype = ctypes.c_void_p
-            A = seed/self.N_points
+            if self.J[0,:].size == self.N_CROW:
+                BC='PERIODIC'
+            elif self.J[0,:].size == self.N_CROW-1:
+                BC='OPEN'
+            else:
+                sys.exit('Unkown type of CROW')
+                    
+            
+            if BC=='OPEN':
+                CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_crow_core.so')   
+            
+            elif BC=='PERIODIC':
+                CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_periodic_crow_core.so')
+            else:
+                sys.exit('Solver has not been found')
+            print(BC)
+            CROW_core.Propagate_PseudoSpectralSAM.restype = ctypes.c_void_p
+            #if self.n2t==0:
+            #    
+            #else:
+            #    pass
+                #CROW_core.PropagateThermalSAM.restype = ctypes.c_void_p
+                
+            A = np.zeros([self.N_CROW*self.N_points],dtype=complex)
+            for ii in range(self.N_CROW):    
+                A[ii*self.N_points+ind_modes] = np.fft.ifft(seed[ii*self.N_points+ind_modes])*self.N_points
+                
         
             In_val_RE = np.array(np.real(A),dtype=ctypes.c_double)
             In_val_IM = np.array(np.imag(A),dtype=ctypes.c_double)
@@ -1662,11 +1795,22 @@ class CROW(Resonator):#all idenical resonators
             
             In_det = np.array(detuning,dtype=ctypes.c_double)
             In_Ndet = ctypes.c_int(len(detuning))
+            In_Dint = np.array(self.Dint.T.reshape(self.Dint.size),dtype=ctypes.c_double)
             
-            In_Dint = np.array(Dint,dtype=ctypes.c_double)
+            if self.n2t!=0:
+                In_t_th = ctypes.c_double(self.t_th)
+                In_n2 = ctypes.c_double(self.n2)
+                In_n2t = ctypes.c_double(self.n2t)
+            
             In_kappa = np.array(kappa,dtype=ctypes.c_double)
+            In_delta = np.array(delta,dtype=ctypes.c_double)
             In_kappa_0 = ctypes.c_double(self.kappa_0)
             In_J = np.array(j,dtype=ctypes.c_double)
+            
+            #if self.Snake_coupling==True:
+            In_bus_J = np.array(bus_j,dtype=ctypes.c_double)
+            In_bus_phase = np.array(bus_phase,dtype=ctypes.c_double)
+            
             In_Tmax = ctypes.c_double(t_st)
             In_Nt = ctypes.c_int(int(t_st/dt)+1)
             In_dt = ctypes.c_double(dt)
@@ -1676,14 +1820,25 @@ class CROW(Resonator):#all idenical resonators
             In_res_IM = np.zeros(len(detuning)*self.N_points*self.N_CROW,dtype=ctypes.c_double)
             
             double_p=ctypes.POINTER(ctypes.c_double)
+            
+            if self.Delta_D1.size==self.N_CROW:
+                In_delta_D1 = np.array(self.Delta_D1,dtype=ctypes.c_double)
+                In_delta_D1_p = In_delta_D1.ctypes.data_as(double_p)
+            
             In_val_RE_p = In_val_RE.ctypes.data_as(double_p)
             In_val_IM_p = In_val_IM.ctypes.data_as(double_p)
             In_phi_p = In_phi.ctypes.data_as(double_p)
             In_det_p = In_det.ctypes.data_as(double_p)
-            
             In_Dint_p = In_Dint.ctypes.data_as(double_p)
+            
             In_kappa_p = In_kappa.ctypes.data_as(double_p)
+            In_delta_p = In_delta.ctypes.data_as(double_p)
             In_J_p = In_J.ctypes.data_as(double_p)
+            
+            #if self.Snake_coupling==True:
+            In_bus_j_p = In_bus_J.ctypes.data_as(double_p)
+            In_bus_phase_p = In_bus_phase.ctypes.data_as(double_p)
+            
             In_f_RE_p = In_f_RE.ctypes.data_as(double_p)
             In_f_IM_p = In_f_IM.ctypes.data_as(double_p)
             
@@ -1691,8 +1846,17 @@ class CROW(Resonator):#all idenical resonators
             In_res_IM_p = In_res_IM.ctypes.data_as(double_p)
             
             
+            
+                
         
-            CROW_core.PropagateSAM_PSEUDO_SPECTRAL(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_kappa_p, In_kappa_0, In_J_p, In_phi_p, In_Dint_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_Ncrow, In_noise_amp, In_res_RE_p, In_res_IM_p)
+            CROW_core.Propagate_PseudoSpectralSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_kappa_p, In_kappa_0, In_delta_p, In_J_p, In_phi_p, In_Dint_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_Ncrow, In_noise_amp, In_res_RE_p, In_res_IM_p)                
+            #if self.n2t==0:
+            #    if abs(self.Delta_D1.max())==0:
+            #        CROW_core.PropagateSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_kappa_p, In_kappa_0, In_delta_p, In_J_p, In_phi_p, In_D2_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_Ncrow, In_noise_amp, In_res_RE_p, In_res_IM_p)
+            #    else:
+            #        CROW_core.PropagateSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_kappa_p, In_kappa_0, In_delta_p, In_delta_D1_p, In_J_p, In_phi_p, In_D2_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_Ncrow, In_noise_amp, In_res_RE_p, In_res_IM_p)
+            #else:
+            #    CROW_core.PropagateThermalSAM(In_val_RE_p, In_val_IM_p, In_f_RE_p, In_f_IM_p, In_det_p, In_kappa_p, In_kappa_0, In_t_th, In_n2, In_n2t, In_delta_p, In_J_p, In_phi_p, In_D2_p, In_Ndet, In_Nt, In_dt, In_atol, In_rtol, In_Nphi, In_Ncrow, In_noise_amp, In_res_RE_p, In_res_IM_p)
             
             ind_modes = np.arange(self.N_points)
             for ii in range(0,len(detuning)):
@@ -1704,7 +1868,7 @@ class CROW(Resonator):#all idenical resonators
             if out_param == 'map':
                 return sol/np.sqrt(2*self.g0/self.kappa_0)
             elif out_param == 'fin_res':
-                return sol[-1, :]/np.sqrt(2*self.g0/self.kappa)
+                return sol[-1, :]/np.sqrt(2*self.g0/self.kappa_0)
             else:
                 print ('wrong parameter')
             
