@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <fstream>
 #include <unistd.h>
+#include <thread>
 
 #include "./../../NR/NR_C301/code/nr3.h"
 #include "./../../NR/NR_C301/code/stepper.h"
@@ -216,13 +217,116 @@ struct rhs_lle_thermal{
     }
     
 };
+struct rhs_pseudo_spectral_sil_lle{
+    Int Nphi;
+    Doub det ;
+    Doub N0, I_laser, e, gamma, kappa, a, V, alpha, coupling_phase, power, psi_0_re, psi_0_im, g0, kappa_sc, kappa_inj, eta, kappa_laser, zeta;
+    double* Dint;
+    //double* DispTerm;
+    Complex i=1i;
+    double buf_re, buf_im;
+    double tuning_speed;
+    fftw_plan plan_direct_2_spectrum;
+    fftw_plan plan_spectrum_2_direct;
+    fftw_complex *buf_direct, *buf_spectrum;
+
+    rhs_pseudo_spectral_sil_lle(Int Nphii, const double* Dinti, Doub deti, Doub kappa_inji, Doub kappai, Doub kappa_sci , Doub kappa_laseri, Doub N0i, Doub ei, Doub I_laseri, Doub zetai, Doub gammai, Doub ai, Doub Vi, Doub alphai, Doub etai, Doub coupling_phasei, Doub g0i, Doub tuning_speedi )
+    {
+        std::cout<<"Initialization started\n";
+        Nphi = Nphii;
+        det = deti;
+        tuning_speed = tuning_speedi;
+        kappa = kappai;
+        kappa_inj = kappa_inji*2/kappa;
+        kappa_sc= kappa_sci*2/kappa;
+        kappa_laser = kappa_laseri/kappa;
+        N0 = N0i;
+        eta = etai;
+        e = ei;
+        g0 = g0i;
+        I_laser = I_laseri;
+        zeta = zetai*2/kappa;
+        gamma = gammai;
+        a = ai;
+        V = Vi;
+        alpha = alphai;
+        coupling_phase = coupling_phasei;
+        Dint = new (std::nothrow) double[Nphi];
+        for (int i_phi = 0; i_phi<Nphi; i_phi++){
+            Dint[i_phi] = Dinti[i_phi];
+        }
+        buf_direct = (fftw_complex *) malloc(Nphi*sizeof(fftw_complex));
+        buf_spectrum = (fftw_complex *) malloc(Nphi*sizeof(fftw_complex));
+        power = 0; 
+
+        plan_direct_2_spectrum = fftw_plan_dft_1d(Nphi, buf_direct,buf_spectrum, FFTW_BACKWARD, FFTW_EXHAUSTIVE);
+        plan_spectrum_2_direct = fftw_plan_dft_1d(Nphi, buf_spectrum,buf_direct, FFTW_FORWARD, FFTW_EXHAUSTIVE);
+        std::cout<<"Initialization succesfull\n";
+    }
+    ~rhs_pseudo_spectral_sil_lle()
+    {
+        delete [] Dint;
+        free(buf_direct);
+        free(buf_spectrum);
+        fftw_destroy_plan(plan_direct_2_spectrum);
+        fftw_destroy_plan(plan_spectrum_2_direct);
+    }
+    void operator() (const Doub x, VecDoub &y, VecDoub &dydx) {
+        //std::cout<<x<<' ';
+        //std::this_thread::sleep_for(300ms);
+        for (int i_phi=0; i_phi<Nphi; i_phi++){
+            buf_direct[i_phi][0] = y[i_phi];
+            buf_direct[i_phi][1] = y[i_phi+Nphi];
+        }
+        fftw_execute(plan_direct_2_spectrum);
+        power = 0.;
+        psi_0_re = buf_spectrum[0][0]/(Nphi);///sqrt(Nphi);
+        psi_0_im = buf_spectrum[0][1]/(Nphi);
+        for (int i_phi=0; i_phi<Nphi; i_phi++){
+            buf_re = Dint[i_phi]*buf_spectrum[i_phi][1];
+            buf_im =  -Dint[i_phi]*buf_spectrum[i_phi][0];
+            buf_spectrum[i_phi][0]= buf_re; 
+            buf_spectrum[i_phi][1]= buf_im; 
+            power+= (buf_spectrum[i_phi][0]*buf_spectrum[i_phi][0] + buf_spectrum[i_phi][1]*buf_spectrum[i_phi][1])/Nphi/Nphi;
+        }
+        fftw_execute(plan_spectrum_2_direct);
+
+        for (int i_phi = 0; i_phi<Nphi; i_phi++){
+
+            dydx[i_phi] = -y[i_phi] + (det+tuning_speed*x)*y[i_phi+Nphi]  + buf_direct[i_phi][0]/Nphi - kappa_sc*y[2*Nphi+1]  - (y[i_phi]*y[i_phi]+y[i_phi+Nphi]*y[i_phi+Nphi] + 2*(y[2*Nphi]*y[2*Nphi]+y[2*Nphi+1]*y[2*Nphi+1]))*y[i_phi+Nphi] +eta*kappa_inj*sqrt(2*g0/kappa)*(cos(coupling_phase)*y[2*Nphi+2] - sin(coupling_phase)*y[2*Nphi+3] );
+            dydx[i_phi+Nphi] = -y[i_phi+Nphi] - (det+tuning_speed*x)*y[i_phi]  + buf_direct[i_phi][1]/Nphi + kappa_sc*y[2*Nphi] +   (y[i_phi]*y[i_phi]+y[i_phi+Nphi]*y[i_phi+Nphi] + 2*(y[2*Nphi]*y[2*Nphi]+y[2*Nphi+1]*y[2*Nphi+1]) )*y[i_phi] + eta*kappa_inj*sqrt(2*g0/kappa)*(cos(coupling_phase)*y[2*Nphi+3] + sin(coupling_phase)*y[2*Nphi+2]) ;
+
+        }
+        
+        //CCW dynamics equation
+        dydx[2*Nphi] = -y[2*Nphi] + (det+tuning_speed*x)*y[2*Nphi+1] - kappa_sc*psi_0_im - (y[2*Nphi]*y[2*Nphi] + y[2*Nphi+1]*y[2*Nphi+1] + 2*power)*y[2*Nphi+1];
+        dydx[2*Nphi+1] = -y[2*Nphi+1] - (det+tuning_speed*x)*y[2*Nphi] + kappa_sc*psi_0_re + (y[2*Nphi]*y[2*Nphi] + y[2*Nphi+1]*y[2*Nphi+1] + 2*power)*y[2*Nphi];
+        //
+        
+        //Laser dynamics equation
+        dydx[2*Nphi+2] = ( a*V/kappa*(y[2*Nphi+4] - N0)-kappa_laser ) * y[2*Nphi+2] + (alpha*(a*V/kappa*(y[2*Nphi+4] - N0)-kappa_laser) - det*0 )*y[2*Nphi+3] + kappa_inj*sqrt(kappa/2/g0)*(cos(coupling_phase)*y[2*Nphi] - sin(coupling_phase)*y[2*Nphi+1] )/eta;
+        dydx[2*Nphi+3] = ( a*V/kappa*(y[2*Nphi+4] - N0)-kappa_laser ) * y[2*Nphi+3] - (alpha*(a*V/kappa*(y[2*Nphi+4] - N0)-kappa_laser)  +det*0 )*y[2*Nphi+2] + kappa_inj*sqrt(kappa/2/g0)*(sin(coupling_phase)*y[2*Nphi] + cos(coupling_phase)*y[2*Nphi+1] )/eta;
+        //
+        
+        //Carrier density dynamics equation
+        dydx[2*Nphi+4] = 2*I_laser/kappa/e/V - 2*gamma*y[2*Nphi+4]/kappa - 2*a*V/kappa*(y[2*Nphi+4]- N0)*(y[2*Nphi+2]*y[2*Nphi+2] + y[2*Nphi+3]*y[2*Nphi+3]);
+    }
+    
+};
 void printProgress (double percentage);
 std::complex<double>* WhiteNoise(const double amp, const int Nphi);
+
 void SaveData( std::complex<double> **A, const double *detuning, const double *phi, const int Ndet, const int Nphi);
+
 void* PropagateSS(double* In_val_RE, double* In_val_IM, double* Re_f, double *Im_F,  const double *detuning, const double J, const double *phi, const double* Dint, const int Ndet, const int Nt, const double dt, const int Nphi, double noise_amp, double* res_RE, double* res_IM);
+
 void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_f, double *Im_F,  const double *detuning, const double J, const double *phi, const double* Dint, const int Ndet, const int Nt, const double dt,const double atol, const double rtol, const int Nphi, double noise_amp, double* res_RE, double* res_IM);
+
 void* Propagate_PseudoSpectralSAM(double* In_val_RE, double* In_val_IM, double* Re_f, double *Im_F,  const double *detuning, const double J, const double *phi, const double* Dint, const int Ndet, const int Nt, const double dt,const double atol, const double rtol, const int Nphi, double noise_amp, double* res_RE, double* res_IM);
+
 void* PropagateThermalSAM(double* In_val_RE, double* In_val_IM, double* Re_f, double *Im_F,  const double *detuning, const double J, const double t_th, const double kappa, const double n2, const double n2t, const double *phi, const double* Dint, const int Ndet, const int Nt, const double dt,const double atol, const double rtol, const int Nphi, double noise_amp, double* res_RE, double* res_IM);
+
+void* Propagate_SiL_PseudoSpectralSAM(double* In_val_RE, double* In_val_IM, const double *detuning, const double kappa, const double kappa_laser, const double kappa_sc, const double kappa_inj, const double coupling_phase, const double g0, const double alpha, const double gamma, const double V, const double a, const double e, const double N0, const double eta, const double I_laser, const double zeta , const double* Dint, const int Ndet, const double Tmax, const double Tstep, const int Nt, const double dt,  const double atol, const double rtol, const int Nphi, double noise_amp, double* res_RE, double* res_IM);
 
 #ifdef  __cplusplus
 }

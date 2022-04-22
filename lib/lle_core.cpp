@@ -264,3 +264,79 @@ void* PropagateSS(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im
     std::cout<<"Split step is finished\n";
 }
 
+void* Propagate_SiL_PseudoSpectralSAM(double* In_val_RE, double* In_val_IM, const double *detuning, const double kappa, const double kappa_laser ,const double kappa_sc, const double kappa_inj, const double coupling_phase, const double g0, const double alpha, const double gamma, const double V, const double a, const double e, const double N0, const double eta, const double I_laser, const double zeta, const double* Dint, const int Ndet, const double Tmax, const double T_step, const int Nt, const double dt, const double atol, const double rtol, const int Nphi, double noise_amp, double* res_RE, double* res_IM)
+{
+    
+    std::cout<<"Step adaptative Dopri853 from NR3 for Self-Injection locked resonator is running\n";
+    std::complex<double>* noise = new (std::nothrow) std::complex<double>[Nphi];
+    const double t0=0., t1=T_step, dtmin=0.;
+    double t_step_ini=0., t_step_end=0.;
+    double tuning_speed;
+    tuning_speed = (detuning[Ndet-1] - detuning[0])/Tmax;
+    std::cout<<"Tuning speed " << tuning_speed << std::endl;
+    int N_eqs = 2*Nphi+5;
+    VecDoub res_buf(N_eqs);
+
+    noise=WhiteNoise(noise_amp,Nphi);
+    for (int i_phi = 0; i_phi<Nphi; i_phi++){//resonator field
+        res_RE[i_phi] = In_val_RE[i_phi];
+        res_IM[i_phi] = In_val_IM[i_phi];
+        res_buf[i_phi] = res_RE[i_phi] + noise[i_phi].real();
+        res_buf[i_phi+(Nphi)] = res_IM[i_phi] + noise[i_phi].imag();
+    }
+    res_RE[Nphi] = In_val_RE[Nphi];//CCW resonator field
+    res_IM[Nphi] = In_val_IM[Nphi];
+    
+    res_RE[Nphi+1] = In_val_RE[Nphi+1];//Laser field
+    res_IM[Nphi+1] = In_val_IM[Nphi+1];
+    
+    res_RE[Nphi+2] = In_val_RE[Nphi+2];//Carrier density
+    res_IM[Nphi+2] = In_val_IM[Nphi+2];
+    
+    res_buf[2*Nphi] = In_val_RE[Nphi];//CCW resonator field
+    res_buf[2*Nphi + 1] = In_val_IM[Nphi];
+
+    res_buf[2*Nphi+2] = In_val_RE[Nphi+1];//Laser field
+    res_buf[2*Nphi+3] = In_val_IM[Nphi+1];
+
+
+    res_buf[2*Nphi+4] = In_val_RE[Nphi+2];//Carrier density
+
+    Output out;
+    rhs_pseudo_spectral_sil_lle lle(Nphi, Dint, detuning[0], kappa_inj, kappa, kappa_sc, kappa_laser, N0, e, I_laser, zeta, gamma, a, V, alpha, eta, coupling_phase, g0, tuning_speed  );
+    t_step_ini=t0;
+    t_step_end = t1;
+    for (int i_det=0; i_det<Ndet; i_det++){
+        //lle.det = detuning[i_det];
+        noise=WhiteNoise(noise_amp,Nphi);
+        Odeint<StepperDopr853<rhs_pseudo_spectral_sil_lle> > ode(res_buf,t_step_ini,t_step_end,atol,rtol,dt,dtmin,out,lle);
+        ode.integrate();
+        for (int i_phi=0; i_phi<Nphi; i_phi++){//Resonator field
+            res_RE[i_det*(Nphi+3)+i_phi] = res_buf[i_phi];
+            res_IM[i_det*(Nphi+3)+i_phi] = res_buf[i_phi+Nphi];
+            res_buf[i_phi] += noise[i_phi].real();
+            res_buf[i_phi+Nphi] += noise[i_phi].imag();
+        }
+        res_RE[i_det*(Nphi+3)+Nphi] = res_buf[2*Nphi];//CCW resonator field
+        res_IM[i_det*(Nphi+3)+Nphi] = res_buf[2*Nphi+1];//
+
+        res_RE[i_det*(Nphi+3)+Nphi+1] = res_buf[2*Nphi+2];//Laser field
+        res_IM[i_det*(Nphi+3)+Nphi+1] = res_buf[2*Nphi+3];//
+
+        res_RE[i_det*(Nphi+3)+Nphi+2] = res_buf[2*Nphi+4];//Carrier density
+        res_IM[i_det*(Nphi+3)+Nphi+2] = 0.;//Carrier density
+
+
+        printProgress((i_det+1.)/Ndet);
+        t_step_ini+=t1;
+        t_step_end+=t1;
+        //std::cout<<t_step_ini<< " " << t_step_end << " ";
+        //std::this_thread::sleep_for(30ms);
+
+
+    }
+    std::cout<<detuning[Ndet-1]-detuning[0] << " "  << (t_step_end-t1)*tuning_speed << " " << tuning_speed*Tmax << " ";
+    delete [] noise;
+//    delete [] res_buf;
+    std::cout<<"Step adaptative Dopri853 from NR3 is finished\n";
+}
