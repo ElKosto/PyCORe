@@ -68,7 +68,7 @@ Delta = np.zeros([mu.size,(N_crow)])
 kappa0 = 50e6*2*np.pi
 t_th = 2*np.pi*2/(kappa0+kappa0)
 n2 = 2.4e-19### m^2/W
-n2t = 5*n2*0
+n2t = 5*n2
 
 PhysicalParameters = {'Inter-resonator_coupling': J,
                       'Resonator detunings' : Delta,
@@ -84,9 +84,9 @@ PhysicalParameters = {'Inter-resonator_coupling': J,
                       'T thermal' : t_th,
                       'n2 thermal': n2t}
 
-simulation_parameters = {'slow_time' : 1e-5,
+simulation_parameters = {'slow_time' : 1e-6,
                          'detuning_array' : dOm,
-                         'noise_level' : 1e-6,
+                         'noise_level' : 1e-12,
                          'output' : 'map',
                          'absolute_tolerance' : 1e-8,
                          'relative_tolerance' : 1e-8,
@@ -108,9 +108,9 @@ crow.Init_From_Dict(PhysicalParameters)
 #ev = crow.Linear_analysis()
 #%%
 
-map2d = crow.Propagate_SAMCLIB(simulation_parameters, Pump, BC='OPEN')
-#map2d = crow.Propagate_SAMCLIB_PSEUD_SPECT(simulation_parameters, Pump)
-#map2d = crow.Propagate_SAM(simulation_parameters, Pump)
+#map2d = crow.Propagate_SAMCLIB(simulation_parameters, Pump, BC='OPEN')
+map2d = crow.Propagate_PSEUDO_SPECTRAL_SAMCLIB(simulation_parameters, Pump, BC='OPEN')
+
 #%%
 plt.figure()
 plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d[:,:,0])**2,axis=1))
@@ -118,6 +118,6 @@ plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d[:,:,1])**2,axis=1))
 pcm.Plot_Map(np.fft.ifft(map2d[:,:,0],axis=1),dOm*2/crow.kappa_0)
 
 #%%
-crow.Save_Data(map2d,Pump,simulation_parameters,dOm,'./data/')
+#crow.Save_Data(map2d,Pump,simulation_parameters,dOm,'./data/')
 print("--- %s seconds ---" % (time.time() - start_time))
     

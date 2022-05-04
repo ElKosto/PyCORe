@@ -10,7 +10,7 @@ void printProgress (double percentage)
 }
 std::complex<double>* WhiteNoise(const double amp, const int N)
 {
-    
+    unsigned seed1 = std::chrono::system_clock::now().time_since_epoch().count();
     std::complex<double>* noise_spectrum = new (std::nothrow) std::complex<double>[N];//contains white noise in spectal domain
     std::complex<double>* res = new (std::nothrow) std::complex<double>[N];//contains white noise in spectal domain
     fftw_complex noise_direct[N];
@@ -20,7 +20,7 @@ std::complex<double>* WhiteNoise(const double amp, const int N)
     double phase;
     double noise_amp;
     const std::complex<double> i(0, 1);
-    std::default_random_engine generator;
+    std::default_random_engine generator(seed1);
     std::uniform_real_distribution<double> distribution(0.0,1.0);
     for (int j=0; j<N; j++){
        phase = distribution(generator) *2*M_PI-M_PI;
@@ -38,7 +38,6 @@ std::complex<double>* WhiteNoise(const double amp, const int N)
     delete [] noise_spectrum;
     return res;
 }
-
 void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double* kappa, const double kappa0, const double *delta, const double* J, const double *phi,  const double* d2, const int Ndet, const int Nt, const double dt,  const double atol, const double rtol, const int Nphi, const int Ncrow, double noise_amp, double* res_RE, double* res_IM)
 {
     
@@ -193,7 +192,7 @@ void* PropagateThermalSAM(double* In_val_RE, double* In_val_IM, double* Re_F, do
     delete [] f;
     std::cout<<"Step adaptative Dopri853 from NR3 is finished\n";
 }
-void* Propagate_PseudoSpectralThermalSAM(double* In_val_RE, double* In_val_IM, double* Re_f, double *Im_F,  const double *detuning, const double* kappa, const double kappa0, const double t_th, const double n2, const double n2t, const double *Delta ,const double* J, const double *phi, const double* Dint, const int Ndet, const int Nt, const double dt, const double atol, const double rtol, const int Nphi, const int Ncrow, double noise_amp, double* res_RE, double* res_IM);
+void* Propagate_PseudoSpectralThermalSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double *Im_F,  const double *detuning, const double* kappa, const double kappa0, const double t_th, const double n2, const double n2t, const double *delta ,const double* J, const double *phi, const double* Dint, const int Ndet, const int Nt, const double dt, const double atol, const double rtol, const int Nphi, const int Ncrow, double noise_amp, double* res_RE, double* res_IM)
 {
     
     std::complex<double>* noise = new (std::nothrow) std::complex<double>[Nphi*Ncrow];
@@ -218,14 +217,14 @@ void* Propagate_PseudoSpectralThermalSAM(double* In_val_RE, double* In_val_IM, d
     }
 
     Output out;
-    rhs_pseudo_spectral_crow crow(Nphi, Ncrow, detuning[0], f, Dint,phi,std::abs(phi[1]-phi[0]),J, kappa, kappa0, delta);
+    rhs_pseudo_spectral_crow_thermal crow(Nphi, Ncrow, detuning[0], f, Dint,phi,std::abs(phi[1]-phi[0]),J, kappa, kappa0, delta, t_th, n2, n2t);
 
     
-    std::cout<<"Step adaptative pseudo-spectral Dopri853  from NR3 without thermal effects is running\n";
+    std::cout<<"Step adaptative pseudo-spectral Dopri853  from NR3 with thermal effects is running\n";
     for (int i_det=0; i_det<Ndet; i_det++){
         crow.det = detuning[i_det]*2/kappa0; 
         noise=WhiteNoise(noise_amp,Nphi*Ncrow);
-        Odeint<StepperDopr853<rhs_pseudo_spectral_crow> > ode(res_buf,t0,t1,atol,rtol,dt,dtmin,out,crow);
+        Odeint<StepperDopr853<rhs_pseudo_spectral_crow_thermal> > ode(res_buf,t0,t1,atol,rtol,dt,dtmin,out,crow);
         ode.integrate();
         for (int i_crow = 0; i_crow<Ncrow; i_crow++){
             for (int i_phi=0; i_phi<Nphi; i_phi++){

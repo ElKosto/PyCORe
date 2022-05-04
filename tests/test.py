@@ -12,7 +12,7 @@ import time
 start_time = time.time()
 Num_of_modes = 2**9
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
-D3 = -25e3
+D3 = -25e3*0
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
 Dint = 2*np.pi*(mu**2*D2/2 + mu**3*D3/6)
 #Dint[0] = Dint[0]+500e6
