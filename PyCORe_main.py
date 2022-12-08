@@ -181,6 +181,88 @@ class Resonator:
             return sol[-1, :]/np.sqrt(2*self.g0/self.kappa)
         else:
             print ('wrong parameter')
+    def Propagate_SAM_NEW(self, simulation_parameters, Pump, Seed=[0], Normalized_Units=False):
+        start_time = time.time()
+
+        T = simulation_parameters['slow_time']
+        abtol = simulation_parameters['absolute_tolerance']
+        reltol = simulation_parameters['relative_tolerance']
+        out_param = simulation_parameters['output']
+        nmax = simulation_parameters['max_internal_steps']
+        detuning = simulation_parameters['detuning_array']
+        eps = simulation_parameters['noise_level']
+        if 'electro-optical coupling' in simulation_parameters.keys():
+            J =  simulation_parameters['electro-optical coupling']
+        else:
+            J = 0
+        
+        if Normalized_Units == False:
+            pump = Pump*np.sqrt(1./(hbar*self.w0))
+            if Seed[0] == 0:
+                seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa)
+            else:
+                seed = Seed*np.sqrt(2*self.g0/self.kappa)
+            ### renormalization
+            T_rn = (self.kappa/2)*T
+            f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
+            J*=2/self.kappa
+            print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
+            print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
+        else:
+            pump = Pump
+            if Seed[0] == 0:
+                seed = self.seed_level(Pump, detuning[0],Normalized_Units)
+            else:
+                seed = Seed
+            T_rn = T
+            f0 = pump
+            print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
+            print('xi [' + str(detuning[0]) + ',' +str(detuning[-1])+ ']')
+            detuning*=self.kappa/2
+        noise_const = self.noise(eps) # set the noise level
+        nn = len(detuning)
+        ### define the rhs function
+        #def LLE_1d(Time, A):
+        #    A = A - noise_const#self.noise(eps)
+        #    A_dir = np.fft.ifft(A)*len(A)## in the direct space
+        #    dAdT =  -1*(1 + 1j*(self.Dint + dOm_curr)*2/self.kappa)*A + 1j*np.fft.fft(A_dir*np.abs(A_dir)**2)/len(A)  + f0#*len(A)
+        #    return dAdT
+        disp_operator = self.Dint*2/self.kappa
+        f0_dir = np.fft.ifft(f0)*self.N_points
+        print('f0^2 = ' + str(np.round(max(abs(f0_dir)**2), 2)))
+        def LLE_1d(t,A):
+            #A+=noise_const
+            dAdt = np.fft.ifft((-1j*disp_operator-(self.kappa + 1j*dOm_curr*2)/self.kappa)*(np.fft.fft(A)+noise_const) ) +1j*np.abs(A)**2*A+f0_dir
+            return dAdt
+        
+        t_st = float(T_rn)/len(detuning)
+        #r = complex_ode(LLE_1d).set_integrator('dop853', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
+        #r = ode(LLE_1d).set_integrator('zvode', atol=abtol, rtol=reltol,nsteps=nmax)# set the solver
+        #r.set_initial_value(seed, 0)# seed the cavity
+        
+        sol = np.ndarray(shape=(len(detuning), self.N_points), dtype='complex') # define an array to store the data
+        sol[0,:] = np.fft.ifft(seed)#/self.N_points
+        print(np.sum(abs(sol[0,:]))**2)
+        #printProgressBar(0, nn, prefix = 'Progress:', suffix = 'Complete', length = 50, fill='elapsed time = ' + str((time.time() - start_time)) + ' s')
+        T_span = np.linspace(0,T_rn,len(detuning))
+        for it in range(1,len(detuning)):
+            self.printProgressBar(it + 1, nn, prefix = 'Progress:', suffix = 'Complete,', time='elapsed time = ' + '{:04.1f}'.format(time.time() - start_time) + ' s', length = 50)
+            #self.print('elapsed time = ', (time.time() - start_time))
+            dOm_curr = detuning[it] # detuning value
+            #sol[it] = r.integrate(r.t+t_st)
+            sol[it,:]=(solve_ivp( LLE_1d, t_span=[T_span[it-1],T_span[it]], y0=sol[it-1,:], method='DOP853', t_eval=[T_span[it]], atol=abtol, rtol=reltol,max_step=nmax,first_step=1e-3,min_step=1e-8)).y.T
+            #print(np.sum(abs(sol[it,:]))**2)
+            
+        if out_param == 'map':
+            if Normalized_Units == False :
+                return np.fft.fft(sol,axis=1)/np.sqrt(2*self.g0/self.kappa)/self.N_points
+            else:
+                detuning/=self.kappa/2
+                return np.fft.fft(sol,axis=1)
+        elif out_param == 'fin_res':
+            return np.fft.fft(sol[-1, :])/np.sqrt(2*self.g0/self.kappa)
+        else:
+            print ('wrong parameter')
        
     def Propagate_SplitStep(self, simulation_parameters, Pump, Seed=[0], dt=5e-4, HardSeed=False, Normalized_Units=False):
         start_time = time.time()

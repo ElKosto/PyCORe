@@ -9,7 +9,7 @@ import PyCORe_main as pcm
 import time
 
 start_time = time.time()
-Num_of_modes = 512
+Num_of_modes = 2**9#512
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 D3 = 0*75.5e3
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
@@ -35,11 +35,11 @@ PhysicalParameters = {'n0' : 1.9,
 
 simulation_parameters = {'slow_time' : 1e-6,
                          'detuning_array' : dOm,
-                         'noise_level' : 1e-8,
+                         'noise_level' : 1e-10,
                          'output' : 'map',
                          'absolute_tolerance' : 1e-8,
                          'relative_tolerance' : 1e-8,
-                         'max_internal_steps' : 2000}
+                         'max_internal_steps' : 100}
 
 
 
@@ -52,7 +52,8 @@ single_ring = pcm.Resonator()
 single_ring.Init_From_Dict(PhysicalParameters)
 
 #%%
-map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=0.5e-3)
+#map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=0.5e-3)
+map2d = single_ring.Propagate_SAM(simulation_parameters, Pump)
 #%%
 plt.figure()
 plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))
