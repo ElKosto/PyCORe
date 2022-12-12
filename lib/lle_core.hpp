@@ -313,6 +313,101 @@ struct rhs_pseudo_spectral_sil_lle{
     }
     
 };
+struct rhs_pseudo_spectral_lle_w_raman{
+    Int Nphi;
+    Doub det;
+    double* Dint;
+    double* tau_r_mu;
+    //double* DispTerm;
+    double* f;
+    Complex i=1i;
+    double buf_re, buf_im;
+    fftw_plan plan_direct_2_spectrum;
+    fftw_plan plan_spectrum_2_direct;
+    fftw_complex *buf_direct, *buf_spectrum;
+    
+    fftw_plan plan_direct_2_spectrum_sq;
+    fftw_plan plan_spectrum_2_direct_sq;
+    fftw_complex *buf_spectrum_sq;
+    fftw_complex *buf_direct_sq;
+
+    rhs_pseudo_spectral_lle_w_raman(Int Nphii, const double* Dinti, Doub deti, const double* fi, const double* tau_r_mui)
+    {
+        std::cout<<"Initialization started\n";
+        Nphi = Nphii;
+        det = deti;
+        Dint = new (std::nothrow) double[Nphi];
+        tau_r_mu = new (std::nothrow) double[Nphi];
+        f = new (std::nothrow) double[2*Nphi];
+        //DispTerm = new (std::nothrow) double[2*Nphi];
+        for (int i_phi = 0; i_phi<Nphi; i_phi++){
+            Dint[i_phi] = Dinti[i_phi];
+            tau_r_mu[i_phi] = tau_r_mui[i_phi];
+            f[i_phi] = fi[i_phi];
+            f[Nphi+i_phi] = fi[Nphi+i_phi];
+        }
+        buf_direct = (fftw_complex *) malloc(Nphi*sizeof(fftw_complex));
+        buf_spectrum = (fftw_complex *) malloc(Nphi*sizeof(fftw_complex));
+        
+        buf_direct_sq = (fftw_complex *) malloc(Nphi*sizeof(fftw_complex));
+        buf_spectrum_sq = (fftw_complex *) malloc(Nphi*sizeof(fftw_complex));
+        
+        plan_direct_2_spectrum = fftw_plan_dft_1d(Nphi, buf_direct,buf_spectrum, FFTW_BACKWARD, FFTW_EXHAUSTIVE);
+        plan_spectrum_2_direct = fftw_plan_dft_1d(Nphi, buf_spectrum,buf_direct, FFTW_FORWARD, FFTW_EXHAUSTIVE);
+        
+        plan_direct_2_spectrum_sq = fftw_plan_dft_1d(Nphi, buf_direct_sq,buf_spectrum_sq, FFTW_BACKWARD, FFTW_EXHAUSTIVE);
+        plan_spectrum_2_direct_sq = fftw_plan_dft_1d(Nphi, buf_spectrum_sq,buf_direct_sq, FFTW_FORWARD, FFTW_EXHAUSTIVE);
+        
+        std::cout<<"Initialization succesfull\n";
+    }
+    ~rhs_pseudo_spectral_lle_w_raman()
+    {
+        delete [] Dint;
+        delete [] tau_r_mu;
+        delete [] f;
+        free(buf_direct);
+        free(buf_spectrum);
+        fftw_destroy_plan(plan_direct_2_spectrum);
+        fftw_destroy_plan(plan_spectrum_2_direct);
+        free(buf_direct_sq);
+        free(buf_spectrum_sq);
+        fftw_destroy_plan(plan_direct_2_spectrum_sq);
+        fftw_destroy_plan(plan_spectrum_2_direct_sq);
+    }
+    void operator() (const Doub x, VecDoub &y, VecDoub &dydx) {
+        for (int i_phi=0; i_phi<Nphi; i_phi++){
+            buf_direct[i_phi][0] = y[i_phi];
+            buf_direct[i_phi][1] = y[i_phi+Nphi];
+
+            buf_direct_sq[i_phi][0] = buf_direct[i_phi][0]*buf_direct[i_phi][0] + buf_direct[i_phi][1]*buf_direct[i_phi][1];
+            buf_direct_sq[i_phi][1] = 0.;
+        }
+        fftw_execute(plan_direct_2_spectrum);
+        fftw_execute(plan_direct_2_spectrum_sq);
+        for (int i_phi=0; i_phi<Nphi; i_phi++){
+
+            buf_re = tau_r_mu[i_phi]*buf_spectrum_sq[i_phi][1];
+            buf_im = -tau_r_mu[i_phi]*buf_spectrum_sq[i_phi][0];
+            buf_spectrum_sq[i_phi][0] = buf_re;
+            buf_spectrum_sq[i_phi][1] = buf_im;
+
+            buf_re = Dint[i_phi]*buf_spectrum[i_phi][1];
+            buf_im =  -Dint[i_phi]*buf_spectrum[i_phi][0];
+            
+            buf_spectrum[i_phi][0]= buf_re; 
+            buf_spectrum[i_phi][1]= buf_im; 
+        }
+        fftw_execute(plan_spectrum_2_direct);
+        fftw_execute(plan_spectrum_2_direct_sq);
+
+        for (int i_phi = 0; i_phi<Nphi; i_phi++){
+
+            dydx[i_phi] = -y[i_phi] + det*y[i_phi+Nphi]  + buf_direct[i_phi][0]/Nphi  - (y[i_phi]*y[i_phi]+y[i_phi+Nphi]*y[i_phi+Nphi])*y[i_phi+Nphi] + f[i_phi] +y[i_phi+Nphi]*buf_direct_sq[i_phi][0]/Nphi;
+            dydx[i_phi+Nphi] = -y[i_phi+Nphi] - det*y[i_phi]  + buf_direct[i_phi][1]/Nphi+(y[i_phi]*y[i_phi]+y[i_phi+Nphi]*y[i_phi+Nphi])*y[i_phi] + f[i_phi+Nphi] - y[i_phi]*buf_direct_sq[i_phi][0]/Nphi;
+        }
+    }
+    
+};
 void printProgress (double percentage);
 std::complex<double>* WhiteNoise(const double amp, const int Nphi);
 
@@ -327,6 +422,8 @@ void* Propagate_PseudoSpectralSAM(double* In_val_RE, double* In_val_IM, double* 
 void* PropagateThermalSAM(double* In_val_RE, double* In_val_IM, double* Re_f, double *Im_F,  const double *detuning, const double J, const double t_th, const double kappa, const double n2, const double n2t, const double *phi, const double* Dint, const int Ndet, const int Nt, const double dt,const double atol, const double rtol, const int Nphi, double noise_amp, double* res_RE, double* res_IM);
 
 void* Propagate_SiL_PseudoSpectralSAM(double* In_val_RE, double* In_val_IM, const double *detuning, const double kappa, const double kappa_laser, const double kappa_sc, const double kappa_inj, const double coupling_phase, const double g0, const double alpha, const double gamma, const double V, const double a, const double e, const double N0, const double eta, const double I_laser, const double zeta , const double* Dint, const int Ndet, const double Tmax, const double Tstep, const int Nt, const double dt,  const double atol, const double rtol, const int Nphi, double noise_amp, double* res_RE, double* res_IM);
+
+void* Propagate_PseudoSpectralSAM_Raman(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double *tau_r_mu, const double* Dint, const int Ndet, const int Nt, const double dt,  const double atol, const double rtol, const int Nphi, double noise_amp, double* res_RE, double* res_IM);
 
 #ifdef  __cplusplus
 }

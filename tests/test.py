@@ -14,7 +14,7 @@ Num_of_modes = 2**9
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 D3 = -25e3*0
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
-Dint = 2*np.pi*(mu**2*D2/2 + mu**3*D3/6)
+Dint = 2*np.pi*(mu**2*D2/2 + mu**3*D3/6)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
 #Dint[0] = Dint[0]+500e6
 
 
@@ -39,15 +39,16 @@ PhysicalParameters = {'n0' : 1.9,
                       'height' : 0.85e-6,
                       'kappa_0' : 50e6*2*np.pi,
                       'kappa_ex' : 50e6*2*np.pi,
-                      'Dint' : Dint}
+                      'Dint' : Dint,
+                      'Raman time' :  1e-15 #s
+                      }
 
 simulation_parameters = {'slow_time' : 1e-6,
                          'detuning_array' : dOm,
-                         'electro-optical coupling' : -3*(25e6*2*np.pi)*0,
-                         'noise_level' : 1e-12,
+                         'noise_level' : 1e-9,
                          'output' : 'map',
-                         'absolute_tolerance' : 1e-8,
-                         'relative_tolerance' : 1e-8,
+                         'absolute_tolerance' : 1e-10,
+                         'relative_tolerance' : 1e-6,
                          'max_internal_steps' : 2000}
 
 
@@ -56,15 +57,18 @@ simulation_parameters = {'slow_time' : 1e-6,
 P0 = 0.15### W
 Pump = np.zeros(len(mu),dtype='complex')
 Pump[0] = np.sqrt(P0)
+
 #%%
 single_ring = pcm.Resonator()
 single_ring.Init_From_Dict(PhysicalParameters)
-
+#%%
 #map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=0.5e-3)
 #map2d = single_ring.Propagate_SAM(simulation_parameters, Pump)
+#map2d = single_ring.Propagate_SAM_NEW(simulation_parameters, Pump)
 #map2d = single_ring.Propagate_SplitStepCLIB(simulation_parameters, Pump,dt=0.5e-3)
 #map2d = single_ring.Propagate_SAMCLIB(simulation_parameters, Pump,dt=0.5e-3)
 map2d = single_ring.Propagate_PseudoSpectralSAMCLIB(simulation_parameters, Pump,dt=0.5e-3)
+
 #%%
 #map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=1e-3)
 #%%
