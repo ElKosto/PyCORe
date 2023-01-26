@@ -1,5 +1,5 @@
 # PyCORe
-This is Python and C-based solver for Lugiato-Lefever Equation. 
+This is Python and C-based solver for the Lugiato-Lefever Equation. 
 
 In the main branch we keep only Python code for simulation of nonlnear dynamics in a single   &chi;<sup>(3)</sup> microresonator. This allows to simply use the solver on any machine with installed numpy package.
 
