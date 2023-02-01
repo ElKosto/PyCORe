@@ -267,7 +267,7 @@ class Resonator:
         print('f0^2 = ' + str(np.round(max(abs(f0_dir)**2), 2)))
         def LLE_1d(t,A):
             #A+=noise_const
-            dAdt = np.fft.ifft((-1j*disp_operator-(self.kappa + 1j*dOm_curr*2)/self.kappa)*(np.fft.fft(A)) ) +1j*np.abs(A)**2*A+f0_dir
+            dAdt = np.fft.ifft((-1j*disp_operator-(self.kappa + 1j*dOm_curr*2)/self.kappa)*(np.fft.fft(A)) ) +1j*np.abs(A)**2*A+f0_dir -1j*self.tau_r*self.FSR*2*np.pi*A*np.fft.ifft(np.fft.fft(np.abs(A)**2))
             return dAdt
         
         t_st = float(T_rn)/len(detuning)

@@ -40,7 +40,7 @@ PhysicalParameters = {'n0' : 1.9,
                       'kappa_0' : 50e6*2*np.pi,
                       'kappa_ex' : 50e6*2*np.pi,
                       'Dint' : Dint,
-                      'Raman time' :  1e-15 #s
+                      'Raman time' :  1e-15*0 #s
                       }
 
 simulation_parameters = {'slow_time' : 1e-6,
