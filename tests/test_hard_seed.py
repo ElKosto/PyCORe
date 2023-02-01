@@ -36,49 +36,50 @@ map2d_scan = np.zeros([],dtype=complex)#np.load('map2d_scan.npy')
 dOm_scan = np.zeros([])
 Pump=np.zeros([],dtype=complex)
 simulation_parameters={}
-single_ring = pcm.Resonator()
-#single_ring=pcm.CROW()
-simulation_parameters,map2d_scan,dOm_scan,Pump=single_ring.Init_From_File('./data/')
+#device = pcm.Resonator()
+device=pcm.CROW()
+simulation_parameters,map2d_scan,dOm_scan,Pump=device.Init_From_File('./data/')
 
-idet = 1100
-nn = 5000
+idet = 12500
+nn = 30000
 dOm = np.ones(nn)*dOm_scan[idet]
 simulation_parameters['slow_time']=1e-6
 simulation_parameters['detuning_array']=dOm
 
-#Seed = SeedSol(single_ring, single_ring.D2, dOm[idet], abs(Pump[0])**2)
-#Seed = map2d[-1,:]
-#Seed_old = map2d_scan[idet,:]#/single_ring.N_points
+#Seed = SeedSol(device, single_ring.D2, dOm[idet], abs(Pump[0])**2)
+Seed = map2d_scan[idet,:]
+#Seed_old = map2d_scan[idet,:]#/device.N_points
 
-Seed = SeedSol(single_ring,single_ring.D2,dOm[idet],abs(Pump[0])**2)
+#Seed = SeedSol(device,single_ring.D2,dOm[idet],abs(Pump[0])**2)
 #%%
-#map2d = single_ring.Propagate_SAM(simulation_parameters, Pump)
-#map2d = single_ring.Propagate_SplitStepCLIB(simulation_parameters, Pump,Seed=Seed,dt=0.5e-3, HardSeed=True)
-#map2d = single_ring.Propagate_SAMCLIB(simulation_parameters, Pump,Seed=Seed,HardSeed=True,BC='OPEN')
-map2d = single_ring.Propagate_SAMCLIB(simulation_parameters, Pump,Seed=Seed,HardSeed=True)
-#map2d = single_ring.Propagate_SplitStep(simulation_parameters, Pump,dt=1e-3)
+#map2d = device.Propagate_SAM(simulation_parameters, Pump)
+#map2d = device.Propagate_SplitStepCLIB(simulation_parameters, Pump,Seed=Seed,dt=0.5e-3, HardSeed=True)
+#map2d = device.Propagate_SAMCLIB(simulation_parameters, Pump,Seed=Seed,HardSeed=True,BC='OPEN')
+map2d = device.Propagate_PSEUDO_SPECTRAL_SAMCLIB(simulation_parameters, Pump,Seed=Seed,HardSeed=True, BC='OPEN')
+#map2d = device.Propagate_SAMCLIB(simulation_parameters, Pump,Seed=Seed,HardSeed=True)
+#map2d = device.Propagate_SplitStep(simulation_parameters, Pump,dt=1e-3)
 #%%
 #plt.figure()
 #plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d)**2,axis=1))
 #%%
 
-#pcm.Plot_Map(np.fft.ifft(map2d,axis=1),dOm*2/single_ring.kappa)
+#pcm.Plot_Map(np.fft.ifft(map2d,axis=1),dOm*2/device.kappa)
 #pcm.Plot_Map(np.fft.ifft(map2d,axis=1),np.arange(nn))
 #np.save('map2d_'+str(idet),map2d[:,:],allow_pickle=True)
-pcm.Plot_Map(np.fft.ifft(map2d,axis=1),np.arange(nn))
+pcm.Plot_Map(np.fft.ifft(map2d[:,:,0],axis=1),np.arange(dOm.size))
 print("--- %s seconds ---" % (time.time() - start_time))
 #%%
-res,rel_diff = single_ring.NewtonRaphsonFixedD1(map2d[-1,:],dOm[-1],Pump,tol=1e-6,max_iter=25)
+#res,rel_diff = device.NewtonRaphsonFixedD1(map2d[-1,:],dOm[-1],Pump,tol=1e-6,max_iter=25)
 #%%
-eig_vals, eig_vecs = single_ring.LinearStability(res,dOm[-1])
+#eig_vals, eig_vecs = device.LinearStability(res,dOm[-1])
 #%%
-GoldStone_index = np.argmax(np.real(eig_vals))
-GoldStone_mode = eig_vecs[:,np.argmax(np.real(eig_vals))]
+#GoldStone_index = np.argmax(np.real(eig_vals))
+#GoldStone_mode = eig_vecs[:,np.argmax(np.real(eig_vals))]
 
 #%%
-seed = res+0.1*np.fft.fft(np.roll(np.fft.ifft(GoldStone_mode),0))
-map2d = single_ring.Propagate_SAMCLIB(simulation_parameters, Pump,Seed=seed,HardSeed=True)
-pcm.Plot_Map(np.fft.ifft(map2d,axis=1),np.arange(nn))
+#seed = res+0.1*np.fft.fft(np.roll(np.fft.ifft(GoldStone_mode),0))
+#map2d = device.Propagate_SAMCLIB(simulation_parameters, Pump,Seed=seed,HardSeed=True)
+#pcm.Plot_Map(np.fft.ifft(map2d,axis=1),np.arange(nn))
 
-plt.figure()
-plt.plot(single_ring.phi[np.argmax(np.abs(np.fft.ifft(map2d[:,:],axis=1))**2,axis=1)]-np.pi)
+#plt.figure()
+#plt.plot(device.phi[np.argmax(np.abs(np.fft.ifft(map2d[:,:],axis=1))**2,axis=1)]-np.pi)

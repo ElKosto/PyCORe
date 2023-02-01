@@ -94,6 +94,8 @@ void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* I
     delete [] f;
 //    delete [] res_buf;
     std::cout<<"Step adaptative Dopri853 from NR3 is finished\n";
+
+    return 0;
 }
 void* PropagateSS(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double J, const double *phi, const double* Dint, const double *d_2_osc, const double FSR, const double kappa, const int Ndet, const int Nt, const double dt, const int Nphi, double noise_amp, double* res_RE, double* res_IM)
 {
@@ -174,5 +176,6 @@ void* PropagateSS(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im
     fftw_destroy_plan(plan_direct_2_spectrum);
     fftw_destroy_plan(plan_spectrum_2_direct);
     std::cout<<"Split step is finished\n";
+    return 0;
 }
 
