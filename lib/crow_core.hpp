@@ -35,7 +35,7 @@ struct rhs_crow{
     double* DispTerm;
     double* f;
     double *d2;
-    Complex i=1i;
+    //Complex i=1i;
     rhs_crow(Int Nphii, Int Ncrowi, Doub deti, const double* fi, const double* d2i, const double* phii, Doub dphii, const double* Ji, const double* kappai, Doub kappa0i, const double* deltai)
     {
         std::cout<<"Initializing CROW\n";
@@ -138,7 +138,7 @@ struct rhs_pseudo_spectral_crow{
     fftw_complex *buf_direct, *buf_spectrum;
 
     double* f;
-    Complex i=1i;
+    //Complex i=1i;
     rhs_pseudo_spectral_crow(Int Nphii, Int Ncrowi, Doub deti, const double* fi, const double* Dinti, const double* phii, Doub dphii, const double* Ji, const double* kappai, Doub kappa0i, const double* deltai)
     {
         std::cout<<"Initializing pseudo spectral CROW\n";
@@ -266,7 +266,7 @@ struct rhs_crow_thermal{
     double* DispTerm;
     double* f;
     double *d2;
-    Complex i=1i;
+    //Complex i=1i;
     rhs_crow_thermal(Int Nphii, Int Ncrowi, Doub deti, const double* fi, const double* d2i, const double* phii, Doub dphii, const double* Ji, const double* kappai, Doub kappa0i, const double* deltai, Doub t_thi, Doub  n2i, Doub n2ti)
     {
         std::cout<<"Initializing CROW with thermal effects\n";
@@ -376,7 +376,7 @@ struct rhs_pseudo_spectral_crow_thermal{
     double* phi;
     double* Dint;
     double* f;
-    Complex i=1i;
+    //Complex i=1i;
     double buf_re, buf_im;
     fftw_plan plan_direct_2_spectrum;
     fftw_plan plan_spectrum_2_direct;

@@ -88,5 +88,7 @@ void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* I
     delete [] noise;
     delete [] f;
     std::cout<<"Step adaptative Dopri853 from NR3 is finished\n";
+
+    return 0;
 }
 

@@ -94,7 +94,7 @@ void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* I
     delete [] f;
 //    delete [] res_buf;
     std::cout<<"Step adaptative Dopri853 from NR3 is finished\n";
-     return 0;
+    return 0;
 }
 
 void* Propagate_PseudoSpectralSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double J, const double *phi, const double* Dint, const int Ndet, const int Nt, const double dt,  const double atol, const double rtol, const int Nphi, double noise_amp, double* res_RE, double* res_IM)
@@ -141,7 +141,7 @@ void* Propagate_PseudoSpectralSAM(double* In_val_RE, double* In_val_IM, double* 
     delete [] f;
 //    delete [] res_buf;
     std::cout<<"Pseudo Spectral Step adaptative Dopri853 from NR3 is finished\n";
-     return 0;
+    return 0;
 }
 void* PropagateThermalSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double J, const double t_th, const double kappa, const double n2, const double n2t, const double *phi, const double* Dint, const int Ndet, const int Nt, const double dt,  const double atol, const double rtol, const int Nphi, double noise_amp, double* res_RE, double* res_IM)
 {
@@ -187,7 +187,7 @@ void* PropagateThermalSAM(double* In_val_RE, double* In_val_IM, double* Re_F, do
     delete [] f;
 //    delete [] res_buf;
     std::cout<<"Step adaptative Dopri853 from NR3 is finished\n";
-     return 0;
+    return 0;
 }
 void* PropagateSS(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double J, const double *phi, const double* Dint, const int Ndet, const int Nt, const double dt, const int Nphi, double noise_amp, double* res_RE, double* res_IM)
 {
@@ -197,10 +197,6 @@ void* PropagateSS(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im
     std::complex<double> i (0.,1.);
     std::complex<double> f;
     
-    /*std::complex<double> **res = new (std::nothrow) std::complex<double>*[Ndet];
-    for (int i=0; i<Ndet; i++){
-        res[i] = new (std::nothrow) std::complex<double>[Nphi];
-    }*/
     std::complex<double>* noise = new (std::nothrow) std::complex<double>[Nphi];
     
     //res[0] = InitialValue(f, detuning[0], Nphi);
@@ -265,7 +261,7 @@ void* PropagateSS(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im
     fftw_destroy_plan(plan_direct_2_spectrum);
     fftw_destroy_plan(plan_spectrum_2_direct);
     std::cout<<"Split step is finished\n";
-     return 0;
+    return 0;
 }
 
 void* Propagate_SiL_PseudoSpectralSAM(double* In_val_RE, double* In_val_IM, const double *detuning, const double kappa, const double kappa_laser ,const double kappa_sc, const double kappa_inj, const double coupling_phase, const double g0, const double alpha, const double gamma, const double V, const double a, const double e, const double N0, const double eta, const double I_laser, const double zeta, const double* Dint, const int Ndet, const double Tmax, const double T_step, const int Nt, const double dt, const double atol, const double rtol, const int Nphi, double noise_amp, double* res_RE, double* res_IM)
@@ -343,7 +339,7 @@ void* Propagate_SiL_PseudoSpectralSAM(double* In_val_RE, double* In_val_IM, cons
     delete [] noise;
 //    delete [] res_buf;
     std::cout<<"Step adaptative Dopri853 from NR3 is finished\n";
-     return 0;
+    return 0;
 }
 
 
@@ -391,5 +387,5 @@ void* Propagate_PseudoSpectralSAM_Raman(double* In_val_RE, double* In_val_IM, do
     delete [] f;
 //    delete [] res_buf;
     std::cout<<"Pseudo Spectral Step adaptative Dopri853 with Raman from NR3 is finished\n";
-     return 0;
+    return 0;
 }

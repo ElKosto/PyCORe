@@ -31,7 +31,10 @@ struct rhs_lle{
     double* phi;
     double* DispTerm;
     double* f;
+<<<<<<< HEAD
 //    Complex i=1i;
+=======
+>>>>>>> PyCORe++
 
     rhs_lle(Int Nphii, const double* Dinti, Doub deti, const double* fi, Doub d2i, const double* phii, Doub dphii, Doub Ji)
     {
@@ -88,7 +91,10 @@ struct rhs_pseudo_spectral_lle{
     double* phi;
     //double* DispTerm;
     double* f;
+<<<<<<< HEAD
    // Complex i=1i;
+=======
+>>>>>>> PyCORe++
     double buf_re, buf_im;
     fftw_plan plan_direct_2_spectrum;
     fftw_plan plan_spectrum_2_direct;
@@ -158,7 +164,10 @@ struct rhs_lle_thermal{
     double* phi;
     double* DispTerm;
     double* f;
+<<<<<<< HEAD
 //    Complex i=1i;
+=======
+>>>>>>> PyCORe++
     rhs_lle_thermal(Int Nphii, const double* Dinti, Doub deti, const double* fi, Doub d2i, const double* phii, Doub dphii, Doub Ji, Doub t_thi, Doub kappai, Doub n2i, Doub n2ti)
     {
         Nphi = Nphii;
@@ -223,7 +232,10 @@ struct rhs_pseudo_spectral_sil_lle{
     Doub N0, I_laser, e, gamma, kappa, a, V, alpha, coupling_phase, power, psi_0_re, psi_0_im, g0, kappa_sc, kappa_inj, eta, kappa_laser, zeta;
     double* Dint;
     //double* DispTerm;
+<<<<<<< HEAD
   //  Complex i=1i;
+=======
+>>>>>>> PyCORe++
     double buf_re, buf_im;
     double tuning_speed;
     fftw_plan plan_direct_2_spectrum;
@@ -320,7 +332,10 @@ struct rhs_pseudo_spectral_lle_w_raman{
     double* tau_r_mu;
     //double* DispTerm;
     double* f;
+<<<<<<< HEAD
  //   Complex i=1i;
+=======
+>>>>>>> PyCORe++
     double buf_re, buf_im;
     fftw_plan plan_direct_2_spectrum;
     fftw_plan plan_spectrum_2_direct;

@@ -10,10 +10,10 @@ import time
 
 start_time = time.time()
 
-Num_of_modes = 2**9
+Num_of_modes = 2**10
 N_crow = 2
 
-D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
+D2 = -4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 
 D3 = 0
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
@@ -34,13 +34,13 @@ J = 2.0e9*2*np.pi*np.ones([mu.size,(N_crow-1)])
 #    if pp%2: J[pp] = 4.5e9*2*np.pi
 #    else: J[pp] = 0.9e9*2*np.pi
 
-dNu_ini = -1*J.max()/2/np.pi-10e6
-dNu_end = 0*3*J.max()/2/np.pi#+10e9
+dNu_ini = 0.5e9#-2*J.max()/2/np.pi-10e6
+dNu_end = 2*J.max()/2/np.pi#+10e9
 #dNu_ini = -1e9
 #dNu_end = 1e9
 #dNu_ini = -10e9
 #dNu_end = -7e9
-nn = 10000
+nn = 30000
 ramp_stop = 1.0
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
 
@@ -78,7 +78,7 @@ simulation_parameters = {'slow_time' : 1e-6,
                          'relative_tolerance' : 1e-8,
                          'max_internal_steps' : 2000}
 
-P0 = 1.0### W
+P0 = 0.3### W
 #P0 = 0.006### W
 Pump = np.zeros([len(mu),N_crow],dtype='complex')
 #for ii in range(N_crow):
@@ -94,8 +94,8 @@ crow.Init_From_Dict(PhysicalParameters)
 #ev = crow.Linear_analysis()
 #%%
 
-map2d = crow.Propagate_SAMCLIB(simulation_parameters, Pump, BC='OPEN')
-#map2d = crow.Propagate_SAMCLIB_PSEUD_SPECT(simulation_parameters, Pump)
+#map2d = crow.Propagate_SAMCLIB(simulation_parameters, Pump, BC='OPEN')
+map2d = crow.Propagate_PSEUDO_SPECTRAL_SAMCLIB(simulation_parameters, Pump, BC='OPEN')
 #map2d = crow.Propagate_SAM(simulation_parameters, Pump)
 #%%
 plt.figure()
@@ -104,6 +104,6 @@ plt.plot(dOm/2/np.pi,np.mean(np.abs(map2d[:,:,1])**2,axis=1))
 pcm.Plot_Map(np.fft.ifft(map2d[:,:,0],axis=1),dOm*2/crow.kappa_0)
 
 #%%
-crow.Save_Data(map2d,Pump,simulation_parameters,dOm,'./data/')
+#crow.Save_Data(map2d,Pump,simulation_parameters,dOm,'./data/')
 print("--- %s seconds ---" % (time.time() - start_time))
     

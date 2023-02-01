@@ -104,6 +104,10 @@ venv.bak/
 .mypy_cache/
 .DS_Store
 *.npy
+#*.pdf
+*.png
 
 ./data
 NR.zip
+
+.DS_Store

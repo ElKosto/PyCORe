@@ -87,6 +87,8 @@ void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* I
     delete [] noise;
     delete [] f;
     std::cout<<"Step adaptative Dopri853 from NR3 with thermal effects is finished\n";
+
+    return 0;
 }
 
 void* Propagate_PseudoSpectralSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double* kappa, const double kappa0, const double *delta, const double* J, const double *phi,  const double* Dint, const int Ndet, const int Nt, const double dt,  const double atol, const double rtol, const int Nphi, const int Ncrow, double noise_amp, double* res_RE, double* res_IM)
@@ -138,6 +140,8 @@ void* Propagate_PseudoSpectralSAM(double* In_val_RE, double* In_val_IM, double* 
     delete [] noise;
     delete [] f;
     std::cout<<"Step adaptative Pseudo-spectral Dopri853 from NR3 with thermal effects is finished\n";
+    
+    return 0;
 }
 void* PropagateThermalSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double* kappa, const double kappa0, const double t_th, const double n2, const double n2t, const double *delta, const double* J, const double *phi,  const double* d2, const int Ndet, const int Nt, const double dt,  const double atol, const double rtol, const int Nphi, const int Ncrow, double noise_amp, double* res_RE, double* res_IM)
 {
@@ -191,6 +195,8 @@ void* PropagateThermalSAM(double* In_val_RE, double* In_val_IM, double* Re_F, do
     delete [] noise;
     delete [] f;
     std::cout<<"Step adaptative Dopri853 from NR3 is finished\n";
+
+    return 0;
 }
 void* Propagate_PseudoSpectralThermalSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double *Im_F,  const double *detuning, const double* kappa, const double kappa0, const double t_th, const double n2, const double n2t, const double *delta ,const double* J, const double *phi, const double* Dint, const int Ndet, const int Nt, const double dt, const double atol, const double rtol, const int Nphi, const int Ncrow, double noise_amp, double* res_RE, double* res_IM)
 {
@@ -241,4 +247,6 @@ void* Propagate_PseudoSpectralThermalSAM(double* In_val_RE, double* In_val_IM, d
     delete [] noise;
     delete [] f;
     std::cout<<"Step adaptative Pseudo-spectral Dopri853 from NR3 with thermal effects is finished\n";
+
+    return 0;
 }

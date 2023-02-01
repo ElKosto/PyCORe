@@ -19,13 +19,58 @@ from scipy.sparse import block_diag,identity,diags, eye, csc_matrix, dia_matrix,
 from scipy.sparse.linalg import eigs as scp_eigs
 import ctypes
 from scipy.linalg import eig, inv, solve, lu_factor, lu_solve
+from scipy.optimize import minimize
 from matplotlib.patches import Wedge
 from matplotlib.collections import PatchCollection
 import matplotlib.cm as cm
 
 class Resonator:
+    '''
+    It's a main class for any resonator structure
+    
+    __init__(self) is just a constructor where we initialize all the physical parameters
+    
+    
+    '''
     
     def __init__(self):
+        '''
+        Initialization of the physical parameters of a resonator 
+        Parameters:
+            n0: refractive index 
+            n2: Nonlinear refractive index [m^2/W]
+            FSR: Free Spectral Range [Hz]
+            w0: Optical frequency  [rad Hz]
+            width: waveguide width [m]
+            height: weveguide height [m]
+            Aeff = width*height effective mode area [m^2]
+            kappa_0: internal resonator linewidth [rad Hz]
+            kappa_ex: coupling rate to the bus waveguide [rad Hz]
+            kappa = kappa_0 + kappa_ex is the loaded linewidth [rad Hz]
+            Dint: integrated dispersion [rad Hz]
+            Tr = 1/FSR: roundrtip time [s]
+            Leff = c/n0*Tr: effective lentght of the mode [m] 
+            Veff = Leff*Aeff: effective mode volume [m^3]
+            g0 = hbar*w0^2*c*n2/n0^2/Veff: single-photon Kerr frequency shift [rad Hz]
+            gamma = n2*w0/c/Aeff: Nonlinear coefficient in the Fiber notations for NLSE [1/W/m^2]
+            N_points: number of longitudial modes we consider in simulations
+            tau_r: Raman shock time [s]
+            phi: azimuthal resonator coordinate going ranged from -pi to pi
+            D2: GVD [rad Hz]
+            D3: 3rd order dispersion [rad Hz]
+            n2t: thermal nonlinearity coefficient
+            t_th: thermal response time [s]
+            J_EO: electro-optical coupling for resonant EO comb generation [rad Hz]            
+            D: dispersion matrix 
+            FirstDmat: auxilary matrix to compute first derivative on phi for Newton-Raphson method
+            
+            
+            
+        Returns
+        -------
+        None.
+
+        '''
         self.n0 = 0
         self.n2 = 0
         self.FSR = 0
@@ -61,6 +106,20 @@ class Resonator:
         self.FirstDmat=np.zeros([0],dtype=complex)
     
     def Init_From_File(self,data_dir):
+        '''
+
+        Parameters
+        ----------
+        data_dir : string. Path to the directory with the parameters
+
+        Returns
+        -------
+        simulation_parameters : dictionary with the simulation parameters
+        map2d : 2D simulation data. 1st index stands for index along slow time (detuning), 2nd for intsanteneous spectrum. numpy complex
+        dOm : detuning array. numpy complex
+        Pump : pump array in spectrum representation. numpy complex
+
+        '''
         simulation_parameters={}
         map2d=np.array([],dtype=complex)
         Pump=np.array([],dtype=complex)
@@ -81,6 +140,28 @@ class Resonator:
         
         return simulation_parameters, map2d, dOm, Pump
     def Init_From_Dict(self, resonator_parameters):
+        '''
+        
+
+        Parameters
+        ----------
+        resonator_parameters :  resonator parameters in dict format. Example:
+                                'n0',
+                                'n2',
+                                'FSR',
+                                'w0',
+                                'width',
+                                'kappa_0'
+                                'kappa_ex'
+                                'Dint'
+                                'Raman time'
+                                
+
+        Returns
+        -------
+        Initializes all the parameters to a given value
+
+        '''
         #Physical parameters initialization
         self.n0 = resonator_parameters['n0']
         self.n2 = resonator_parameters['n2']
@@ -2301,7 +2382,20 @@ class CROW(Resonator):#all idenical resonators
             #D[:N_m*N_res]=np.conj(D[N_m*N_res:])
             
             return D
-        def NewtonRaphsonDirectSpace(self,Seed_sol,dOm, Pump, HardSeed = True, tol=1e-5,max_iter=50,order=0):
+        
+        def MatFormLLE(self,A,f0):
+            index_1 = np.arange(0,self.N_points*self.N_CROW)
+            index_2 = np.arange(self.N_points*self.N_CROW,2*self.N_points*self.N_CROW)
+            result = np.zeros(2*self.N_points*self.N_CROW,dtype=complex)
+            
+            result[index_1] =  1j*abs(A[index_1])**2*A[index_1]         
+            #buf[index_2] = np.conj(buf[index_1])
+            result[index_2] =  -1j*abs(A[index_2])**2*A[index_2]         
+            result += (self.M_lin).dot(A) + f0
+            
+            return result
+            
+        def NewtonRaphsonDirectSpace(self,Seed_sol,dOm, Pump, HardSeed = True, tol=1e-5,max_iter=50,order=0,learning_rate=1e-1):
             A_guess = np.fft.ifft(Seed_sol,axis=0)
             result = np.zeros_like(A_guess,dtype=complex)
             zeta_0 = dOm*2/self.kappa_0
@@ -2344,23 +2438,28 @@ class CROW(Resonator):#all idenical resonators
             print('xi = ' + str(zeta_0) )
             
             diff = self.N_points
+            rel_diff = self.N_points
             counter =0
             diff_array=[]
+            rel_diff_array=[]
             isSparse = isspmatrix(J)
+            #min_res = minimize(self.MatFormLLE, (2, 0), args=(f0),method='SLSQP')
             while diff>tol:
                 J=self.JacobianMatrix(zeta_0, Aprev[index_1],order)
-                buf[index_1] =  1j*abs(Aprev[index_1])**2*Aprev[index_1]         
-                #buf[index_2] = np.conj(buf[index_1])
-                buf[index_2] =  -1j*abs(Aprev[index_2])**2*Aprev[index_2]         
-                buf += (self.M_lin).dot(Aprev) + f0
+                #buf[index_1] =  1j*abs(Aprev[index_1])**2*Aprev[index_1]         
                 
+                #buf[index_2] =  -1j*abs(Aprev[index_2])**2*Aprev[index_2]         
+                #buf += (self.M_lin).dot(Aprev) + f0
+                buf = self.MatFormLLE(Aprev,f0)
                 if isSparse==False:
-                    Ak = Aprev - solve_dense(J,buf)
+                    Ak = Aprev - solve_dense(J,buf)*learning_rate
                 else:
-                    Ak = Aprev - solve_sparse(J,buf)
+                    Ak = Aprev - solve_sparse(J,buf)*learning_rate
                 
                 
-                diff = np.sqrt(abs((Ak-Aprev).dot(np.conj(Ak-Aprev))/(Ak.dot(np.conj(Ak)))))
+                rel_diff = np.sqrt(abs((Ak-Aprev).dot(np.conj(Ak-Aprev))/(Ak.dot(np.conj(Ak)))))
+                rel_diff_array += [diff]
+                diff = np.sqrt(abs((Ak-Aprev).dot(np.conj(Ak-Aprev))))
                 diff_array += [diff]
 
                 
@@ -2379,13 +2478,15 @@ class CROW(Resonator):#all idenical resonators
                     return result/np.sqrt(2*self.g0/self.kappa_0), diff_array
                     break
             print("Converged in " + str(counter) + " iterations, relative error is " + str(diff))
+            
             res = np.zeros(self.N_points,dtype=complex)
             res = Ak[index_1]
+            #res = men_res.x[:self.N_points]
             for jj in ind_res:
                 result[ind_modes,jj]= np.fft.fft(res[jj*N_m+ind_modes])
             return result/np.sqrt(2*self.g0/self.kappa_0), diff_array    
             
-        def NewtonRaphson(self,Seed_sol,dOm, Pump, HardSeed = True, tol=1e-5,max_iter=50):
+        def NewtonRaphson(self,Seed_sol,dOm, Pump, HardSeed = True, tol=1e-5,max_iter=50, learning_rate=1e-1):
             A_guess = np.fft.ifft(Seed_sol,axis=0)
             result = np.zeros_like(A_guess,dtype=complex)
             N_m = self.N_points
@@ -2449,8 +2550,10 @@ class CROW(Resonator):#all idenical resonators
             print('xi = ' + str(zeta_0) )
             
             diff = self.N_points
+            rel_diff = self.N_points
             counter =0
             diff_array=[]
+            rel_diff_array=[]
             
             while diff>tol:
                 J=self.Jacobian(j, d2, dphi, delta, kappa, zeta_0, Aprev[index_1])
@@ -2461,10 +2564,15 @@ class CROW(Resonator):#all idenical resonators
                 buf += (M_lin).dot(Aprev) + f0
                 
                 #inv(M_lin)
-                Ak = Aprev - solve_sparse(J,buf)
+                Ak = Aprev - solve_sparse(J,buf)*learning_rate
                 
-                diff = np.sqrt(abs((Ak-Aprev).dot(np.conj(Ak-Aprev))/(Ak.dot(np.conj(Ak)))))
+                
+                diff = np.sqrt(abs((Ak-Aprev).dot(np.conj(Ak-Aprev))))
                 diff_array += [diff]
+
+                
+                rel_diff = np.sqrt(abs((Ak-Aprev).dot(np.conj(Ak-Aprev))/(Ak.dot(np.conj(Ak)))))
+                rel_diff_array += [rel_diff]
 
                 
                 Aprev = Ak
