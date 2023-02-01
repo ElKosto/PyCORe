@@ -109,3 +109,5 @@ venv.bak/
 
 ./data
 NR.zip
+
+.DS_Store
