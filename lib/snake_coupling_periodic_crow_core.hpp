@@ -38,7 +38,6 @@ struct rhs_crow{
     double* DispTerm;
     double* f;
     double *d2;
-    Complex i=1i;
     rhs_crow(Int Nphii, Int Ncrowi, Doub deti, const double* fi, const double* d2i, const double* phii, Doub dphii, const double* Ji, const double* Bus_Ji, const double* Bus_Phasei ,const double* kappai, Doub kappa0i, const double* deltai)
     {
         

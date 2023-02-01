@@ -32,7 +32,6 @@ struct rhs_crow{
     double d2;
     double j2;
     double delta_theta;//2pi/Ncrow
-    Complex i=1i;
     rhs_crow(Int Nphii, Int Nthetai, Doub deti, const double* fi, const double d2i, const double* phii, Doub dphii, const double* thetai, Doub dthetai, const double Ji, const double delta_thetai )
     {
         std::cout<<"Initializing Field Theory normalized CROW with PBC\n";
