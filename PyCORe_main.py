@@ -659,7 +659,7 @@ class Resonator:
             print ('wrong parameter')
             
    
-    def Propagate_PseudoSpectralSAMCLIB(self, simulation_parameters, Pump, Seed=[0], dt=5e-4,HardSeed=False):
+    def Propagate_PseudoSpectralSAMCLIB(self, simulation_parameters, Pump, Seed=[0], dt=5e-4,HardSeed=False,lib='NR'):
         #start_time = time.time()
         T = simulation_parameters['slow_time']
         out_param = simulation_parameters['output']
@@ -693,7 +693,11 @@ class Resonator:
         sol[0,:] = (seed)/self.N_points
         
         #%% crtypes defyning
-        LLE_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_lle_core.so')
+        if lib=='NR':
+            LLE_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_lle_core.so')
+        else:
+            LLE_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_boost_lle_core.so')
+            
         LLE_core.Propagate_PseudoSpectralSAM.restype = ctypes.c_void_p
         if self.tau_r !=0:
             LLE_core.Propagate_PseudoSpectralSAM_Raman.restype = ctypes.c_void_p

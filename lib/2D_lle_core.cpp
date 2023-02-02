@@ -72,6 +72,7 @@ void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* I
         crow.det = detuning[i_det]; 
         noise=WhiteNoise(noise_amp,Nphi*Ntheta);
         Odeint<StepperDopr853<rhs_crow> > ode(res_buf,t0,t1,atol,rtol,dt,dtmin,out,crow);
+        //Odeint<RK45<rhs_crow> > ode(res_buf,t0,t1,atol,rtol,dt,dtmin,out,crow);
         ode.integrate();
         for (int i_theta= 0; i_theta<Ntheta; i_theta++){
             for (int i_phi=0; i_phi<Nphi; i_phi++){

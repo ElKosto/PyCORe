@@ -79,6 +79,7 @@ void* PropagateSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* I
         lle.det = detuning[i_det];
         noise=WhiteNoise(noise_amp,Nphi);
         Odeint<StepperDopr853<rhs_lle> > ode(res_buf,t0,t1,atol,rtol,dt,dtmin,out,lle);
+        //Odeint<StepperDopr5<rhs_lle> > ode(res_buf,t0,t1,atol,rtol,dt,dtmin,out,lle);
         ode.integrate();
         for (int i_phi=0; i_phi<Nphi; i_phi++){
             res_RE[i_det*Nphi+i_phi] = res_buf[i_phi];
@@ -104,6 +105,7 @@ void* Propagate_PseudoSpectralSAM(double* In_val_RE, double* In_val_IM, double* 
     std::cout<<"Pseudo Spectral Step adaptative Dopri853 from NR3 is running\n";
     std::complex<double>* noise = new (std::nothrow) std::complex<double>[Nphi];
     const double t0=0., t1=(Nt-1)*dt, dtmin=0.;
+    double a_x = 1., a_dxdt=1.;
     double *f = new(std::nothrow) double[2*Nphi];
     VecDoub res_buf(2*Nphi);
 
