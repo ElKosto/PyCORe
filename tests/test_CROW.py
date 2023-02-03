@@ -11,7 +11,7 @@ import time
 start_time = time.time()
 
 Num_of_modes = 2**9
-N_crow = 2
+N_crow = 4
 
 D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 
@@ -95,7 +95,7 @@ crow.Init_From_Dict(PhysicalParameters)
 #%%
 
 #map2d = crow.Propagate_SAMCLIB(simulation_parameters, Pump, BC='OPEN')
-map2d = crow.Propagate_PSEUDO_SPECTRAL_SAMCLIB(simulation_parameters, Pump, BC='OPEN', lib='NR')
+map2d = crow.Propagate_PSEUDO_SPECTRAL_SAMCLIB(simulation_parameters, Pump, BC='OPEN', lib='boost')
 #map2d = crow.Propagate_SAM(simulation_parameters, Pump)
 #%%
 plt.figure()

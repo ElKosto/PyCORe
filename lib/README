@@ -10,3 +10,4 @@ g++ -fPIC -shared -lfftw3 -lm -O3 -o lib_snake_coupling_periodic_crow_core.so sn
 
 To compile boost solvers
 g++ -std=c++0x -fPIC -shared -lfftw3 -lm -O3 -o lib_boost_lle_core.so boost_lle_core.cpp
+g++ -std=c++0x -fPIC -shared -lfftw3 -lm -O3 -o lib_boost_crow_core.so boost_crow_core.cpp

@@ -12,11 +12,11 @@
 #include <thread>
 
 
-#include "./../../NR/NR_C301/code/nr3.h"
-#include "./../../NR/NR_C301/code/stepper.h"
-#include "./../../NR/NR_C301/code/stepperdopr853.h"
-#include "./../../NR/NR_C301/code/odeint.h"
-
+#include "NR/code/nr3.h"
+#include "NR/code/stepper.h"
+#include "NR/code/stepperdopr853.h"
+#include "NR/code/stepperdopr5.h"
+#include "NR/code/odeint.h"
 
 #define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
 #define PBWIDTH 60

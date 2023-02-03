@@ -76,6 +76,7 @@ void* Propagate_PseudoSpectralSAM(double* In_val_RE, double* In_val_IM, double* 
         crow.det = detuning[i_det]*2/kappa0;
         noise=WhiteNoise(noise_amp,Nphi*Ncrow);
         boost::numeric::odeint::integrate_adaptive( controlled_stepper , crow , res_buf , t0 , t1, dt );
+        //boost::numeric::odeint::integrate( crow , res_buf , t0 , t1, dt );
         for (int i_crow = 0; i_crow<Ncrow; i_crow++){
             for (int i_phi=0; i_phi<Nphi; i_phi++){
                 res_RE[i_det*Nphi* Ncrow+ i_crow*Nphi + i_phi] = res_buf[i_crow*2*Nphi+i_phi];

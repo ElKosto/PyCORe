@@ -43,7 +43,7 @@ std::complex<double>* WhiteNoise(const double amp, const int Nphi)
 
 void* Propagate_PseudoSpectralSAM(double* In_val_RE, double* In_val_IM, double* Re_F, double* Im_F,  const double *detuning, const double J, const double *phi, const double* Dint, const int Ndet, const int Nt, const double dt,  const double atol, const double rtol, const int Nphi, double noise_amp, double* res_RE, double* res_IM)
 {
-    std::cout<<"Pseudo Spectral Step adaptative runge_kutta_fehlberg78 from boost::ode is running\n";
+    std::cout<<"Pseudo Spectral Step adaptative runge_kutta_dopri5 from boost::ode is running\n";
     std::complex<double>* noise = new (std::nothrow) std::complex<double>[Nphi];
     const double t0=0., t1=(Nt-1)*dt, dtmin=0.;
     double a_x = 1., a_dxdt=1.;
@@ -60,16 +60,17 @@ void* Propagate_PseudoSpectralSAM(double* In_val_RE, double* In_val_IM, double* 
         f[i_phi+Nphi] = Im_F[i_phi];
     }
     rhs_pseudo_spectral_lle lle(Nphi, Dint, detuning[0],f, phi, std::abs(phi[1]-phi[0]), J);
-    typedef boost::numeric::odeint::runge_kutta_fehlberg78< state_type > error_stepper_type;
+    //typedef boost::numeric::odeint::runge_kutta_fehlberg78< state_type > error_stepper_type;
     //typedef boost::numeric::odeint::runge_kutta_dopri5< state_type > error_stepper_type;
     //typedef boost::numeric::odeint::runge_kutta_cash_karp54< state_type > error_stepper_type;
-    typedef boost::numeric::odeint::controlled_runge_kutta< error_stepper_type > controlled_stepper_type;
-    controlled_stepper_type controlled_stepper(
-        boost::numeric::odeint::default_error_checker< double , boost::numeric::odeint::range_algebra , boost::numeric::odeint::default_operations >( atol , rtol , a_x , a_dxdt ) );
+    //typedef boost::numeric::odeint::controlled_runge_kutta< error_stepper_type > controlled_stepper_type;
+    //controlled_stepper_type controlled_stepper(
+        //boost::numeric::odeint::default_error_checker< double , boost::numeric::odeint::range_algebra , boost::numeric::odeint::default_operations >( atol , rtol , a_x , a_dxdt ) );
     for (int i_det=0; i_det<Ndet; i_det++){
         lle.det = detuning[i_det];
         noise=WhiteNoise(noise_amp,Nphi);
-        boost::numeric::odeint::integrate_adaptive( controlled_stepper , lle , res_buf , t0 , t1, dt );
+        //boost::numeric::odeint::integrate_adaptive( controlled_stepper , lle , res_buf , t0 , t1, dt );
+        boost::numeric::odeint::integrate(lle , res_buf , t0 , t1, dt );
         for (int i_phi=0; i_phi<Nphi; i_phi++){
             res_RE[i_det*Nphi+i_phi] = res_buf[i_phi];
             res_IM[i_det*Nphi+i_phi] = res_buf[i_phi+Nphi];
@@ -83,6 +84,7 @@ void* Propagate_PseudoSpectralSAM(double* In_val_RE, double* In_val_IM, double* 
     delete [] noise;
     delete [] f;
 //    delete [] res_buf;
+    //std::cout<<"Pseudo Spectral Step adaptative runge_kutta_dopri5 from boost::ode is finished\n";
     std::cout<<"Pseudo Spectral Step adaptative runge_kutta_fehlberg78 from boost::ode is finished\n";
     return 0;
 }
