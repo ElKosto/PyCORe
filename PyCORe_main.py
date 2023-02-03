@@ -2040,7 +2040,7 @@ class CROW(Resonator):#all idenical resonators
             else:
                 print ('wrong parameter')
          
-        def Propagate_PSEUDO_SPECTRAL_SAMCLIB(self, simulation_parameters, Pump, BC, Seed=[0], dt=5e-4,HardSeed=False):
+        def Propagate_PSEUDO_SPECTRAL_SAMCLIB(self, simulation_parameters, Pump, BC, Seed=[0], dt=5e-4,HardSeed=False, lib='NR'):
             
             
             T = simulation_parameters['slow_time']
@@ -2110,7 +2110,12 @@ class CROW(Resonator):#all idenical resonators
                     
             
             if BC=='OPEN':
-                CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_crow_core.so')   
+                if lib=='NR':
+                    CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_crow_core.so')   
+                elif lib=='boost':
+                    CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_boost_crow_core.so')   
+                else:
+                    sys.exit('Solver has not been found')
             
             elif BC=='PERIODIC':
                 CROW_core = ctypes.CDLL(os.path.abspath(__file__)[:-15]+'/lib/lib_periodic_crow_core.so')

@@ -10,10 +10,10 @@ import time
 
 start_time = time.time()
 
-Num_of_modes = 2**10
+Num_of_modes = 2**9
 N_crow = 2
 
-D2 = -4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
+D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 
 D3 = 0
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
@@ -40,7 +40,7 @@ dNu_end = 2*J.max()/2/np.pi#+10e9
 #dNu_end = 1e9
 #dNu_ini = -10e9
 #dNu_end = -7e9
-nn = 30000
+nn = 2000
 ramp_stop = 1.0
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
 
@@ -72,10 +72,10 @@ PhysicalParameters = {'Inter-resonator_coupling': J,
 
 simulation_parameters = {'slow_time' : 1e-6,
                          'detuning_array' : dOm,
-                         'noise_level' : 1e-6,
+                         'noise_level' : 1e-9,
                          'output' : 'map',
-                         'absolute_tolerance' : 1e-8,
-                         'relative_tolerance' : 1e-8,
+                         'absolute_tolerance' : 1e-10,
+                         'relative_tolerance' : 1e-12,
                          'max_internal_steps' : 2000}
 
 P0 = 0.3### W
@@ -95,7 +95,7 @@ crow.Init_From_Dict(PhysicalParameters)
 #%%
 
 #map2d = crow.Propagate_SAMCLIB(simulation_parameters, Pump, BC='OPEN')
-map2d = crow.Propagate_PSEUDO_SPECTRAL_SAMCLIB(simulation_parameters, Pump, BC='OPEN')
+map2d = crow.Propagate_PSEUDO_SPECTRAL_SAMCLIB(simulation_parameters, Pump, BC='OPEN', lib='NR')
 #map2d = crow.Propagate_SAM(simulation_parameters, Pump)
 #%%
 plt.figure()
