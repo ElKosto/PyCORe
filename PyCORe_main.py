@@ -262,8 +262,8 @@ class Resonator:
                 seed = Seed
             T_rn = T
             f0 = pump
-            print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
-            print('xi [' + str(detuning[0]) + ',' +str(detuning[-1])+ ']')
+            print(r'Normalized pump power $f_0^2$ = ' + str(np.round(max(abs(f0)**2), 2)))
+            print(r'Normalized detuning $\zeta_0$ = [' + str(detuning[0]) + ',' +str(detuning[-1])+ ']')
             detuning*=self.kappa/2
         noise_const = self.noise(eps) # set the noise level
         nn = len(detuning)
@@ -332,8 +332,8 @@ class Resonator:
                 seed = Seed
             T_rn = T
             f0 = pump
-            print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
-            print('xi [' + str(detuning[0]) + ',' +str(detuning[-1])+ ']')
+            print(r'Normalized pump power $f_0^2$ = ' + str(np.round(max(abs(f0)**2), 2)))
+            print(r'Normalized detuning $\zeta_0$ = [' + str(detuning[0]) + ',' +str(detuning[-1])+ ']')
             detuning*=self.kappa/2
         noise_const = self.noise(eps) # set the noise level
         nn = len(detuning)
@@ -345,7 +345,7 @@ class Resonator:
         #     return dAdT
         disp_operator = self.Dint*2/self.kappa
         f0_dir = np.fft.ifft(f0)*self.N_points
-        print('f0^2 = ' + str(np.round(max(abs(f0_dir)**2), 2)))
+        print(r'Normalized pump power $f_0^2$ = ' + str(np.round(max(abs(f0_dir)**2), 2)))
         def LLE_1d(t,A):
             #A+=noise_const
             dAdt = np.fft.ifft((-1j*disp_operator-(self.kappa + 1j*dOm_curr*2)/self.kappa)*(np.fft.fft(A)) ) +1j*np.abs(A)**2*A+f0_dir -1j*self.tau_r*self.FSR*2*np.pi*A*np.fft.ifft(np.fft.fft(np.abs(A)**2))
@@ -409,8 +409,8 @@ class Resonator:
                 seed = Seed
             T_rn = T
             f0 = pump
-            print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
-            print('xi [' + str(detuning[0]) + ',' +str(detuning[-1])+ ']')
+            print(r'Normalized pump power $f_0^2$ = ' + str(np.round(max(abs(f0)**2), 2)))
+            print(r'Normalized detuning $\zeta_0$ = [' + str(detuning[0]) + ',' +str(detuning[-1])+ ']')
             detuning*=self.kappa/2
         
         noise_const = self.noise(eps) # set the noise level
@@ -478,9 +478,9 @@ class Resonator:
         T_rn = (self.kappa/2)*T
         f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
         j = J/self.kappa*2
-        print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
-        print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
-        print('J = ' + str(j))
+        print(r'Normalized pump power $f_0^2$ = ' + str(np.round(max(abs(f0)**2), 2)))
+        print(r'Normalized detuning $\zeta_0$ = [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
+        
         #noise_const = self.noise(eps) # set the noise level
         #nn = len(detuning)
         
@@ -576,7 +576,7 @@ class Resonator:
         j = J/self.kappa*2
         print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
         print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
-        print('J = ' + str(j))
+        
         #noise_const = self.noise(eps) # set the noise level
         #nn = len(detuning)
         
@@ -680,9 +680,9 @@ class Resonator:
         T_rn = (self.kappa/2)*T
         f0 = np.fft.ifft(pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3))*self.N_points
         j = J/self.kappa*2
-        print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
-        print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
-        print('J = ' + str(j))
+        print(r'Normalized pump power $f_0^2$ = ' + str(np.round(max(abs(f0)**2), 2)))
+        print(r'Normalized detuning $\zeta_0$ = [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
+       
         #noise_const = self.noise(eps) # set the noise level
         #nn = len(detuning)
         
@@ -2467,7 +2467,7 @@ class CROW(Resonator):#all idenical resonators
                 
                 
                 rel_diff = np.sqrt(abs((Ak-Aprev).dot(np.conj(Ak-Aprev))/(Ak.dot(np.conj(Ak)))))
-                rel_diff_array += [diff]
+                rel_diff_array += [rel_diff]
                 diff = np.sqrt(abs((Ak-Aprev).dot(np.conj(Ak-Aprev))))
                 diff_array += [diff]
 
@@ -2651,6 +2651,7 @@ class CROW(Resonator):#all idenical resonators
                     eig_vals,eig_vec = np.linalg.eig(Full_Matrix)
                 if get_eigvecs==False:
                     eig_vals = np.linalg.eigvals(Full_Matrix)
+                    #scp_eigs(Full_Matrix, k=6, sigma=-0.01+0.001*1j,which='LR',return_eigenvectors=False)
             
             
             if plot_eigvals==True:
@@ -2671,7 +2672,7 @@ class CROW(Resonator):#all idenical resonators
 class Lattice(Resonator):  
     pass
 
-def Plot_Map(map_data, detuning, colormap = 'cubehelix'):
+def Plot_Map(map_data, detuning, xlabel='index', units = '', colormap = 'cubehelix'):
     dOm = detuning[1]-detuning[0]
     dt=1
    
@@ -2735,7 +2736,7 @@ def Plot_Map(map_data, detuning, colormap = 'cubehelix'):
         ix, iy = event.xdata, event.ydata
         x = int(np.floor((ix-detuning.min())/dOm))
         max_val = (abs(map_data[x,:])**2).max()
-        plt.suptitle('Chosen detuning '+r'$\zeta_0$'+ '= %f'%ix, fontsize=20)
+        plt.suptitle('Chosen x axis value = %f'%np.round(ix,3) + ' '+units, fontsize=20)
         ax.lines.pop(0)
         ax.plot([ix,ix], [-np.pi, np.pi ],'r')
 
@@ -2759,14 +2760,17 @@ def Plot_Map(map_data, detuning, colormap = 'cubehelix'):
         ax4.plot(mu,10*np.log10(abs(np.fft.fftshift(np.fft.fft(map_data[x,:])))**2/(abs(np.fft.fft(map_data[x,:]))**2).max()),'-o', color='black',markersize=3)
         ax4.set_ylabel('Spectrum, dB')
         ax4.set_xlim(mu.min(),mu.max())
-        #ax4.set_ylim(-100,3)   
+        ax4.set_ylim(bottom=-150)
+        
+        ax4.set_xlim(mu.min()+10,mu.max()-10)
+        #ax4.autoscale(enable=None, axis="x", tight=True)
         plt.show()
         f.canvas.draw()
         
     
     f = plt.figure()
     ax = plt.subplot2grid((5, 1), (0, 0), rowspan=2)
-    plt.suptitle('Choose the detuning', fontsize=20)
+    #plt.suptitle('Choose the detuning', fontsize=20)
     f.set_size_inches(10,8)
     phi = np.linspace(-np.pi,np.pi,map_data[0,:].size)
 #    orig_cmap = plt.get_cmap('viridis')
@@ -2783,7 +2787,7 @@ def Plot_Map(map_data, detuning, colormap = 'cubehelix'):
     if (x<0) or (x>detuning.size):
         x = 0
     max_val = (abs(map_data[x,:])**2).max()
-    plt.suptitle('Chosen detuning '+r'$\zeta_0$'+ '= %f km'%ix, fontsize=20)
+    plt.suptitle('Chosen x axis value = %f'%np.round(ix,3) + ' '+units, fontsize=20)
     ax.lines.pop(0)
     
     ax.plot([ix,ix], [-np.pi, np.pi ],'r')
@@ -2806,8 +2810,10 @@ def Plot_Map(map_data, detuning, colormap = 'cubehelix'):
     ax4 = plt.subplot2grid((5, 1), (4, 0))            
     ax4.plot(mu,10*np.log10(abs(np.fft.fftshift(np.fft.fft(map_data[x,:])))**2/(abs(np.fft.fft(map_data[x,:]))**2).max()), '-o',color='black',markersize=3)
     ax4.set_ylabel('Spectrum, dB')
-    ax4.set_xlim(mu.min(),mu.max())
-    #ax4.set_ylim(-50,3)        
+    ax4.set_xlim(mu.min()+10,mu.max()-10)
+    ax4.set_ylim(bottom=-150)     
+    
+    #ax4.autoscale(enable=None, axis="x", tight=True)
 #    f.colorbar(pc)
     plt.subplots_adjust(left=0.07, bottom=0.07, right=0.95, top=0.93, wspace=None, hspace=0.4)
     f.canvas.mpl_connect('button_press_event', onclick)                

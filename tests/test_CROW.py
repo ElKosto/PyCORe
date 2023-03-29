@@ -10,10 +10,10 @@ import time
 
 start_time = time.time()
 
-Num_of_modes = 2**9
-N_crow = 4
+Num_of_modes = 2**2
+N_crow = 2
 
-D2 = 4.1e6#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
+D2 = -4.1e6*0#-1*beta2*L/Tr*D1**2 ## From beta2 to D2
 
 D3 = 0
 mu = np.arange(-Num_of_modes/2,Num_of_modes/2)
@@ -28,49 +28,52 @@ Dint = (Dint_single*np.ones([mu.size,N_crow]).T).T#Making matrix of dispersion w
 
 
 #J = 0.5*50e6*2*np.pi*np.ones([mu.size,(N_crow-1)])
-J = 2.0e9*2*np.pi*np.ones([mu.size,(N_crow-1)])
+#J = 2.0e9*2*np.pi*np.ones([mu.size,(N_crow-1)])
+J = 2*1e9*2*np.pi*np.ones([mu.size,(N_crow-1)])
 #J = np.zeros(N_crow-1)
 #for pp in range(N_crow-1):
 #    if pp%2: J[pp] = 4.5e9*2*np.pi
 #    else: J[pp] = 0.9e9*2*np.pi
 
-dNu_ini = 0.5e9#-2*J.max()/2/np.pi-10e6
-dNu_end = 2*J.max()/2/np.pi#+10e9
+dNu_ini = -2.5*J.max()/2/np.pi
+dNu_end = 2.5*J.max()/2/np.pi
+
+#J = 0*2*1e9*2*np.pi*np.ones([mu.size,(N_crow-1)])
 #dNu_ini = -1e9
-#dNu_end = 1e9
+#dNu_end = 2e9
 #dNu_ini = -10e9
 #dNu_end = -7e9
-nn = 2000
+nn = 1000
 ramp_stop = 1.0
 dOm = 2*np.pi*np.concatenate([np.linspace(dNu_ini,dNu_end, int(nn*ramp_stop)),dNu_end*np.ones(int(np.round((1-ramp_stop)*nn)))])
 
 
 #delta = 0.1e9*2*np.pi
-kappa_ex_ampl = 50e6*2*np.pi
+kappa_ex_ampl = 40e6*2*np.pi
 kappa_ex = np.zeros([Num_of_modes,N_crow])
 #kappa_ex[:,-1] = 2/5*kappa_ex_ampl*np.ones([Num_of_modes])
 kappa_ex[:,0] = kappa_ex_ampl*np.ones([Num_of_modes])
-kappa_ex[:,1] = kappa_ex_ampl*np.ones([Num_of_modes])
+kappa_ex[:,1] = 0*kappa_ex_ampl*np.ones([Num_of_modes])
 #for ii in range(N_crow):
 #    kappa_ex[:,ii] = kappa_ex_ampl*np.ones([Num_of_modes])
 #J = (kappa_ex[:,0]/2-kappa_ex[:,1]/2)/2*2*np.pi*np.ones([mu.size,(N_crow-1)])    
 Delta = np.zeros([mu.size,(N_crow)])
 
-#Delta[:,0] = 2*np.pi*1e9*np.ones([Num_of_modes])
+Delta[:,0] = 2*np.pi*1e9*np.ones([Num_of_modes])
 
 PhysicalParameters = {'Inter-resonator_coupling': J,
                       'Resonator detunings' : Delta,
                       'n0' : 1.9,
                       'n2' : 2.4e-19,### m^2/W
-                      'FSR' : 181.7e9 ,
-                      'w0' : 2*np.pi*192e12,
-                      'width' : 1.5e-6,
+                      'FSR' : 400.0e9 ,
+                      'w0' : 2*np.pi*193.414489e12,
+                      'width' : 2e-6,
                       'height' : 0.85e-6,
-                      'kappa_0' : 50e6*2*np.pi,
+                      'kappa_0' : 20e6*2*np.pi,
                       'kappa_ex' : kappa_ex,
                       'Dint' : Dint}
 
-simulation_parameters = {'slow_time' : 1e-6,
+simulation_parameters = {'slow_time' : 1e-3,
                          'detuning_array' : dOm,
                          'noise_level' : 1e-9,
                          'output' : 'map',
@@ -78,7 +81,7 @@ simulation_parameters = {'slow_time' : 1e-6,
                          'relative_tolerance' : 1e-12,
                          'max_internal_steps' : 2000}
 
-P0 = 0.3### W
+P0 = 0.1### W
 #P0 = 0.006### W
 Pump = np.zeros([len(mu),N_crow],dtype='complex')
 #for ii in range(N_crow):
@@ -95,7 +98,7 @@ crow.Init_From_Dict(PhysicalParameters)
 #%%
 
 #map2d = crow.Propagate_SAMCLIB(simulation_parameters, Pump, BC='OPEN')
-map2d = crow.Propagate_PSEUDO_SPECTRAL_SAMCLIB(simulation_parameters, Pump, BC='OPEN', lib='boost')
+map2d = crow.Propagate_PSEUDO_SPECTRAL_SAMCLIB(simulation_parameters, Pump, BC='OPEN', lib='NR')
 #map2d = crow.Propagate_SAM(simulation_parameters, Pump)
 #%%
 plt.figure()
