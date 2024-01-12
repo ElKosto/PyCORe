@@ -2737,7 +2737,7 @@ def Plot_Map(map_data, detuning, xlabel='index', units = '', colormap = 'cubehel
         x = int(np.floor((ix-detuning.min())/dOm))
         max_val = (abs(map_data[x,:])**2).max()
         plt.suptitle('Chosen x axis value = %f'%np.round(ix,3) + ' '+units, fontsize=20)
-        ax.lines.pop(0)
+        ax.lines[0].remove()
         ax.plot([ix,ix], [-np.pi, np.pi ],'r')
 
         ax2 = plt.subplot2grid((5, 1), (2, 0))            
@@ -2788,7 +2788,7 @@ def Plot_Map(map_data, detuning, xlabel='index', units = '', colormap = 'cubehel
         x = 0
     max_val = (abs(map_data[x,:])**2).max()
     plt.suptitle('Chosen x axis value = %f'%np.round(ix,3) + ' '+units, fontsize=20)
-    ax.lines.pop(0)
+    ax.lines[0].remove()
     
     ax.plot([ix,ix], [-np.pi, np.pi ],'r')
     
