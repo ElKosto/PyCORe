@@ -136,8 +136,8 @@ class Resonator:
             T_rn = (self.kappa/2)*T
             f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
             J*=2/self.kappa
-            print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
-            print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
+            #print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
+            #print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
         else:
             pump = Pump
             if Seed[0] == 0:
@@ -146,8 +146,8 @@ class Resonator:
                 seed = Seed
             T_rn = T
             f0 = pump
-            print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
-            print('xi [' + str(detuning[0]) + ',' +str(detuning[-1])+ ']')
+            #print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
+            #print('xi [' + str(detuning[0]) + ',' +str(detuning[-1])+ ']')
             detuning*=self.kappa/2
         noise_const = self.noise(eps) # set the noise level
         nn = len(detuning)
@@ -206,8 +206,8 @@ class Resonator:
             T_rn = (self.kappa/2)*T
             f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
             J*=2/self.kappa
-            print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
-            print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
+            #print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
+            #print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
         else:
             pump = Pump
             if Seed[0] == 0:
@@ -216,8 +216,8 @@ class Resonator:
                 seed = Seed
             T_rn = T
             f0 = pump
-            print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
-            print('xi [' + str(detuning[0]) + ',' +str(detuning[-1])+ ']')
+            #print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
+            #print('xi [' + str(detuning[0]) + ',' +str(detuning[-1])+ ']')
             detuning*=self.kappa/2
         noise_const = self.noise(eps) # set the noise level
         nn = len(detuning)
@@ -229,7 +229,7 @@ class Resonator:
         #    return dAdT
         disp_operator = self.Dint*2/self.kappa
         f0_dir = np.fft.ifft(f0)*self.N_points
-        print('f0^2 = ' + str(np.round(max(abs(f0_dir)**2), 2)))
+        #print('f0^2 = ' + str(np.round(max(abs(f0_dir)**2), 2)))
         def LLE_1d(t,A):
             #A+=noise_const
             dAdt = np.fft.ifft((-1j*disp_operator-(self.kappa + 1j*dOm_curr*2)/self.kappa)*(np.fft.fft(A)+noise_const) ) +1j*np.abs(A)**2*A+f0_dir
@@ -292,8 +292,8 @@ class Resonator:
             T_rn = (self.kappa/2)*T
             f0 = pump*np.sqrt(8*self.g0*self.kappa_ex/self.kappa**3)
             J*=2/self.kappa
-            print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
-            print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
+            #print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
+            #print('xi [' + str(detuning[0]*2/self.kappa) + ',' +str(detuning[-1]*2/self.kappa)+ ']')
         else:
             pump = Pump
             if Seed[0] == 0:
@@ -302,8 +302,8 @@ class Resonator:
                 seed = Seed
             T_rn = T
             f0 = pump
-            print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
-            print('xi [' + str(detuning[0]) + ',' +str(detuning[-1])+ ']')
+            #print('f0^2 = ' + str(np.round(max(abs(f0)**2), 2)))
+            #print('xi [' + str(detuning[0]) + ',' +str(detuning[-1])+ ']')
             detuning*=self.kappa/2
         if HardSeed == False:
             seed = self.seed_level(Pump, detuning[0])*np.sqrt(2*self.g0/self.kappa)
@@ -312,7 +312,7 @@ class Resonator:
         noise_const = self.noise(eps) # set the noise level
         nn = len(detuning)
         
-        print('J = ' + str(J))
+        #print('J = ' + str(J))
         t_st = float(T_rn)/len(detuning)
         #dt=1e-4 #t_ph
         
@@ -561,8 +561,8 @@ class Resonator:
 
         buf= np.zeros(Aprev.size,dtype=complex)
         J = self.Jacobian(d2, dphi, zeta_0, Aprev[index_1])            
-        print('f0^2 = ' + str(np.round(max(abs(f0_direct)**2), 2)))
-        print('xi = ' + str(zeta_0) )
+        #print('f0^2 = ' + str(np.round(max(abs(f0_direct)**2), 2)))
+        #print('xi = ' + str(zeta_0) )
         
         diff = self.N_points
         counter =0
@@ -681,7 +681,7 @@ def Plot_Map(map_data, detuning, S=[0],kappa_ex=0,output='field',colormap = 'cub
         x = int(np.floor((ix-detuning.min())/dOm))
         max_val = (abs(map_data[x,:])**2).max()
         plt.suptitle('Chosen detuning '+r'$\zeta_0$'+ '= %f'%ix, fontsize=20)
-        ax.lines.pop(0)
+        ax.lines[0].remove()
         ax.plot([ix,ix], [-np.pi, np.pi ],'r')
 
         ax2 = plt.subplot2grid((5, 1), (2, 0))            
@@ -730,13 +730,16 @@ def Plot_Map(map_data, detuning, S=[0],kappa_ex=0,output='field',colormap = 'cub
     ax.set_ylim(-np.pi, np.pi)
     ax.set_xlim(detuning.min(),detuning.max())
     ix=0
-    
-    x = int(((ix-detuning.min())/dOm))
+
+    try:
+        x = int(((ix-detuning.min())/dOm))
+    except:
+        x = 0
     if (x<0) or (x>detuning.size):
         x = 0
     max_val = (abs(map_data[x,:])**2).max()
-    plt.suptitle('Chosen detuning '+r'$\zeta_0$'+ '= %f km'%ix, fontsize=20)
-    ax.lines.pop(0)
+    #plt.suptitle('Chosen detuning '+r'$\zeta_0$'+ '= %f km'%ix, fontsize=20)
+    ax.lines[0].remove()
     
     ax.plot([ix,ix], [-np.pi, np.pi ],'r')
     
